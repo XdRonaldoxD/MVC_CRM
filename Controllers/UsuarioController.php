@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Request;
 require_once "Helpers/helpers.php";
 require_once "models/Usuario.php";
 require_once "models/Staff.php";
+require_once "models/Categorias.php";
+
 
 class UsuarioController
 {
@@ -84,5 +86,24 @@ class UsuarioController
         } else {
             echo "login incorrecto";
         }
+    }
+
+    public function GenerarUrlAmigable()
+    {
+        $categoria = Categorias::get();
+        foreach ($categoria as $key => $element) {
+            $urlAmigable = "";
+            if ($element->glosa_categoria != "") {
+                $urlAmigable .= str_replace(" ", "-", $element->glosa_categoria);
+            }
+            $urlAmigable = str_replace("/", "-", $urlAmigable);
+            $urlAmigable = str_replace("\\", "-", $urlAmigable);
+            $urlAmigable = str_replace("+", "-", $urlAmigable);
+
+            $element->urlamigable_categoria = $urlAmigable;
+            $element->save();
+        }
+
+        echo "Generado Correctamente";
     }
 }

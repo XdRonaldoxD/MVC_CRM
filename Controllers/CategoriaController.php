@@ -157,13 +157,18 @@ class CategoriaController
 
     public function GestionarCategoria()
     {
-
+        $urlAmigable = "";
+        $urlAmigable .= str_replace(" ", "-",  $_POST['glosa_categoria']);
+        $urlAmigable = str_replace("/", "-", $urlAmigable);
+        $urlAmigable = str_replace("\\", "-", $urlAmigable);
+        $urlAmigable = str_replace("+", "-", $urlAmigable);
         $datos = [
             'id_tipo_inventario' => $_POST['id_tipo_inventario'],
             'glosa_categoria' => $_POST['glosa_categoria'],
             'descripcion_categoria' => $_POST['descripcion_categoria'],
             'vigente_categoria' => 1,
-            'visibleonline_categoria' => ($_POST['visibleOnline'] == "true") ? 1 : 0
+            'visibleonline_categoria' => ($_POST['visibleOnline'] == "true") ? 1 : 0,
+            'urlamigable_categoria'=>$urlAmigable
         ];
 
         if (!empty($_FILES['imagen'])) {
@@ -240,26 +245,9 @@ class CategoriaController
             $domain = $_SERVER['HTTP_HOST'];
             $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_categoria/$categoria->pathimagen_categoria";
             $categoria->pathimagen_categoria = $imagens;
-        } 
+        }
         echo $categoria;
     }
 
-    public function GenerarUrlAmigable()
-    {
-        $categoria = Categorias::get();
-        foreach ($categoria as $key => $element) {
-            $urlAmigable = "";
-            if ($element->glosa_categoria != "") {
-                $urlAmigable .= str_replace(" ", "-", $element->glosa_categoria);
-            }
-            $urlAmigable = str_replace("/", "-", $urlAmigable);
-            $urlAmigable = str_replace("\\", "-", $urlAmigable);
-            $urlAmigable = str_replace("+", "-", $urlAmigable);
 
-            $element->urlamigable_categoria = $urlAmigable;
-            $element->save();
-        }
-
-        echo "Generado Correctamente";
-    }
 }

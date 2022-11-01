@@ -151,12 +151,16 @@ class ProductoController
                     $ConsultRelacionado = (new ConsultaGlobal())->ConsultaProductosRelacionado($consulta);
                     $path_producto_imagen = __DIR__ . "/../archivo/imagen_producto/{$ConsultRelacionado->path_producto_imagen}";
                     if (is_file($path_producto_imagen)) {
-                        $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
+                        // $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
+                        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+                        $domain = $_SERVER['HTTP_HOST'];
+                        $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$ConsultRelacionado->path_producto_imagen";
                     } else {
-                        $path_producto_imagen = '';
+                        $imagens = '';
                     }
+
                     $element = [
-                        'path_producto_imagen' => 'data:image/png;base64,' . $path_producto_imagen,
+                        'path_producto_imagen' => $imagens,
                         'glosa_producto' => $ConsultRelacionado->glosa_producto,
                         'id_producto' => $ConsultRelacionado->id_producto,
                     ];
@@ -198,7 +202,10 @@ class ProductoController
                     $portada_imagen = isset($elementos[3]) ? $elementos[3] : 0;
                     $imagen_base_64 = __DIR__ . "/../archivo/imagen_producto/{$path_producto_imagen}";
                     if (is_file($imagen_base_64)) {
-                        $imagenComoBase64 = base64_encode(file_get_contents($imagen_base_64));
+                        // $imagenComoBase64 = base64_encode(file_get_contents($imagen_base_64));
+                        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+                        $domain = $_SERVER['HTTP_HOST'];
+                        $imagenComoBase64 = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$path_producto_imagen";
                     } else {
                         $imagenComoBase64 = '';
                     }
@@ -206,7 +213,7 @@ class ProductoController
                         'id_producto_imagen' => $id_producto_imagen,
                         'nombre_imagen' => $nombre_producto_imagen,
                         'orden_imagen' => $key + 1,
-                        "imagen" => 'data:image/png;base64,' . $imagenComoBase64,
+                        "imagen" => $imagenComoBase64,
                         "portada" => ($portada_imagen === "1") ? true : false
                     ];
                     array_push($arreglo_imagen, $datos);
@@ -324,7 +331,7 @@ class ProductoController
     public function VerificarSku()
     {
         $producto = Producto::where('codigo_producto', $_GET['codigo_producto']);
-        if ($_GET['id_producto']!=='null') {
+        if ($_GET['id_producto'] !== 'null') {
             $producto = $producto->where('id_producto', '!=', $_GET['id_producto']);
         }
         $producto = $producto->first();

@@ -844,6 +844,22 @@ class ProductoController
         })->take(50)->get();
         $array = [];
         foreach ($productos as $key => $value) {
+
+            $producto_imagen = ProductoImagen::where('portada_producto_imagen', 1)->where('id_producto', $value->id_producto)->first();
+            if (isset($producto_imagen)) {
+                $path_producto_imagen = __DIR__ . "/../../archivo/imagen_producto/{$producto_imagen->path_producto_imagen}";
+                if (is_file($path_producto_imagen)) {
+                    $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+                    $domain = $_SERVER['HTTP_HOST'];
+                    $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$producto_imagen->path_producto_imagen";
+                } else {
+                    $imagens = 'assets/images/products/product-1.jpg';
+                }
+            } else {
+                $imagens = 'assets/images/products/product-1.jpg';
+            }
+
+
             $element = [
                 "id" => $value->id_producto,
                 "name" => $value->glosa_producto,
@@ -852,8 +868,7 @@ class ProductoController
                 "price" => $value->precioventa_producto,
                 "compareAtPrice" => null,
                 "images" => [
-                    "assets/images/products/product-1.jpg",
-                    "assets/images/products/product-1-1.jpg"
+                    $imagens
                 ],
                 "badges" => [
                     "new"
@@ -934,7 +949,7 @@ class ProductoController
                 "menu" => [
                     "type" => "megamenu",
                     "size" => "xl",
-                    "image" => ($cat->pathimagen_categoria!==null) ? $cat->pathimagen_categoria  : "assets/images/megamenu/megamenu-1.jpg",
+                    "image" => ($cat->pathimagen_categoria !== null) ? $cat->pathimagen_categoria  : "assets/images/megamenu/megamenu-1.jpg",
                     "columns" => $columnas
                 ]
 
