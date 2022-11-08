@@ -297,6 +297,7 @@ class ProductoController
         //CATEGORIAS HIJAS (EMBASE A ESTAS CATEGORIAS SE TRAE TODOS LOS PRODUCTOS RELACIONADOS)
         $recorrer = true;
         $categoria_select = Categorias::where('urlamigable_categoria', $_GET['urlamigable_categoria'])->first();
+
         $id_categoria = $categoria_select->id_categoria;
         $hijos = [];
 
@@ -304,7 +305,10 @@ class ProductoController
             $categorias = Categorias::where('id_categoria_padre', $id_categoria)->get();
             if (count($categorias) > 1) {
                 foreach ($categorias as $key => $elements) {
-                    array_push($hijos, $elements->id_categoria);
+                    $categorias_sub_hijo = Categorias::where('id_categoria_padre', $elements->id_categoria)->get();
+                    foreach ($categorias_sub_hijo as $key => $elementos) {
+                        array_push($hijos, $elementos->id_categoria);
+                    }
                 }
                 $recorrer = false;
             } else if (count($categorias) == 1) {
@@ -315,7 +319,7 @@ class ProductoController
                 $recorrer = false;
             }
         }
-
+  
         $hijos_ = array_unique($hijos);
         $hijos = implode(',', $hijos_);
 
@@ -452,23 +456,23 @@ class ProductoController
                     $colores = explode("~", $ConsultRelacionado->color_producto);
                 } else {
                     $colores =  [
-                        [
-                            "name" => "Blanco",
-                            "slug" => "",
-                            "hexadecimal" => "#fff",
-                            "customFields" => []
-                        ],  [
-                            "name" => "Amarillo",
-                            "slug" => "",
-                            "hexadecimal" => "#ffd333",
-                            "customFields" => []
-                        ],
-                        [
-                            "name" => "Rojo",
-                            "slug" => "",
-                            "hexadecimal" => "#ff4040",
-                            "customFields" => []
-                        ]
+                        // [
+                        //     "name" => "Blanco",
+                        //     "slug" => "",
+                        //     "hexadecimal" => "#fff",
+                        //     "customFields" => []
+                        // ],  [
+                        //     "name" => "Amarillo",
+                        //     "slug" => "",
+                        //     "hexadecimal" => "#ffd333",
+                        //     "customFields" => []
+                        // ],
+                        // [
+                        //     "name" => "Rojo",
+                        //     "slug" => "",
+                        //     "hexadecimal" => "#ff4040",
+                        //     "customFields" => []
+                        // ]
                     ];
                 }
 
@@ -478,7 +482,8 @@ class ProductoController
                         "name" => $color[0],
                         "slug" => "yellow",
                         "hexadecimal" => $color[1],
-                        "customFields" => []
+                        "customFields" => [],
+                        'id_producto_color' => $color[2]
                     ];
                     array_push($color_producto_relacion, $elemento);
                 }
@@ -698,7 +703,8 @@ class ProductoController
                 "name" => $color[0],
                 "slug" => "yellow",
                 "hexadecimal" => $color[1],
-                "customFields" => []
+                "customFields" => [],
+                'id_producto_color' => $color[2]
             ];
             array_push($color_producto, $elemento);
         }

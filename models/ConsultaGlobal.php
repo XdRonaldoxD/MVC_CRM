@@ -21,7 +21,7 @@ class ConsultaGlobal
         (SELECT GROUP_CONCAT(producto_imagen.path_producto_imagen SEPARATOR '~') 
         from producto_imagen where id_producto=producto.id_producto
         ) as producto_imagen,
-		(select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color SEPARATOR '~')
+		(select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
 		FROM producto_color where id_producto=producto.id_producto
 		) as color_producto,
 		  (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~') 
@@ -41,12 +41,13 @@ class ConsultaGlobal
         return $result;
     }
 
-    public function ListarCategoriaProductoApi($condicion){
+    public function ListarCategoriaProductoApi($condicion)
+    {
         $sql = "SELECT categoria.glosa_categoria,categoria.urlamigable_categoria,producto.*,null as producto_relacionado,null as categorias,
         (SELECT GROUP_CONCAT(producto_imagen.path_producto_imagen SEPARATOR '~') 
         from producto_imagen where id_producto=producto.id_producto
         ) as producto_imagen,
-		(select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color SEPARATOR '~')
+		(select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
 		FROM producto_color where id_producto=producto.id_producto
 		) as color_producto,
 		  (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~') 
@@ -67,7 +68,8 @@ class ConsultaGlobal
         return $result;
     }
 
-    public function EstructuraFilterApi($condicion){
+    public function EstructuraFilterApi($condicion)
+    {
         $sql = "SELECT max(producto.precioventa_producto) as precio_mayor,min(producto.precioventa_producto) as precio_menor from categoria_producto INNER JOIN  producto USING (id_producto)
         $condicion ";
         $CategoriaProducto = $this->db->prepare($sql);
@@ -135,8 +137,11 @@ class ConsultaGlobal
 
     public function ConsultaPedidoDetalle($condicion)
     {
+        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+        $domain = $_SERVER['HTTP_HOST'];
+        $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/";
         $consulta = "SELECT pedido_detalle.*,producto.glosa_producto,producto.codigo_producto,producto.precioventa_producto,
-        (SELECT path_producto_imagen from producto_imagen where portada_producto_imagen=1 
+        (SELECT concat('$imagens',path_producto_imagen) from producto_imagen where portada_producto_imagen=1 
         and id_producto=producto.id_producto
         ) as imagen_producto FROM `pedido_detalle` INNER JOIN producto USING (id_producto)
         $condicion";
@@ -230,26 +235,28 @@ class ConsultaGlobal
         return  $result;
     }
 
-    public function LiberarGroupConcat(){
-        $consulta = "SET GLOBAL group_concat_max_len = 1000000";
+    public function LiberarGroupConcat()
+    {
+        $consulta = "SET group_concat_max_len = 1000000";
         $producto = $this->db->prepare($consulta);
         $producto->execute();
         $producto = null;
     }
 
-    public function ConsultaSingular($sql){
+    public function ConsultaSingular($sql)
+    {
         $ConsultaSingular = $this->db->prepare($sql);
         $ConsultaSingular->execute();
         $result = $ConsultaSingular->fetch(PDO::FETCH_OBJ);
         $ConsultaSingular = null;
         return $result;
     }
-    public function ConsultaGlobal($sql){
+    public function ConsultaGlobal($sql)
+    {
         $ConsultaGlobal = $this->db->prepare($sql);
         $ConsultaGlobal->execute();
         $result = $ConsultaGlobal->fetchAll(PDO::FETCH_OBJ);
         $ConsultaGlobal = null;
         return $result;
-
     }
 }
