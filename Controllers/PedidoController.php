@@ -47,12 +47,12 @@ class PedidoController
         $DatosPost = file_get_contents("php://input");
         $DatosPost = json_decode($DatosPost);
         $ConsultaGlobalLimit = (new ConsultaGlobal())->ListarPedido($DatosPost);
-        $listaProductos = (new ConsultaGlobal())->ListarPedido($DatosPost,true);
+        $listaProductos = (new ConsultaGlobal())->ListarPedido($DatosPost, true);
         $datos = array(
             "draw" => $DatosPost->draw,
             "recordsTotal" => count($ConsultaGlobalLimit),
             "recordsFiltered" => count($ConsultaGlobalLimit),
-            "data" =>$listaProductos
+            "data" => $listaProductos
         );
         echo  json_encode($datos);
     }
@@ -81,19 +81,39 @@ class PedidoController
     {
         $consulta = " where id_pedido={$_GET['id_pedido']}";
         $PedidoDetalle = (new ConsultaGlobal())->ConsultaPedidoDetalle($consulta);
-        $Pedido=Pedido::join('cliente',"cliente.id_cliente","pedido.id_cliente")
-        ->where('pedido.id_pedido',$_GET['id_pedido'])
-        ->select('pedido.*',"cliente.dni_cliente","cliente.nombre_cliente","cliente.apellidopaterno_cliente",
-        "cliente.apellidomaterno_cliente","cliente.e_mail_cliente","cliente.telefono_cliente","cliente.celular_cliente")
-        ->first();
-        $EstadoPedido=EstadoPedido::all();
-        $EstadoPreparacion=EstadoPreparacion::all();
-        $datos=[
-            "Pedido"=>$Pedido,
-            "PedidoDetalle"=>$PedidoDetalle,
-            "EstadoPedido"=>$EstadoPedido,
-            "EstadoPreparacion"=>$EstadoPreparacion
+        $Pedido = Pedido::join('cliente', "cliente.id_cliente", "pedido.id_cliente")
+            ->where('pedido.id_pedido', $_GET['id_pedido'])
+            ->select(
+                'pedido.*',
+                "cliente.dni_cliente",
+                "cliente.nombre_cliente",
+                "cliente.apellidopaterno_cliente",
+                "cliente.apellidomaterno_cliente",
+                "cliente.e_mail_cliente",
+                "cliente.telefono_cliente",
+                "cliente.celular_cliente"
+            )
+            ->first();
+        $EstadoPedido = EstadoPedido::all();
+        $EstadoPreparacion = EstadoPreparacion::all();
+        $datos = [
+            "Pedido" => $Pedido,
+            "PedidoDetalle" => $PedidoDetalle,
+            "EstadoPedido" => $EstadoPedido,
+            "EstadoPreparacion" => $EstadoPreparacion
         ];
         echo json_encode($datos);
+    }
+
+    public function ActualizarPedidoEstados()
+    {
+        $Pedido = Pedido::where('id_pedido', $_POST['id_pedido'])->first();
+        if ($_POST['accion'] === "ESTADO") {
+            $Pedido->id_estado_pedido = $_POST['id_actualizar_estado_preparacion'];
+        } else {
+            $Pedido->id_estado_preparacion = $_POST['id_actualizar_estado_preparacion'];
+        }
+        $Pedido->save();
+        echo json_encode("Actualizado con exito");
     }
 }

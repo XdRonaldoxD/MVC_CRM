@@ -4,7 +4,7 @@ use Dompdf\Dompdf;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-if (!isset($_GET['consultaquery'])) {
+
     require_once "models/Cliente.php";
     require_once "models/Usuario.php";
     require_once "models/Departamento.php";
@@ -13,9 +13,11 @@ if (!isset($_GET['consultaquery'])) {
     require_once "models/Pedido.php";
     require_once "models/PedidoDetalle.php";
     require_once "models/Folio.php";
-} else {
+    require_once "models/Producto.php";
+    require_once "models/ProductoHistorial.php";
+    require_once "models/AtributoProducto.php";
     require_once "models/ConsultaGlobal.php";
-}
+
 class ClienteController
 {
 
@@ -331,11 +333,30 @@ class ClienteController
                 'id_producto' => $elemento->product->id,
                 'iva_pedido_detalle' => $iva_pedido_detalle,
                 'valortotal_pedido_detalle' => $elemento->product->price,
-                'cantidad_pedido_detalle' => $elemento->product->stock,
+                'cantidad_pedido_detalle' => $elemento->quantity,
                 'fechacreacion_pedido_detalle' => date('Y-m-d H:i:s'),
                 'orden_pedido_detalle' => $key + 1,
             ];
             PedidoDetalle::create($datos);
+            //GUARDAMOS EL HISTORIAL Y LO RESTAMOS------------------------
+            $ProductoHistorial=[
+                'id_usuario'=>$respuesta_cliente['datos']['id_usuario'],
+                'id_tipo_movimiento'=>2,
+                'id_producto'=>$elemento->product->id,
+                'cantidadrmovimiento_producto_historial'=>$elemento->quantity,
+                'fecha_producto_historial'=>date('Y-m-d H:i:s'),
+                'comentario_producto_historial'=>'Venta en linea.',
+            ];
+            ProductoHistorial::create($ProductoHistorial);
+            $producto=Producto::where('id_producto',$elemento->product->id)->first();
+            $producto->stock_producto-=$elemento->quantity;
+            $producto->save();
+            foreach ($elemento->atributo_producto as $key => $value) {
+                $AtributoProducto=AtributoProducto::where('id_atributo_producto',$value->id_atributo_producto)->first();
+                $AtributoProducto->stock_atributo-=$value->cantidad;
+                $AtributoProducto->save();
+            }
+            // -----------------------------------------------------------------
         }
 
         ob_start();
@@ -351,10 +372,10 @@ class ClienteController
             // smithxd118@gmail.com     
             // a74dac0e781527e2e06bd66041783587-us14
             // Send using SMTP
-            $mail->Host       = 'smtp.gmail.com';                  // Set the SMTP server to send through
+            $mail->Host       = 'smtp-relay.sendinblue.com';                  // Set the SMTP server to send through
             $mail->SMTPAuth   = true;                                   // Enable SMTP authentication
             $mail->Username   = 'smithxd118@gmail.com';                     // SMTP username
-            $mail->Password   = 'txbctuntlnkrhwnr';                               // SMTP password
+            $mail->Password   = 'SwaYhJCFkX8MdWIZ';                               // SMTP password
             $mail->SMTPSecure = 'tls';         // Enable TLS encryption; `PHPMailer::ENCRYPTION_SMTPS` encouraged
             $mail->Port       = 587;                                    // TCP port to connect to, use 465 for `PHPMailer::ENCRYPTION_SMTPS` above
             // id=dbecf254af
@@ -387,6 +408,4 @@ class ClienteController
         ];
         echo json_encode($respuestaDetalla);
     }
-
-   
 }

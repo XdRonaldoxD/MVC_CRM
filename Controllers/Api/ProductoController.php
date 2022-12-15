@@ -63,38 +63,19 @@ class ProductoController
             $producto_color = ProductoColor::where("id_producto", $element['id_producto'])->get()->toArray();
             $categorias = CategoriaProducto::join("categoria", "categoria.id_categoria", "categoria_producto.id_categoria")
                 ->where("id_producto", $element['id_producto'])->get()->toArray();
-            if (!empty($color_producto)) {
-                $color_producto = [];
+            $color_producto = [];   
+            if (!empty($producto_color)) {
                 foreach ($producto_color as $key => $elemento) {
                     $datos = [
                         "name" => $elemento['nombre_producto_color'],
                         "slug" => "",
                         "hexadecimal" => $elemento['hexadecimal_producto_color'],
-                        "customFields" => []
+                        "customFields" => [],
+                        'id_producto_color' => $elemento['id_producto_color']
                     ];
                     array_push($color_producto, $datos);
                 }
-            } else {
-                $color_producto =  [
-                    [
-                        "name" => "Blanco",
-                        "slug" => "",
-                        "hexadecimal" => "#fff",
-                        "customFields" => []
-                    ],  [
-                        "name" => "Amarillo",
-                        "slug" => "",
-                        "hexadecimal" => "#ffd333",
-                        "customFields" => []
-                    ],
-                    [
-                        "name" => "Rojo",
-                        "slug" => "",
-                        "hexadecimal" => "#ff4040",
-                        "customFields" => []
-                    ]
-                ];
-            }
+            } 
             $categorias_arreglo = [];
             foreach ($categorias as $key => $categoria) {
                 $dato_categoria = [
@@ -417,12 +398,12 @@ class ProductoController
                 if ($ConsultRelacionado->producto_imagen) {
                     $imagen = explode("~", $ConsultRelacionado->producto_imagen);
                     foreach ($imagen as $key => $value) {
-                        $path_producto_imagen = __DIR__ . "/../../archivo/imagen_producto/{$value}";
-                        $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
-                        $elementos = [
-                            'data:image/png;base64,' . $path_producto_imagen,
-                        ];
-                        array_push($imagenes_relacion_relacion, $elementos);
+
+                        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+                        $domain = $_SERVER['HTTP_HOST'];
+                        $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
+               
+                        array_push($imagenes_relacion_relacion, $imagens);
                     }
                 } else {
                     $imagenes_relacion_relacion = [
@@ -455,25 +436,7 @@ class ProductoController
                 if ($ConsultRelacionado->color_producto) {
                     $colores = explode("~", $ConsultRelacionado->color_producto);
                 } else {
-                    $colores =  [
-                        // [
-                        //     "name" => "Blanco",
-                        //     "slug" => "",
-                        //     "hexadecimal" => "#fff",
-                        //     "customFields" => []
-                        // ],  [
-                        //     "name" => "Amarillo",
-                        //     "slug" => "",
-                        //     "hexadecimal" => "#ffd333",
-                        //     "customFields" => []
-                        // ],
-                        // [
-                        //     "name" => "Rojo",
-                        //     "slug" => "",
-                        //     "hexadecimal" => "#ff4040",
-                        //     "customFields" => []
-                        // ]
-                    ];
+                    $colores =  [];
                 }
 
                 foreach ($colores as $key => $elementos) {
@@ -637,12 +600,16 @@ class ProductoController
         if ($element->producto_imagen) {
             $imagen = explode("~", $element->producto_imagen);
             foreach ($imagen as $key => $value) {
-                $path_producto_imagen = __DIR__ . "/../../archivo/imagen_producto/{$value}";
-                $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
-                $elementos = [
-                    'data:image/png;base64,' . $path_producto_imagen,
-                ];
-                array_push($imagenes, $elementos);
+                // $path_producto_imagen = __DIR__ . "/../../archivo/imagen_producto/{$value}";
+                // $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
+                // $elementos = [
+                //     'data:image/png;base64,' . $path_producto_imagen,
+                // ];
+
+                $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+                $domain = $_SERVER['HTTP_HOST'];
+                $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
+                array_push($imagenes, $imagens);
             }
         } else {
             $imagenes = [
@@ -676,25 +643,7 @@ class ProductoController
         if ($element->color_producto) {
             $colores = explode("~", $element->color_producto);
         } else {
-            $color_producto =  [
-                [
-                    "name" => "Blanco",
-                    "slug" => "",
-                    "hexadecimal" => "#fff",
-                    "customFields" => []
-                ],  [
-                    "name" => "Amarillo",
-                    "slug" => "",
-                    "hexadecimal" => "#ffd333",
-                    "customFields" => []
-                ],
-                [
-                    "name" => "Rojo",
-                    "slug" => "",
-                    "hexadecimal" => "#ff4040",
-                    "customFields" => []
-                ]
-            ];
+            $colores =  [];
         }
 
         foreach ($colores as $key => $elementos) {
