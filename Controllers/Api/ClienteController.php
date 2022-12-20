@@ -17,6 +17,8 @@ use PHPMailer\PHPMailer\Exception;
     require_once "models/ProductoHistorial.php";
     require_once "models/AtributoProducto.php";
     require_once "models/ConsultaGlobal.php";
+    require_once "models/ProductoColor.php";
+    require_once "models/PedidoDetalleAtributoProducto.php";
 
 class ClienteController
 {
@@ -325,6 +327,7 @@ class ClienteController
         $Folio->save();
         $Productos = json_decode($_POST['productos']);
         $datos = [];
+
         foreach ($Productos as $key => $elemento) {
             $iva_pedido_detalle = $elemento->product->price / 1.18;
             $iva_pedido_detalle = $elemento->product->price - $iva_pedido_detalle;
@@ -337,7 +340,7 @@ class ClienteController
                 'fechacreacion_pedido_detalle' => date('Y-m-d H:i:s'),
                 'orden_pedido_detalle' => $key + 1,
             ];
-            PedidoDetalle::create($datos);
+            $PedidoDetalle=PedidoDetalle::create($datos);
             //GUARDAMOS EL HISTORIAL Y LO RESTAMOS------------------------
             $ProductoHistorial=[
                 'id_usuario'=>$respuesta_cliente['datos']['id_usuario'],
@@ -351,12 +354,33 @@ class ClienteController
             $producto=Producto::where('id_producto',$elemento->product->id)->first();
             $producto->stock_producto-=$elemento->quantity;
             $producto->save();
+            $options=[];
             foreach ($elemento->atributo_producto as $key => $value) {
-                $AtributoProducto=AtributoProducto::where('id_atributo_producto',$value->id_atributo_producto)->first();
+                $AtributoProducto=AtributoProducto::join('atributo','atributo.id_atributo','atributo_producto.id_atributo')
+                ->where('atributo_producto.id_atributo_producto',$value->id_atributo_producto)
+                ->first();
+                $ProductoColor=ProductoColor::where('id_producto_color',$value->id_producto_color)->first();
                 $AtributoProducto->stock_atributo-=$value->cantidad;
                 $AtributoProducto->save();
+                $fillable = [
+                    'id_pedido_detalle'=>$PedidoDetalle->id_pedido_detalle,
+                    'id_atributo'=>$AtributoProducto->id_atributo,
+                    'hexadecimal_producto_color'=>$ProductoColor->hexadecimal_producto_color,
+                    'nombre_color_detalle_atributo_producto'=>$ProductoColor->nombre_producto_color,
+                    'cantidad_pedido_detalle_atributo_producto'=>$value->cantidad
+                ];
+                PedidoDetalleAtributoProducto::create($fillable);
+                $option=[
+                    'label'=> 'Color',
+                    'value'=>$ProductoColor->nombre_producto_color,
+                    'label_atributo'=> 'Talla',
+                    'value_atributo'=>$AtributoProducto->glosa_atributo,
+                ];
+                array_push($options,$option);
+                
             }
             // -----------------------------------------------------------------
+            $elemento->options=$options;
         }
 
         ob_start();
@@ -400,6 +424,7 @@ class ClienteController
             http_response_code(403);
             die;
         }
+  
         $respuestaDetalla = [
             "datos_pedido" => $datos_pedido,
             "datos_detalle_pedido" => $Productos,

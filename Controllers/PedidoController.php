@@ -80,7 +80,7 @@ class PedidoController
     public function TraerPedido()
     {
         $consulta = " where id_pedido={$_GET['id_pedido']}";
-        $PedidoDetalle = (new ConsultaGlobal())->ConsultaPedidoDetalle($consulta);
+        $ConsultaPedidoDetalle = (new ConsultaGlobal())->ConsultaPedidoDetalle($consulta);
         $Pedido = Pedido::join('cliente', "cliente.id_cliente", "pedido.id_cliente")
             ->where('pedido.id_pedido', $_GET['id_pedido'])
             ->select(
@@ -96,6 +96,26 @@ class PedidoController
             ->first();
         $EstadoPedido = EstadoPedido::all();
         $EstadoPreparacion = EstadoPreparacion::all();
+        $PedidoDetalle = [];
+        foreach ($ConsultaPedidoDetalle as $key => $value) {
+            if ($value->pedido_detalle_atributo_producto) {
+                $pedido_detalle_atributo_producto = explode("~", $value->pedido_detalle_atributo_producto);
+                $detalle_atributo = [];
+                foreach ($pedido_detalle_atributo_producto as $key => $element) {
+                    $datos = explode(",", $element);
+                    $atributos = [
+                        "glosa_atributo"=> $datos[0],
+                        "cantidad_pedido_detalle_atributo_producto"=> $datos[1],
+                        "nombre_color_detalle_atributo_producto"=> $datos[2],
+                    ];
+                    array_push($detalle_atributo, $atributos);
+                }
+                $value->pedido_detalle_atributo_producto = $detalle_atributo;
+            }else{
+                $value->pedido_detalle_atributo_producto =[];
+            }
+            array_push($PedidoDetalle, $value);
+        }
         $datos = [
             "Pedido" => $Pedido,
             "PedidoDetalle" => $PedidoDetalle,

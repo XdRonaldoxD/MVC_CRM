@@ -143,7 +143,13 @@ class ConsultaGlobal
         $consulta = "SELECT pedido_detalle.*,producto.glosa_producto,producto.codigo_producto,producto.precioventa_producto,
         (SELECT concat('$imagens',path_producto_imagen) from producto_imagen where portada_producto_imagen=1 
         and id_producto=producto.id_producto
-        ) as imagen_producto FROM `pedido_detalle` INNER JOIN producto USING (id_producto)
+        ) as imagen_producto,
+        (SELECT GROUP_CONCAT(glosa_atributo,',',cantidad_pedido_detalle_atributo_producto,',',nombre_color_detalle_atributo_producto SEPARATOR '~') 
+        from pedido_detalle_atributo_producto 
+        join atributo using (id_atributo)
+        where id_pedido_detalle=pedido_detalle.id_pedido_detalle
+        ) as pedido_detalle_atributo_producto
+         FROM `pedido_detalle` INNER JOIN producto USING (id_producto)
         $condicion";
         $producto = $this->db->prepare($consulta);
         $producto->execute();
