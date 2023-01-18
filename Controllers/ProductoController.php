@@ -1,14 +1,7 @@
 <?php
-
-
-if (isset($_GET['consultaquery'])) {
-    require_once "models/ConsultaGlobal.php";
-} else {
-    require_once "models/Producto.php";
-    require_once "models/ProductoHistorial.php";
-}
-
-
+require_once "models/Producto.php";
+require_once "models/ProductoHistorial.php";
+require_once "models/ConsultaGlobal.php";
 class ProductoController
 {
     public function ListaProducto()
@@ -103,6 +96,46 @@ class ProductoController
         echo json_encode($datos);
     }
 
+    public function ProductoHistorial()
+    {
+        $DatosPost = file_get_contents("php://input");
+        $DatosPost = json_decode($DatosPost);
+
+        if ($DatosPost->length < 1) {
+            $longitud = 10;
+        } else {
+            $longitud = $DatosPost->length;
+        }
+        $buscar = $DatosPost->search->value;
+
+        $recordsFilteredTotal = ProductoHistorial::join('usuario', 'usuario.id_usuario', 'producto_historial.id_usuario')
+            ->leftjoin("staff", 'staff.id_staff', 'usuario.id_staff')
+            ->leftjoin("tipo_movimiento", 'tipo_movimiento.id_tipo_movimiento', 'producto_historial.id_tipo_movimiento')
+            ->leftjoin("tipo_documento", 'tipo_documento.id_tipo_documento', 'producto_historial.id_tipo_documento')
+            ->where("producto_historial.id_producto", $DatosPost->id_producto);
+        if (!empty($buscar)) {
+            $recordsFilteredTotal = $recordsFilteredTotal->Where(function ($query) use ($buscar) {
+                $query->where('tipo_movimiento.glosa_tipo_movimiento', 'LIKE', "%$buscar%")
+                    ->orWhere('staff.nombre_staff', 'LIKE', "%$buscar%")
+                    ->orWhere('staff.apellidopaterno_staff', 'LIKE', "%$buscar%")
+                    ->orWhere('staff.apellidomaterno_staff', 'LIKE', "%$buscar%")
+                    ->orWhere('producto_historial.comentario_producto_historial', 'LIKE', "%$buscar%")
+                    ->orWhere('producto_historial.fecha_producto_historial', 'LIKE', "%$buscar%")
+                    ->orWhere('producto_historial.cantidadrmovimiento_producto_historial', 'LIKE', "%$buscar%");
+            });
+        }
+        $listaProducto = $recordsFilteredTotal;
+        $recordsFilteredTotales = $recordsFilteredTotal->get()->count();
+        $listaProducto = $listaProducto->orderBy('producto_historial.fecha_producto_historial', 'desc')->skip($DatosPost->start)->take($longitud)->get();
+        $datos = array(
+            "draw" => $DatosPost->draw,
+            "recordsTotal" => $recordsFilteredTotales,
+            "recordsFiltered" => $recordsFilteredTotales,
+            "data" => $listaProducto
+        );
+        echo json_encode($datos);
+    }
+
     public function GestionarStockProducto()
     {
 
@@ -112,7 +145,8 @@ class ProductoController
             "id_tipo_movimiento" => $GestionarStock->accion,
             "comentario_producto_historial" => $GestionarStock->comentario,
             "preciocompra_producto_historial" => $GestionarStock->precio_compra,
-            "cantidadrmovimiento_producto_historial" => $GestionarStock->stock_final,
+            "cantidadrmovimiento_producto_historial" => $GestionarStock->cantidad,
+            "id_producto" => $GestionarStock->id_producto,
             "fecha_producto_historial" => date('Y-m-d H:i:s')
         );
         ProductoHistorial::create($datos);

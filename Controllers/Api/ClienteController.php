@@ -5,20 +5,20 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 
-    require_once "models/Cliente.php";
-    require_once "models/Usuario.php";
-    require_once "models/Departamento.php";
-    require_once "models/Provincia.php";
-    require_once "models/Perfil.php";
-    require_once "models/Pedido.php";
-    require_once "models/PedidoDetalle.php";
-    require_once "models/Folio.php";
-    require_once "models/Producto.php";
-    require_once "models/ProductoHistorial.php";
-    require_once "models/AtributoProducto.php";
-    require_once "models/ConsultaGlobal.php";
-    require_once "models/ProductoColor.php";
-    require_once "models/PedidoDetalleAtributoProducto.php";
+require_once "models/Cliente.php";
+require_once "models/Usuario.php";
+require_once "models/Departamento.php";
+require_once "models/Provincia.php";
+require_once "models/Perfil.php";
+require_once "models/Pedido.php";
+require_once "models/PedidoDetalle.php";
+require_once "models/Folio.php";
+require_once "models/Producto.php";
+require_once "models/ProductoHistorial.php";
+require_once "models/AtributoProducto.php";
+require_once "models/ConsultaGlobal.php";
+require_once "models/ProductoColor.php";
+require_once "models/PedidoDetalleAtributoProducto.php";
 
 class ClienteController
 {
@@ -340,47 +340,46 @@ class ClienteController
                 'fechacreacion_pedido_detalle' => date('Y-m-d H:i:s'),
                 'orden_pedido_detalle' => $key + 1,
             ];
-            $PedidoDetalle=PedidoDetalle::create($datos);
+            $PedidoDetalle = PedidoDetalle::create($datos);
             //GUARDAMOS EL HISTORIAL Y LO RESTAMOS------------------------
-            $ProductoHistorial=[
-                'id_usuario'=>$respuesta_cliente['datos']['id_usuario'],
-                'id_tipo_movimiento'=>2,
-                'id_producto'=>$elemento->product->id,
-                'cantidadrmovimiento_producto_historial'=>$elemento->quantity,
-                'fecha_producto_historial'=>date('Y-m-d H:i:s'),
-                'comentario_producto_historial'=>'Venta en linea.',
+            $ProductoHistorial = [
+                'id_usuario' => $respuesta_cliente['datos']['id_usuario'],
+                'id_tipo_movimiento' => 2,
+                'id_producto' => $elemento->product->id,
+                'cantidadrmovimiento_producto_historial' => $elemento->quantity,
+                'fecha_producto_historial' => date('Y-m-d H:i:s'),
+                'comentario_producto_historial' => 'Venta en linea.',
             ];
             ProductoHistorial::create($ProductoHistorial);
-            $producto=Producto::where('id_producto',$elemento->product->id)->first();
-            $producto->stock_producto-=$elemento->quantity;
+            $producto = Producto::where('id_producto', $elemento->product->id)->first();
+            $producto->stock_producto -= $elemento->quantity;
             $producto->save();
-            $options=[];
+            $options = [];
             foreach ($elemento->atributo_producto as $key => $value) {
-                $AtributoProducto=AtributoProducto::join('atributo','atributo.id_atributo','atributo_producto.id_atributo')
-                ->where('atributo_producto.id_atributo_producto',$value->id_atributo_producto)
-                ->first();
-                $ProductoColor=ProductoColor::where('id_producto_color',$value->id_producto_color)->first();
-                $AtributoProducto->stock_atributo-=$value->cantidad;
+                $AtributoProducto = AtributoProducto::join('atributo', 'atributo.id_atributo', 'atributo_producto.id_atributo')
+                    ->where('atributo_producto.id_atributo_producto', $value->id_atributo_producto)
+                    ->first();
+                $ProductoColor = ProductoColor::where('id_producto_color', $value->id_producto_color)->first();
+                $AtributoProducto->stock_atributo -= $value->cantidad;
                 $AtributoProducto->save();
                 $fillable = [
-                    'id_pedido_detalle'=>$PedidoDetalle->id_pedido_detalle,
-                    'id_atributo'=>$AtributoProducto->id_atributo,
-                    'hexadecimal_producto_color'=>$ProductoColor->hexadecimal_producto_color,
-                    'nombre_color_detalle_atributo_producto'=>$ProductoColor->nombre_producto_color,
-                    'cantidad_pedido_detalle_atributo_producto'=>$value->cantidad
+                    'id_pedido_detalle' => $PedidoDetalle->id_pedido_detalle,
+                    'id_atributo' => $AtributoProducto->id_atributo,
+                    'hexadecimal_producto_color' => $ProductoColor->hexadecimal_producto_color,
+                    'nombre_color_detalle_atributo_producto' => $ProductoColor->nombre_producto_color,
+                    'cantidad_pedido_detalle_atributo_producto' => $value->cantidad
                 ];
                 PedidoDetalleAtributoProducto::create($fillable);
-                $option=[
-                    'label'=> 'Color',
-                    'value'=>$ProductoColor->nombre_producto_color,
-                    'label_atributo'=> 'Talla',
-                    'value_atributo'=>$AtributoProducto->glosa_atributo,
+                $option = [
+                    'label' => 'Color',
+                    'value' => $ProductoColor->nombre_producto_color,
+                    'label_atributo' => 'Talla',
+                    'value_atributo' => $AtributoProducto->glosa_atributo,
                 ];
-                array_push($options,$option);
-                
+                array_push($options, $option);
             }
             // -----------------------------------------------------------------
-            $elemento->options=$options;
+            $elemento->options = $options;
         }
 
         ob_start();
@@ -407,7 +406,7 @@ class ClienteController
             //DESDE DONDE
             $mail->setFrom('smithxd118@gmail.com', 'Ronaldo');
             //PARA QUIEN
-            $mail->addAddress('smithxd108@gmail.com');
+            $mail->addAddress($respuesta_cliente['datos']['e_mail_cliente']);
             // $mail->addAddress('rdurand@wilsoft.cl');  
             //copia
             $mail->addCC('smithxd118@gmail.com');
@@ -424,7 +423,54 @@ class ClienteController
             http_response_code(403);
             die;
         }
-  
+
+        //ENVIAMOS LA LA NOTIFICACION AL WHASSAP DEL vendedor
+
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://graph.facebook.com/v15.0/100307912941870/messages',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => '{
+                                        "messaging_product": "whatsapp",
+                                        "to": "51931585523",
+                                        "type": "template",
+                                        "template": {
+                                            "name": "comunicacion",
+                                            "language": {
+                                                "code": "es"
+                                            },
+                                            "components": [
+                                                {
+                                                    "type": "body",
+                                                    "parameters": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Link:https://www.google.com/"
+                                                        }
+                                                    
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }',
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Bearer EAATiujUfihcBAL3pJDIsQn9OASOZARCnOXZAJKqaOKCZCYtSZA8JVZAnTZAZA7ZC4Pvy9Labr1RCrFrU1XIArGJBEAgJSCxkgHGAMgEkJO16S7hTLfLLXqWKFE4XKhrDQ8bkcpI0alxLApIUaoOBFZCdLMXA0gZC3ZBdPZAksXAvkw1kQNrD8KpYjDc0',
+                'Content-Type: application/json'
+            ),
+        ));
+        $response = curl_exec($curl);
+        curl_close($curl);
+        echo $response;
+        //
+
         $respuestaDetalla = [
             "datos_pedido" => $datos_pedido,
             "datos_detalle_pedido" => $Productos,

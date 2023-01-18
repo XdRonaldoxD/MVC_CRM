@@ -8,6 +8,8 @@ require_once "models/DetalleZonaOferta.php";
 require_once "models/PedidoDetalle.php";
 require_once "models/ProductoImagen.php";
 require_once "models/Categorias.php";
+require_once "models/AtributoProducto.php";
+
 // } else {
 require_once "models/ConsultaGlobal.php";
 // }
@@ -63,7 +65,7 @@ class ProductoController
             $producto_color = ProductoColor::where("id_producto", $element['id_producto'])->get()->toArray();
             $categorias = CategoriaProducto::join("categoria", "categoria.id_categoria", "categoria_producto.id_categoria")
                 ->where("id_producto", $element['id_producto'])->get()->toArray();
-            $color_producto = [];   
+            $color_producto = [];
             if (!empty($producto_color)) {
                 foreach ($producto_color as $key => $elemento) {
                     $datos = [
@@ -75,7 +77,7 @@ class ProductoController
                     ];
                     array_push($color_producto, $datos);
                 }
-            } 
+            }
             $categorias_arreglo = [];
             foreach ($categorias as $key => $categoria) {
                 $dato_categoria = [
@@ -92,7 +94,18 @@ class ProductoController
                 ];
                 array_push($categorias_arreglo, $dato_categoria);
             }
+            $atributoProducto = AtributoProducto::join('atributo', 'atributo.id_atributo', 'atributo_producto.id_atributo')
+                ->where('id_producto', $element['id_producto'])->get();
+            $atributo_producto=[];    
+            foreach ($atributoProducto as $key => $data) {
+                $elementos = [
+                    "id_atributo_producto" => $data->id_atributo_producto,
+                    "glosa_atributo" => $data->glosa_atributo,
+                ];
+                array_push($atributo_producto, $elementos);
+            }
             $datosProductos = [
+                "atributo_producto" => $atributo_producto,
                 "id" => $element['id_producto'],
                 "name" => $element['glosa_producto'],
                 "sku" => $element['codigo_producto'],
@@ -300,7 +313,7 @@ class ProductoController
                 $recorrer = false;
             }
         }
-  
+
         $hijos_ = array_unique($hijos);
         $hijos = implode(',', $hijos_);
 
@@ -402,7 +415,7 @@ class ProductoController
                         $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
                         $domain = $_SERVER['HTTP_HOST'];
                         $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
-               
+
                         array_push($imagenes_relacion_relacion, $imagens);
                     }
                 } else {

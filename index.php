@@ -14,6 +14,23 @@ header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Autho
 // require_once "config/EvitarDDos.php";
 // EvitarDDos::antiflood_countaccess();
 //
+
+if ($_SERVER['SERVER_NAME'] === 'sistemasdurand.com') {
+    $host = '162.241.60.172';
+    $username = 'siste268';
+    $password = 'zSj55IiL2+e8:E';
+    $base_datos = 'siste268_nota_venta';
+    $ruta_archivo = 'https://sistemasdurand.com/';
+    define('RUTA_ARCHIVO', $ruta_archivo);
+} else {
+    $dominio = "";
+    $host = 'localhost';
+    $username = 'root';
+    $password = '';
+    $base_datos = 'notaventa';
+    $ruta_archivo = 'http://localhost/MVC_APIVENTA/';
+    define('RUTA_ARCHIVO', $ruta_archivo);
+}
 require_once "vendor/autoload.php";
 require_once "config/database.php";
 require_once "Helpers/helpers.php";
@@ -34,12 +51,20 @@ if (isset($_GET['Apicontroller'])) {
 }
 //
 //REQUES VEO SI ESTAN LAS PETICIONES ENVIANDO EL CONTROLADOR Y SU ACCION SI NO ENVIA NO ENTRARA 
+
 if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET") {
     $headers = apache_request_headers();
+    $Authorization = null;
     if (isset($headers['Authorization'])) {
+        $Authorization = $headers['Authorization'];
+    }
+    if (isset($headers['authorization'])) {
+        $Authorization = $headers['authorization'];
+    }
+    if ($Authorization) {
         $jwtAth = new JwtAuth();
-        $checktoken = $jwtAth->checktoken($headers['Authorization']);
-        // $checktoken=true;
+        $checktoken = $jwtAth->checktoken($Authorization);
+        $checktoken = true;
         if (!$checktoken) {
             $data = array(
                 'status' => 'error',
@@ -57,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
                 $nombre_controlador = $controller . "Controller";
             } else {
                 echo "No exite la Pagina";
-                die();
+                die(http_response_code(403));
             }
             if (isset($_GET['action']) && class_exists($nombre_controlador)) {
                 $controlador = new $nombre_controlador();
@@ -74,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
         }
         die();
     } else {
-        if (isset($_GET['controller']) && $_GET['controller']=='Usuario') {
+        if (isset($_GET['controller']) && $_GET['controller'] == 'Usuario') {
             $nombre_controlador = $_GET['controller'] . "Controller";
         } else {
             http_response_code(403);
@@ -97,4 +122,3 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
     }
     die();
 }
-

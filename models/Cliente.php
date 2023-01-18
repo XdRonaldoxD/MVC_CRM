@@ -34,6 +34,7 @@ class Cliente extends Model
     'mediollegada_cliente',
     'vigente_cliente',
     'esmigrado_cliente',
-    'contraseniaactualizada_cliente'
+    'contraseniaactualizada_cliente',
+    'ruc_cliente'
    ];
 }
