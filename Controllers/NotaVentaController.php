@@ -11,6 +11,8 @@ require_once "models/Departamento.php";
 require_once "models/Provincia.php";
 require_once "models/Distrito.php";
 require_once "models/Cliente.php";
+require_once "models/Usuario.php";
+require_once "models/Caja.php";
 
 require_once "models/ConsultaGlobal.php";
 require_once "config/Helper.php";
@@ -26,17 +28,20 @@ class NotaVentaController
         } else {
             $longitud = $DatosPost->length;
         }
-        if (isset($DatosPost->filtro_buscar)) {
+        if ( isset($DatosPost->filtro_buscar)) {
             $buscar = $DatosPost->filtro_buscar;
-        } else {
-            $buscar = '';
+        }else{
+            $buscar='';
         }
+       
         $consulta = " and (p.codigo_barra_producto = '$buscar' or p.codigooriginal_producto LIKE '%$buscar%' or p.codigo_producto LIKE '%$buscar%' or p.glosa_producto LIKE '%$buscar%'
             or p.precioventa_producto LIKE '%$buscar%' or ti.glosa_tipo_inventario LIKE '%$buscar%') ";
         $query = "SELECT * FROM producto as p 
         INNER JOIN tipo_producto as tp on tp.id_tipo_producto = p.id_tipo_producto 
         LEFT JOIN tipo_inventario as ti on p.id_tipo_inventario=ti.id_tipo_inventario
-        WHERE  p.vigente_producto=1  $consulta ";
+        WHERE  p.vigente_producto=1 
+        and p.stock_producto>0
+        $consulta ";
         $ConsultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
         $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
         $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
@@ -111,10 +116,32 @@ class NotaVentaController
             'direccion_cliente' => $informacion_cliente->direccion_cliente,
             'fechacreacion_cliente' => date('Y-m-d H:i:s'),
             'vigente_cliente' => 1,
-            'dv_cliente'=>$informacion_cliente->dv_cliente
+            'dv_cliente' => $informacion_cliente->dv_cliente
         ];
-        
+
         $cliente = Cliente::create($datos);
         echo $cliente;
+    }
+
+    public function VerificarCajaAbierta()
+    {
+        $usuario = Usuario::join('staff', 'staff.id_staff', 'usuario.id_staff')
+            ->where('usuario.id_usuario', $_GET['id_usuario'])->first();
+        $caja_existe = Caja::where("id_staff", $usuario->id_staff)->where('estado_caja', 1)->first();
+        if (isset($caja_existe)) {
+            echo json_encode($caja_existe->id_caja);
+        } else {
+            echo json_encode(false);
+        }
+    }
+
+    public function AsignarClienteGenerico(){
+        $cliente=Cliente::where('dni_cliente','00000000')->first();
+        if (isset($cliente)) {
+            echo json_encode($cliente);
+        }else{
+            http_response_code(404);
+        }
+      
     }
 }

@@ -14,7 +14,7 @@ class ProductoHistorial extends Model
         'id_producto',
         'id_proveedor',
         'id_bodega',
-        'cantidadrmovimiento_producto_historial',
+        'cantidadmovimiento_producto_historial',
         'fecha_producto_historial',
         'comentario_producto_historial',
         'preciocompra_producto_historial',

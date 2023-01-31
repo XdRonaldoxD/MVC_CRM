@@ -58,9 +58,10 @@ class ConsultaGlobal
         inner join atributo using (id_atributo)
         where id_producto=producto.id_producto
         ) as atributo_producto
-        from categoria_producto INNER JOIN  producto USING (id_producto)
+        from categoria_producto 
+        INNER JOIN  producto USING (id_producto)
         INNER JOIN categoria USING (id_categoria)
-        $condicion ";
+        $condicion and producto.vigente_producto=1";
         $CategoriaProducto = $this->db->prepare($sql);
         $CategoriaProducto->execute();
         $result = $CategoriaProducto->fetchAll(PDO::FETCH_OBJ);
@@ -265,4 +266,5 @@ class ConsultaGlobal
         $ConsultaGlobal = null;
         return $result;
     }
+ 
 }

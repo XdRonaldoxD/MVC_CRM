@@ -1,0 +1,227 @@
+<?php
+require_once "models/ConsultaGlobal.php";
+require_once "models/Caja.php";
+require_once "models/Usuario.php";
+class CajaController
+{
+
+    public function ListaCaja_Habilitado_Deshabilitado()
+    {
+        $DatosPost = file_get_contents("php://input");
+        $DatosPost = json_decode($DatosPost);
+        if ($DatosPost->length < 1) {
+            $longitud = 10;
+        } else {
+            $longitud = $DatosPost->length;
+        }
+        $buscar = $DatosPost->search->value;
+        $fechas = '';
+        if ($DatosPost->fechacreacion_caja_inicio) {
+            $fechas .= ' and ';
+            $fechas .= " caja.fechacreacion_caja>='$DatosPost->fechacreacion_caja_inicio 00:00:00' ";
+        }
+        if ($DatosPost->fechacreacion_caja_fin) {
+            $fechas .= ' and ';
+            $fechas .= " caja.fechacreacion_caja<='$DatosPost->fechacreacion_caja_fin 23:59:59' ";
+        }
+
+        $consulta = " and (concat(staff.nombre_staff,' ',staff.apellidopaterno_staff,' ',staff.apellidomaterno_staff) like '%$buscar%' or staff.nombre_staff LIKE  '%$buscar%' or staff.apellidopaterno_staff LIKE '%$buscar%' or staff.apellidomaterno_staff LIKE '%$buscar%') ";
+        $query = "SELECT * FROM caja  
+        inner join staff using (id_staff)
+        WHERE  caja.estado_caja=$DatosPost->estado  $consulta $fechas
+        order by caja.fechacreacion_caja desc
+        ";
+        $ConsultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
+        $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $datos = array(
+            "draw" => $DatosPost->draw,
+            "recordsTotal" => count($ConsultaGlobalLimit),
+            "recordsFiltered" => count($ConsultaGlobalLimit),
+            "data" => $ConsultaGlobal
+        );
+        echo json_encode($datos);
+    }
+
+    public function GuardarCaja()
+    {
+        $usuario = Usuario::join('staff', 'staff.id_staff', 'usuario.id_staff')
+            ->where('usuario.id_usuario', $_POST['id_usuario'])->first();
+        $datos = [
+            'id_staff' => $usuario->id_staff,
+            'fechacreacion_caja' => date('Y-m-d H:i:s'),
+            'estado_caja' => 1,
+            'montoinicial_caja' => $_POST['montoinicial_caja']
+        ];
+
+        Caja::create($datos);
+        echo json_encode("Creado con exito");
+    }
+
+    public function TraerDetalleCaja()
+    {
+        $query_ingreso = "SELECT * from ingreso 
+        INNER JOIN negocio USING (id_negocio)
+        INNER JOIN medio_pago USING (id_medio_pago)
+        inner join tipo_ingreso USING (id_tipo_ingreso)
+        LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
+        LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
+        LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
+        where id_caja={$_POST['id_caja']} ";
+
+        $query_egreso = "SELECT * from egreso 
+        INNER JOIN negocio USING (id_negocio)
+        inner join tipo_egreso USING (id_tipo_egreso)
+        LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
+        LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
+        LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
+        where id_caja={$_POST['id_caja']} ";
+
+        $Ingreso = (new ConsultaGlobal())->ConsultaGlobal($query_ingreso);
+        $Egreso = (new ConsultaGlobal())->ConsultaGlobal($query_egreso);
+
+        $total_efectivo = 0;
+        $total_caja = 0;
+        $data_efectivo = [];
+        $data_no_efectivo = [];
+        foreach ($Ingreso as $key => $value) {
+            $total_caja += $value->valor_ingreso;
+            if ($value->afectacaja_tipo_ingreso == 1) {
+                $total_efectivo += $value->valor_ingreso;
+                $exite = false;
+                foreach ($data_efectivo as $i => $element) {
+                    if ($element['id_medio_pago'] === $value->id_medio_pago) {
+                        $data_efectivo[$i]['cantidad'] += 1;
+                        $data_efectivo[$i]['valor_pago'] += intval($value->valor_ingreso);
+                        $exite = true;
+                        break;
+                    }
+                }
+                if (!$exite) {
+                    $efectivos = [
+                        'id_medio_pago' => $value->id_medio_pago,
+                        "glosa_pago" => $value->glosa_medio_pago,
+                        "valor_pago" => $value->valor_ingreso,
+                        "documento" => "INGRESO",
+                        "cantidad" => 1
+                    ];
+                    array_push($data_efectivo, $efectivos);
+                }
+            } else {
+                $exite = false;
+                foreach ($data_no_efectivo as $key => $element) {
+                    if ($element['id_medio_pago'] === $value->id_medio_pago) {
+                        $data_no_efectivo[$key]['cantidad'] += 1;
+                        $data_no_efectivo[$key]['valor_pago'] += $value->valor_ingreso;
+                        $exite = true;
+                        break;
+                    }
+                }
+                if (!$exite) {
+                    $efectivos = [
+                        'id_medio_pago' => $value->id_medio_pago,
+                        "glosa_pago" => $value->glosa_medio_pago,
+                        "valor_pago" => $value->valor_ingreso,
+                        "documento" => "INGRESO",
+                        "cantidad" => 1
+                    ];
+                    array_push($data_no_efectivo, $efectivos);
+                }
+            }
+        }
+
+        foreach ($Egreso as $key => $value) {
+            $total_caja -= $value->valor_egreso;
+            if ($value->afectacaja_tipo_egreso == 1) {
+                $total_efectivo -= $value->valor_egreso;
+                $exite = false;
+                foreach ($data_efectivo as $j => $element) {
+                    if ($element['id_medio_pago'] === $value->id_tipo_egreso) {
+                        $data_efectivo[$j]['cantidad'] += 1;
+                        $data_efectivo[$j]['valor_pago'] += $value->valor_egreso;
+                        $exite = true;
+                        break;
+                    }
+                }
+                if (!$exite) {
+                    $efectivos = [
+                        'id_medio_pago' => $value->id_tipo_egreso,
+                        "glosa_pago" => $value->glosa_tipo_egreso,
+                        "valor_pago" => $value->valor_egreso,
+                        "documento" => "EGRESO",
+                        "cantidad" => 1
+                    ];
+                    array_push($data_efectivo, $efectivos);
+                }
+            } else {
+                $exite = false;
+                foreach ($data_no_efectivo as $z => $element) {
+                    if ($element['id_medio_pago'] === $value->id_tipo_egreso) {
+                        $data_no_efectivo[$z]['cantidad']++;
+                        $data_no_efectivo[$z]['valor_pago'] += $value->valor_egreso;
+                        $exite = true;
+                        break;
+                    }
+                }
+                if (!$exite) {
+                    $efectivos = [
+                        'id_medio_pago' => $value->id_tipo_egreso,
+                        "glosa_pago" => $value->glosa_tipo_egreso,
+                        "valor_pago" => $value->valor_egreso,
+                        "documento" => "EGRESO",
+                        "cantidad" => 1
+                    ];
+                    array_push($data_no_efectivo, $efectivos);
+                }
+            }
+        }
+        $caja = Caja::where('id_caja', $_POST['id_caja'])->first();
+
+        $respuesta = [
+            "total_efectivo" => $total_efectivo + $caja->montoinicial_caja,
+            "total_caja" => $total_caja + $caja->montoinicial_caja,
+            "data_no_efectivo" => $data_no_efectivo,
+            "data_efectivo" => $data_efectivo,
+            'montoinicial_caja' => $caja->montoinicial_caja
+        ];
+        echo json_encode($respuesta);
+    }
+
+    public function MostrarDocumentos()
+    {
+        if ($_GET['tipo_documento'] == "INGRESO") {
+            $query_ingreso = "SELECT *,'".RUTA_ARCHIVO."/archivo' as ruta_archivo from ingreso 
+            INNER JOIN negocio USING (id_negocio)
+            INNER JOIN medio_pago USING (id_medio_pago)
+            inner join tipo_ingreso USING (id_tipo_ingreso)
+            LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
+            LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
+            LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
+            where id_caja={$_GET['id_caja']} AND medio_pago.id_medio_pago={$_GET['id_pago']}";
+            $data = (new ConsultaGlobal())->ConsultaGlobal($query_ingreso);
+        } else {
+            $query_egreso = "SELECT *,'".RUTA_ARCHIVO."/archivo' as ruta_archivo from egreso 
+            INNER JOIN negocio USING (id_negocio)
+            inner join tipo_egreso USING (id_tipo_egreso)
+            LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
+            LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
+            LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
+            where id_caja={$_GET['id_caja']} AND egreso.id_tipo_egreso={$_GET['id_pago']} ";
+            $data = (new ConsultaGlobal())->ConsultaGlobal($query_egreso);
+           
+        }
+        $respuesta=[
+            "tipo_documento"=>$_GET['tipo_documento'],
+            "data"=>$data
+        ];
+        echo json_encode($respuesta);
+    }
+
+    public function CerrarCaja(){
+        $caja=Caja::where('id_caja',$_POST['id_caja'])->first();
+        $caja->fechacierre_caja=date('Y-m-d H:i:s');
+        $caja->estado_caja=0;
+        $caja->save();
+        echo json_encode("Caja Cerrado exitosamente");
+    }
+}

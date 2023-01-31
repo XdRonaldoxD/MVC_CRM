@@ -34,4 +34,6 @@ class ClienteController{
         echo json_encode($data);
     }
 
+  
+
 }

@@ -28,7 +28,7 @@ if ($_SERVER['SERVER_NAME'] === 'sistemasdurand.com') {
     $username = 'root';
     $password = '';
     $base_datos = 'notaventa';
-    $ruta_archivo = 'http://localhost/MVC_APIVENTA/';
+    $ruta_archivo = 'http://localhost/MVC_CRM/';
     define('RUTA_ARCHIVO', $ruta_archivo);
 }
 require_once "vendor/autoload.php";

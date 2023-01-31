@@ -82,7 +82,7 @@ class ClienteController
             "tipodocumento_cliente" => "DNI",
             'fechacreacion_cliente' => date('Y-m-d H:i:s'),
             'mediollegada_cliente' => "RESERVA_ONLINE",
-            "idProvincia" => $formulario->idProvincia
+            "idDistrito" => $formulario->idDistrito
         );
         if (empty($existeCliente)) {
             $nuevoCiente = Cliente::create($datos);
@@ -308,7 +308,8 @@ class ClienteController
             'id_estado_pedido' => 1,
             'id_estado_pago' => $id_estado_pago,
             'id_estado_preparacion' => 5,
-            'idProvincia' => $respuesta_cliente['datos']['idProvincia'],
+            // Este
+            // 'idProvincia' => $respuesta_cliente['datos']['idProvincia'],
             'fechacreacion_pedido' => date('Y-m-d H:i:s'),
             'numero_pedido' => $Folio->numero_folio,
             'valorneto_pedido' => $totales_productos->subtotal,
@@ -346,7 +347,7 @@ class ClienteController
                 'id_usuario' => $respuesta_cliente['datos']['id_usuario'],
                 'id_tipo_movimiento' => 2,
                 'id_producto' => $elemento->product->id,
-                'cantidadrmovimiento_producto_historial' => $elemento->quantity,
+                'cantidadmovimiento_producto_historial' => $elemento->quantity,
                 'fecha_producto_historial' => date('Y-m-d H:i:s'),
                 'comentario_producto_historial' => 'Venta en linea.',
             ];
@@ -355,28 +356,30 @@ class ClienteController
             $producto->stock_producto -= $elemento->quantity;
             $producto->save();
             $options = [];
+       
             foreach ($elemento->atributo_producto as $key => $value) {
-                $AtributoProducto = AtributoProducto::join('atributo', 'atributo.id_atributo', 'atributo_producto.id_atributo')
-                    ->where('atributo_producto.id_atributo_producto', $value->id_atributo_producto)
-                    ->first();
-                $ProductoColor = ProductoColor::where('id_producto_color', $value->id_producto_color)->first();
-                $AtributoProducto->stock_atributo -= $value->cantidad;
-                $AtributoProducto->save();
-                $fillable = [
-                    'id_pedido_detalle' => $PedidoDetalle->id_pedido_detalle,
-                    'id_atributo' => $AtributoProducto->id_atributo,
-                    'hexadecimal_producto_color' => $ProductoColor->hexadecimal_producto_color,
-                    'nombre_color_detalle_atributo_producto' => $ProductoColor->nombre_producto_color,
-                    'cantidad_pedido_detalle_atributo_producto' => $value->cantidad
-                ];
-                PedidoDetalleAtributoProducto::create($fillable);
-                $option = [
-                    'label' => 'Color',
-                    'value' => $ProductoColor->nombre_producto_color,
-                    'label_atributo' => 'Talla',
-                    'value_atributo' => $AtributoProducto->glosa_atributo,
-                ];
-                array_push($options, $option);
+                    $AtributoProducto = AtributoProducto::join('atributo', 'atributo.id_atributo', 'atributo_producto.id_atributo')
+                        ->where('atributo_producto.id_atributo_producto', $value->id_atributo_producto)
+                        ->first();
+                    $ProductoColor = ProductoColor::where('id_producto_color', $value->id_producto_color)->first();
+                    $AtributoProducto->stock_atributo -= $value->cantidad;
+                    $AtributoProducto->save();
+                    $fillable = [
+                        'id_pedido_detalle' => $PedidoDetalle->id_pedido_detalle,
+                        'id_atributo' => $AtributoProducto->id_atributo,
+                        'hexadecimal_producto_color' => $ProductoColor->hexadecimal_producto_color,
+                        'nombre_color_detalle_atributo_producto' => $ProductoColor->nombre_producto_color,
+                        'cantidad_pedido_detalle_atributo_producto' => $value->cantidad
+                    ];
+                    PedidoDetalleAtributoProducto::create($fillable);
+                    $option = [
+                        'label' => 'Color',
+                        'value' => $ProductoColor->nombre_producto_color,
+                        'label_atributo' => 'Talla',
+                        'value_atributo' => $AtributoProducto->glosa_atributo,
+                    ];
+                    array_push($options, $option);
+             
             }
             // -----------------------------------------------------------------
             $elemento->options = $options;
@@ -453,7 +456,7 @@ class ClienteController
                                                     "parameters": [
                                                         {
                                                             "type": "text",
-                                                            "text": "Link:https://www.google.com/"
+                                                            "text": "Comprobante:B001-01 por favor revisar en el sistema el comprobante hecho verificar."
                                                         }
                                                     
                                                     ]
@@ -468,7 +471,7 @@ class ClienteController
         ));
         $response = curl_exec($curl);
         curl_close($curl);
-        echo $response;
+        // echo $response;
         //
 
         $respuestaDetalla = [

@@ -96,7 +96,7 @@ class ProductoController
             }
             $atributoProducto = AtributoProducto::join('atributo', 'atributo.id_atributo', 'atributo_producto.id_atributo')
                 ->where('id_producto', $element['id_producto'])->get();
-            $atributo_producto=[];    
+            $atributo_producto = [];
             foreach ($atributoProducto as $key => $data) {
                 $elementos = [
                     "id_atributo_producto" => $data->id_atributo_producto,
@@ -297,11 +297,16 @@ class ProductoController
 
         while ($recorrer) {
             $categorias = Categorias::where('id_categoria_padre', $id_categoria)->get();
+
             if (count($categorias) > 1) {
                 foreach ($categorias as $key => $elements) {
                     $categorias_sub_hijo = Categorias::where('id_categoria_padre', $elements->id_categoria)->get();
-                    foreach ($categorias_sub_hijo as $key => $elementos) {
-                        array_push($hijos, $elementos->id_categoria);
+                    if (count($categorias_sub_hijo)>0) {
+                        foreach ($categorias_sub_hijo as $key => $elementos) {
+                            array_push($hijos, $elementos->id_categoria);
+                        }
+                    } else {
+                        array_push($hijos, $elements->id_categoria);
                     }
                 }
                 $recorrer = false;
@@ -342,11 +347,11 @@ class ProductoController
                 "slug" => "price",
                 "name" => "Price",
                 "value" => [
-                    $consulta_filter->precio_menor,
-                    $consulta_filter->precio_mayor,
+                    0,
+                    $consulta_filter->precio_mayor + 1,
                 ],
-                "min" =>  $consulta_filter->precio_menor,
-                "max" => $consulta_filter->precio_mayor,
+                "min" =>  0,
+                "max" => $consulta_filter->precio_mayor + 1,
             ],
             [
                 "type" => "check",

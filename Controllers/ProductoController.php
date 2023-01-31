@@ -121,7 +121,7 @@ class ProductoController
                     ->orWhere('staff.apellidomaterno_staff', 'LIKE', "%$buscar%")
                     ->orWhere('producto_historial.comentario_producto_historial', 'LIKE', "%$buscar%")
                     ->orWhere('producto_historial.fecha_producto_historial', 'LIKE', "%$buscar%")
-                    ->orWhere('producto_historial.cantidadrmovimiento_producto_historial', 'LIKE', "%$buscar%");
+                    ->orWhere('producto_historial.cantidadmovimiento_producto_historial', 'LIKE', "%$buscar%");
             });
         }
         $listaProducto = $recordsFilteredTotal;
@@ -145,11 +145,21 @@ class ProductoController
             "id_tipo_movimiento" => $GestionarStock->accion,
             "comentario_producto_historial" => $GestionarStock->comentario,
             "preciocompra_producto_historial" => $GestionarStock->precio_compra,
-            "cantidadrmovimiento_producto_historial" => $GestionarStock->cantidad,
+            "cantidadmovimiento_producto_historial" => $GestionarStock->cantidad,
             "id_producto" => $GestionarStock->id_producto,
             "fecha_producto_historial" => date('Y-m-d H:i:s')
         );
         ProductoHistorial::create($datos);
+        $producto=Producto::where('id_producto',$GestionarStock->id_producto)->first();
+        switch ($GestionarStock->accion) {
+            case '1':
+                $producto->stock_producto+=$GestionarStock->cantidad;
+                break;
+            case '2':
+                $producto->stock_producto-=$GestionarStock->cantidad;
+                break;
+        }
+        $producto->save();
         echo json_encode('ok');
     }
     public function GestionActivoDesactivadoProducto()

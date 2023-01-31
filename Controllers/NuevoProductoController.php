@@ -53,7 +53,7 @@ class NuevoProductoController
             $urlAmigable = str_replace("/", "-", $urlAmigable);
             $urlAmigable = str_replace("\\", "-", $urlAmigable);
             $urlAmigable = str_replace("+", "-", $urlAmigable);
-         
+
             $DatosProducto = [
                 'id_tipo_producto' => 1,
                 'id_tipo_inventario' => $informacionForm->tipo_inventario,
@@ -65,7 +65,7 @@ class NuevoProductoController
                 'stock_producto' => $PrecioStockForm->stock,
                 'precioventa_producto' => $PrecioStockForm->precio_venta,
                 'preciocosto_producto' => $PrecioStockForm->precio_costo,
-                'urlamigable_producto'=>$urlAmigable,
+                'urlamigable_producto' => $urlAmigable,
                 'fechacreacion_producto' => date('Y-m-d H:i:s'),
                 'vigente_producto' => 1,
                 'visibleonline_producto' => ($informacionForm->visible_tienda == true) ?  1 : 0
@@ -75,14 +75,12 @@ class NuevoProductoController
 
                 $Productos = Producto::where('id_producto', $informacionForm->id_producto)->update($DatosProducto);
                 ProductoColor::where('id_producto', $informacionForm->id_producto)->delete();
-                ProductoImagen::where('id_producto', $informacionForm->id_producto)->delete();
                 ProductoRelacionado::where('id_producto', $informacionForm->id_producto)->delete();
                 ProductoEspecificaciones::where('id_producto', $informacionForm->id_producto)->delete();
                 AtributoProducto::where('id_producto', $informacionForm->id_producto)->delete();
                 CategoriaProducto::where('id_producto', $informacionForm->id_producto)->delete();
                 $id_producto = $informacionForm->id_producto;
             } else {
-              
                 $Productos = Producto::create($DatosProducto);
                 $id_producto = $Productos->id_producto;
             }
@@ -94,40 +92,61 @@ class NuevoProductoController
                 ];
                 ProductoColor::create($colores);
             }
+            $ProductoImagen_existe = ProductoImagen::where('id_producto',$id_producto)->pluck('id_producto_imagen')->toArray();
             foreach ($imagenes_producto as $key => $archivos) {
-                //DECODIFICA LA IMAGEN BASE64
-                $Base64Img = $archivos->imagen;
-                list(, $Base64Img) = explode(';', $Base64Img);
-                list(, $Base64Img) = explode(',', $Base64Img);
-                $Base64Img = base64_decode($Base64Img);
-                $extension = $Helper->getImageMimeType($Base64Img);
-                //crear el directorio
-                if (!file_exists(__DIR__ . "/../archivo/imagen_producto")) {
-                    mkdir(__DIR__ . "/../archivo/imagen_producto", 0777, true);
+                if (isset($archivos->id_producto_imagen)) {
+                    $ProductoImagen = ProductoImagen::where('id_producto_imagen', $archivos->id_producto_imagen)->first();
                 }
-                // GUARDA LA IMAGEN
-                $fechacreacion = date('Y-m-d H:i:s');
-                $separaFecha = explode(" ", $fechacreacion);
-                $Fecha = explode("-", $separaFecha[0]);
-                $path = $archivos->nombre_imagen . mt_srand(10) . "_" . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() .$key. "_.$extension";
-                $file = fopen(__DIR__ . "/../archivo/imagen_producto/$path", "wb");
-                fwrite($file, $Base64Img);
-                fclose($file);
-                // print_r($archivos);
-                // die;
-                $ProductoImagen = array(
-                    "id_producto" =>  $id_producto,
-                    "nombre_producto_imagen" => $archivos->nombre_imagen,
-                    "extension_producto_imagen" => "$extension",
-                    "peso_producto_imagen" => filesize(__DIR__ . "/../archivo/imagen_producto/$path"),
-                    "path_producto_imagen" => $path,
-                    "fechacreacion_producto_imagen" => date('Y-m-d H:i:s'),
-                    'orden_producto_imagen' => $archivos->orden_imagen,
-                    "estado_producto_imagen" => 1,
-                    "portada_producto_imagen" => $archivos->portada
-                );
-                ProductoImagen::create($ProductoImagen);
+                if (isset($ProductoImagen)) {
+                    $ver = array_search($archivos->id_producto_imagen, $ProductoImagen_existe);
+                    unset($ProductoImagen_existe[$ver]);
+                    $ProductoImagen->portada_producto_imagen=($archivos->portada==true) ? 1 : 0;
+                    $ProductoImagen->save();
+                } else {
+                    //DECODIFICA LA IMAGEN BASE64
+                    $Base64Img = $archivos->imagen;
+                    list(, $Base64Img) = explode(';', $Base64Img);
+                    list(, $Base64Img) = explode(',', $Base64Img);
+                    $Base64Img = base64_decode($Base64Img);
+                    $extension = $Helper->getImageMimeType($Base64Img);
+                    //crear el directorio
+                    if (!file_exists(__DIR__ . "/../archivo/imagen_producto")) {
+                        mkdir(__DIR__ . "/../archivo/imagen_producto", 0777, true);
+                    }
+                    // GUARDA LA IMAGEN
+                    $fechacreacion = date('Y-m-d H:i:s');
+                    $separaFecha = explode(" ", $fechacreacion);
+                    $Fecha = explode("-", $separaFecha[0]);
+                    $path = $archivos->nombre_imagen . mt_srand(10) . "_" . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . $key . "_.$extension";
+                    $file = fopen(__DIR__ . "/../archivo/imagen_producto/$path", "wb");
+                    fwrite($file, $Base64Img);
+                    fclose($file);
+                    // print_r($archivos);
+                    // die;
+                    $ProductoImagen = array(
+                        "id_producto" =>  $id_producto,
+                        "nombre_producto_imagen" => $archivos->nombre_imagen,
+                        "extension_producto_imagen" => "$extension",
+                        "peso_producto_imagen" => filesize(__DIR__ . "/../archivo/imagen_producto/$path"),
+                        "path_producto_imagen" => $path,
+                        "fechacreacion_producto_imagen" => date('Y-m-d H:i:s'),
+                        'orden_producto_imagen' => $archivos->orden_imagen,
+                        "estado_producto_imagen" => 1,
+                        "portada_producto_imagen" => $archivos->portada
+                    );
+                    ProductoImagen::create($ProductoImagen);
+                }
             }
+            //ELIMINAMOS LAS IMAGENES 
+            foreach ($ProductoImagen_existe as $key => $value) {
+                $ProductoImagen = ProductoImagen::where('id_producto_imagen',$value)->first();
+                $ruta_imagen=__DIR__ . "/../archivo/imagen_producto/$ProductoImagen->path_producto_imagen";
+                if (is_file($ruta_imagen)) {
+                    unlink($ruta_imagen);
+                }
+                $ProductoImagen->delete();
+            }
+
             foreach ($producto_relacion as $key => $elementos) {
                 $datos = [
                     'id_producto' => $elementos->id_producto,

@@ -196,7 +196,7 @@ use App\Helpers\Helper;
             <td class="percent-100 align-right">
                 <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">Fecha Emisión: <?php
                                                                                                             $fechas = explode("-", $fecha_emision_dte);
-                                                                                                            echo  $fechas[2]." de " . helpers::nombreMes($fecha_emision_dte) . " del " .  $fechas[0] ?></p>
+                                                                                                            echo  $fechas[2] . " de " . helpers::nombreMes($fecha_emision_dte) . " del " .  $fechas[0] ?></p>
             </td>
         </tr>
         <tr>
@@ -208,8 +208,14 @@ use App\Helpers\Helper;
                     </tr>
                     <tr>
                         <td class="percent-50 font-size-12" style="font-family: sans-serif;"> <b>
-                                <?= ($informacion_empresa['tipo_documento'] == 'BOLETA') ? 'DNI:'  : 'R.U.C.:' ?>
-                            </b><?= ($informacion_empresa['tipo_documento'] == 'BOLETA') ? $informacion_cliente['dni_cliente']  : $informacion_cliente['ruc_cliente'] ?></td>
+                                <?php
+                                if ($informacion_empresa['tipo_documento'] == 'BOLETA') {
+                                    echo  'DNI:'. $informacion_cliente['dni_cliente'];
+                                } else if ($informacion_empresa['tipo_documento'] == 'FACTURA') {
+                                    echo  'R.U.C.:'. $informacion_cliente['ruc_cliente'];
+                                }
+                                ?>
+                            </b></td>
                         <td class="percent-50 font-size-12" style="font-family: sans-serif;"><b>EMAIL:</b> </td>
                     </tr>
                     <tr>
@@ -279,13 +285,13 @@ use App\Helpers\Helper;
                         <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;"></p>
                     </td>
                     <td class="percent-10 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
-                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">S/<?= number_format($elemento['preciounitario_negocio_detalle'],2) ?></p>
+                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">S/<?= number_format($elemento['preciounitario_negocio_detalle'], 2) ?></p>
                     </td>
                     <td class="percent-10 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
                         <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;"><?= $elemento['descuentogeneral_negocio_detalle'] ?> %</p>
                     </td>
                     <td class="percent-10 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
-                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">S/<?= number_format($elemento['total_negocio_detalle'],2) ?></p>
+                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">S/<?= number_format($elemento['total_negocio_detalle'], 2) ?></p>
                     </td>
                 </tr>
                 <?php if ($key == count($negocios) - 1) {
@@ -334,19 +340,19 @@ use App\Helpers\Helper;
                     <tr>
                         <td class="font-size-12" style="font-family: sans-serif;">MONTO NETO</td>
                         <td>
-                            <p style="text-align:right;padding: 0px;margin: 0px;font-size: 12px;font-family: sans-serif">S/<?=number_format($total_afecto,2)?> </p>
+                            <p style="text-align:right;padding: 0px;margin: 0px;font-size: 12px;font-family: sans-serif">S/<?= number_format($total_afecto, 2) ?> </p>
                         </td>
                     </tr>
                     <tr>
                         <td class="font-size-12" style="font-family: sans-serif;">IGV 19%</td>
                         <td>
-                            <p style="text-align:right;padding: 0px;margin: 0px;font-size: 12px;font-family: sans-serif">S/<?=number_format($igv_total,2)?> </p>
+                            <p style="text-align:right;padding: 0px;margin: 0px;font-size: 12px;font-family: sans-serif">S/<?= number_format($igv_total, 2) ?> </p>
                         </td>
                     </tr>
                     <tr>
                         <td class="font-size-12" style="font-family: sans-serif;">TOTAL</td>
                         <td>
-                            <p style="text-align:right;padding: 0px;margin: 0px;font-size: 12px;font-family: sans-serif">S/<?= number_format($importe_total,2)?> </p>
+                            <p style="text-align:right;padding: 0px;margin: 0px;font-size: 12px;font-family: sans-serif">S/<?= number_format($importe_total, 2) ?> </p>
                         </td>
                     </tr>
                 </table>
@@ -366,7 +372,7 @@ use App\Helpers\Helper;
     <table class="percent-100">
         <tr class="percent-100">
             <td class="percent-40">
-                <img style="width:50%;height:100px;" src="data:image/png;base64,<?=$codigoBarra?>" alt="" />
+                <img style="width:50%;height:100px;" src="data:image/png;base64,<?= $codigoBarra ?>" alt="" />
             </td>
             <td class="percent-50">
 

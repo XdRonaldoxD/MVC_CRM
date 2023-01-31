@@ -29,6 +29,11 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         array (
             'voku\\' => 5,
         ),
+        'c' => 
+        array (
+            'chillerlan\\Settings\\' => 20,
+            'chillerlan\\QRCode\\' => 18,
+        ),
         'Z' => 
         array (
             'ZipStream\\' => 10,
@@ -91,6 +96,7 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         'C' => 
         array (
             'Cyberduck\\LaravelExcel\\' => 23,
+            'Composer\\Semver\\' => 16,
             'Complex\\' => 8,
             'Carbon\\' => 7,
         ),
@@ -104,6 +110,14 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         'voku\\' => 
         array (
             0 => __DIR__ . '/..' . '/voku/portable-ascii/src/voku',
+        ),
+        'chillerlan\\Settings\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/chillerlan/php-settings-container/src',
+        ),
+        'chillerlan\\QRCode\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/chillerlan/php-qrcode/src',
         ),
         'ZipStream\\' => 
         array (
@@ -171,7 +185,7 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         ),
         'Psr\\Log\\' => 
         array (
-            0 => __DIR__ . '/..' . '/psr/log/Psr/Log',
+            0 => __DIR__ . '/..' . '/psr/log/src',
         ),
         'Psr\\Http\\Message\\' => 
         array (
@@ -250,6 +264,10 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         array (
             0 => __DIR__ . '/..' . '/cyber-duck/laravel-excel/src',
         ),
+        'Composer\\Semver\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/composer/semver/src',
+        ),
         'Complex\\' => 
         array (
             0 => __DIR__ . '/..' . '/markbaker/complex/classes/src',
@@ -292,7 +310,8 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         'HTML5_TreeBuilder' => __DIR__ . '/..' . '/dompdf/dompdf/lib/html5lib/TreeBuilder.php',
         'JsonException' => __DIR__ . '/..' . '/symfony/polyfill-php73/Resources/stubs/JsonException.php',
         'Normalizer' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/Resources/stubs/Normalizer.php',
-        'Stringable' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Stringable.php',
+        'PhpToken' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/PhpToken.php',
+        'Stringable' => __DIR__ . '/..' . '/myclabs/php-enum/stubs/Stringable.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
     );
