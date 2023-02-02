@@ -31,7 +31,6 @@ if ($_SERVER['SERVER_NAME'] === 'crm.sistemasdurand.com') {
     $ruta_archivo = 'http://localhost/MVC_CRM/';
     define('RUTA_ARCHIVO', $ruta_archivo);
 }
-die($_SERVER['SERVER_NAME']);
 require_once "vendor/autoload.php";
 require_once "config/database.php";
 require_once "Helpers/helpers.php";
@@ -103,8 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
         if (isset($_GET['controller']) && $_GET['controller'] == 'Usuario') {
             $nombre_controlador = $_GET['controller'] . "Controller";
         } else {
-            http_response_code(403);
-            die();
+            die(http_response_code(404));
         }
         if (isset($_GET['action']) && class_exists($nombre_controlador)) {
             $controlador = new $nombre_controlador();
@@ -114,11 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
                 $controller->$accion();
             } else {
                 // echo "No existe la pagina";
-                http_response_code(403);
+                die(http_response_code(404));
             }
         } else {
             // echo "No existe la pagina Inicio";
-            http_response_code(403);
+            die(http_response_code(404));
         }
     }
     die();
