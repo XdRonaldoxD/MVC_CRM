@@ -31,6 +31,7 @@ if ($_SERVER['SERVER_NAME'] === 'crm.sistemasdurand.com') {
     $ruta_archivo = 'http://localhost/MVC_CRM/';
     define('RUTA_ARCHIVO', $ruta_archivo);
 }
+die($_SERVER['SERVER_NAME']);
 require_once "vendor/autoload.php";
 require_once "config/database.php";
 require_once "Helpers/helpers.php";
