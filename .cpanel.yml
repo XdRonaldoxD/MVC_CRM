@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home3/siste268/public_html/
-    - /bin/rsync -av /home3/siste268/repositories/MVC_Apiventa/ $DEPLOYPATH
+    - export DEPLOYPATH=/home3/siste268/crm.sistemasdurand.com/
+    - /bin/rsync -av /home3/siste268/repositories/MVC_CRM/ $DEPLOYPATH
