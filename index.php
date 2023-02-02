@@ -15,12 +15,12 @@ header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Autho
 // EvitarDDos::antiflood_countaccess();
 //
 
-if ($_SERVER['SERVER_NAME'] === 'sistemasdurand.com') {
+if ($_SERVER['SERVER_NAME'] === 'crm.sistemasdurand.com') {
     $host = '162.241.60.172';
     $username = 'siste268';
     $password = 'zSj55IiL2+e8:E';
     $base_datos = 'siste268_nota_venta';
-    $ruta_archivo = 'https://sistemasdurand.com/';
+    $ruta_archivo = 'https://crm.sistemasdurand.com/';
     define('RUTA_ARCHIVO', $ruta_archivo);
 } else {
     $dominio = "";
