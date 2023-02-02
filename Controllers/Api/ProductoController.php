@@ -104,6 +104,13 @@ class ProductoController
                 ];
                 array_push($atributo_producto, $elementos);
             }
+
+            $fecha_actual = date("Y-m-d");
+            $fecha_producto = date('Y-m-d', strtotime($element['fechacreacion_producto'] . "+ 2 days"));
+            $new = [];
+            if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
+                $new = ["new"];
+            }
             $datosProductos = [
                 "atributo_producto" => $atributo_producto,
                 "id" => $element['id_producto'],
@@ -115,7 +122,7 @@ class ProductoController
                 "descripcion" => $element['detallelargo_producto'],
                 "compareAtPrice" => null,
                 "images" => $imagen_base_64,
-                "badges" => [],
+                "badges" => $new,
                 "rating" => 4,
                 "reviews" => 12,
                 "availability" => "in-stock",
@@ -275,12 +282,43 @@ class ProductoController
     }
     public function listarProductos()
     {
+
+        $condicion = "SELECT producto.*,
+            (SELECT GROUP_CONCAT(id_producto SEPARATOR '~') from producto_relacionado where idproductopadre_producto_relacionado=producto.id_producto) as producto_relacionado,
+            (SELECT GROUP_CONCAT(categoria.id_categoria,'@',categoria.glosa_categoria SEPARATOR '~') 
+            from categoria_producto
+            inner join categoria on categoria.id_categoria = categoria_producto.id_categoria
+            where id_producto=producto.id_producto) 
+            as categorias,
+            (SELECT GROUP_CONCAT(producto_imagen.path_producto_imagen SEPARATOR '~') 
+            from producto_imagen where id_producto=producto.id_producto
+            ) as producto_imagen,
+            (select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
+            FROM producto_color where id_producto=producto.id_producto
+            ) as color_producto,
+            (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~') 
+            from especificaciones_producto where id_producto=producto.id_producto
+            ) as especificacion_producto,
+            (SELECT GROUP_CONCAT(atributo.glosa_atributo,',',atributo_producto.id_atributo_producto SEPARATOR '~') 
+            from atributo_producto
+            inner join atributo using (id_atributo)
+            where id_producto=producto.id_producto
+            ) as atributo_producto
+            from producto
+            where vigente_producto=1 and visibleonline_producto=1 and stock_producto>0
+            limit 100";
         $ConsultaApi = new ConsultaGlobal();
-        $condicion = "where vigente_producto=1 and visibleonline_producto=1 and stock_producto>0
-        limit 100";
-        $Productos = $ConsultaApi->ListarProductoApi($condicion);
-        $arreglos = $this->ConstruirProducto($Productos);
-        echo json_encode($arreglos);
+        $Productos = $ConsultaApi->ConsultaGlobal($condicion);
+        $data = [];
+        foreach ($Productos as $key => $value) {
+            $fecha_actual = date("Y-m-d");
+            $fecha_producto = date('Y-m-d', strtotime($value->fechacreacion_producto . "+ 2 days"));
+            if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
+                $arreglos = $this->ConstruirProducto($value);
+                array_push($data, $arreglos[0]);
+            }
+        }
+        echo json_encode($data);
     }
 
     public function ListarCategoriaProductoApi()
@@ -301,7 +339,7 @@ class ProductoController
             if (count($categorias) > 1) {
                 foreach ($categorias as $key => $elements) {
                     $categorias_sub_hijo = Categorias::where('id_categoria_padre', $elements->id_categoria)->get();
-                    if (count($categorias_sub_hijo)>0) {
+                    if (count($categorias_sub_hijo) > 0) {
                         foreach ($categorias_sub_hijo as $key => $elementos) {
                             array_push($hijos, $elementos->id_categoria);
                         }
@@ -482,6 +520,12 @@ class ProductoController
                     array_push($especificacion_producto_relacion, $elementos);
                 }
 
+                $fecha_actual_relacionado = date("Y-m-d");
+                $fecha_producto_relacionado = date('Y-m-d', strtotime($ConsultRelacionado->fechacreacion_producto . "+ 2 days"));
+                $new_relacionado = [];
+                if (strtotime($fecha_producto_relacionado) > strtotime($fecha_actual_relacionado)) {
+                    $new_relacionado = ["new"];
+                }
                 $datos = [
                     "id" => $ConsultRelacionado->id_producto,
                     "name" => $ConsultRelacionado->glosa_producto,
@@ -495,9 +539,7 @@ class ProductoController
                     "images" => $imagenes_relacion_relacion,
                     "atributo_producto" => $atributo_producto_relacion,
                     "especificaciones" => $especificacion_producto_relacion,
-                    "badges" => [
-                        "new"
-                    ],
+                    "badges" => $new_relacionado,
                     "rating" => 4,
                     "reviews" => 12,
                     "availability" => "in-stock",
@@ -689,6 +731,12 @@ class ProductoController
             array_push($especificacion_producto, $elementos);
         }
 
+        $fecha_actual = date("Y-m-d");
+        $fecha_producto = date('Y-m-d', strtotime($element->fechacreacion_producto . "+ 2 days"));
+        $new = [];
+        if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
+            $new = ["new"];
+        }
         $datos = [
             "id" => $element->id_producto,
             "name" => $element->glosa_producto,
@@ -703,9 +751,7 @@ class ProductoController
             "atributo_producto" => $atributo_producto,
             'producto_relacionado' => $producto_relacionado_arreglo,
             "especificaciones" => $especificacion_producto,
-            "badges" => [
-                "new"
-            ],
+            "badges" => $new,
             "rating" => 4,
             "reviews" => 12,
             "availability" => "in-stock",

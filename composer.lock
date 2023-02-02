@@ -4,8 +4,48 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bab57e159fc196e48b5b8781698e7606",
+    "content-hash": "f312ab1fe4a3bba825c1e5ff894e35c6",
     "packages": [
+        {
+            "name": "benmajor/php-image-resize",
+            "version": "1.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/benmajor/PHP-Image-Resize.git",
+                "reference": "655a28997f9ee698f2622fe267588528a12e663e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/benmajor/PHP-Image-Resize/zipball/655a28997f9ee698f2622fe267588528a12e663e",
+                "reference": "655a28997f9ee698f2622fe267588528a12e663e",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">= 5.6.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "BenMajor\\ImageResize\\": "src/BenMajor/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ben Major",
+                    "email": "ben.major88@gmail.com"
+                }
+            ],
+            "description": "A simple PHP class to handle image resizing and editing.",
+            "support": {
+                "issues": "https://github.com/benmajor/PHP-Image-Resize/issues",
+                "source": "https://github.com/benmajor/PHP-Image-Resize/tree/1.1.2"
+            },
+            "time": "2019-07-03T09:27:51+00:00"
+        },
         {
             "name": "box/spout",
             "version": "v3.3.0",
@@ -3501,6 +3541,52 @@
                 }
             ],
             "time": "2022-06-27T16:58:25+00:00"
+        },
+        {
+            "name": "verot/class.upload.php",
+            "version": "2.1.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/verot/class.upload.php.git",
+                "reference": "3c0ca9489d3662e9cccc597aedf70bac7dcca805"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/verot/class.upload.php/zipball/3c0ca9489d3662e9cccc597aedf70bac7dcca805",
+                "reference": "3c0ca9489d3662e9cccc597aedf70bac7dcca805",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "src/class.upload.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-only"
+            ],
+            "authors": [
+                {
+                    "name": "Colin Verot",
+                    "email": "colin@verot.net"
+                }
+            ],
+            "description": "This PHP class uploads files and manipulates images very easily.",
+            "homepage": "http://www.verot.net/php_class_upload.htm",
+            "keywords": [
+                "gd",
+                "upload"
+            ],
+            "support": {
+                "email": "colin@verot.net",
+                "issues": "https://github.com/verot/class.upload.php/issues",
+                "source": "https://github.com/verot/class.upload.php/tree/2.1.3"
+            },
+            "time": "2022-08-24T14:22:58+00:00"
         },
         {
             "name": "voku/portable-ascii",

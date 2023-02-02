@@ -182,7 +182,13 @@ use App\Helpers\Helper;
                 <div class="border-red">
                     <span class="text-danger font-size-16" style="font-family: sans-serif;"><b>R.U.C.: <?= $informacion_empresa['ruc'] ?></b></span>
                     <br>
-                    <span class="text-danger font-size-16" style="font-family: sans-serif;"><b><?= $informacion_empresa['tipo_documento'] ?> ELECTRONICA</b></span>
+                    <span class="text-danger font-size-16" style="font-family: sans-serif;"><b><?php
+                                                                                                if ($informacion_empresa['tipo_documento'] == "NOTA_VENTA") {
+                                                                                                    echo "NOTA VENTA";
+                                                                                                } else {
+                                                                                                    echo $informacion_empresa['tipo_documento'] ." ELECTRONICA";
+                                                                                                }
+                                                                                                ?> </b></span>
                     <br>
                     <span class="text-danger font-size-16" style="font-family: sans-serif;"><b>N° <?= $correlativo ?></b></span>
                     <br>
@@ -210,9 +216,9 @@ use App\Helpers\Helper;
                         <td class="percent-50 font-size-12" style="font-family: sans-serif;"> <b>
                                 <?php
                                 if ($informacion_empresa['tipo_documento'] == 'BOLETA') {
-                                    echo  'DNI:'. $informacion_cliente['dni_cliente'];
+                                    echo  'DNI:' . $informacion_cliente['dni_cliente'];
                                 } else if ($informacion_empresa['tipo_documento'] == 'FACTURA') {
-                                    echo  'R.U.C.:'. $informacion_cliente['ruc_cliente'];
+                                    echo  'R.U.C.:' . $informacion_cliente['ruc_cliente'];
                                 }
                                 ?>
                             </b></td>

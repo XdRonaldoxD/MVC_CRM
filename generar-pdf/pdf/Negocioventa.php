@@ -164,43 +164,45 @@
 </head>
 
 <body>
-    <div style="text-align: center;">
+    <div style="text-align: center;margin: 0px;padding: 0px;">
         <img style="width:120px; height:auto; margin:0px 0px 0px 70px" src="data:image/png;base64,<?= $imagen ?>" alt="" />
     </div>
-    <br><br>
-    <div style="text-align: center;">
+    
+    <div style="text-align: center;margin-top: 2.3rem">
         <strong style="font-size: 15px;margin: 0px;"><?= $informacion_empresa['nombre_empresa'] ?></strong>
     </div>
     <div style="text-align: center;">
-        <strong style="font-size: 9px;margin: 0px;padding: 0px;">R.U.C.: <?= $informacion_empresa['ruc'] ?></strong>
+        <p style="font-size: 9px;margin: 0px;">R.U.C.: <?= $informacion_empresa['ruc'] ?></p>
     </div>
     <div style="text-align: center;">
-        <strong style="font-size: 9px;margin: 0px;padding: 0px;">DE:<?= $informacion_empresa['razonSocial'] ?></strong>
+        <P style="font-size: 9px;margin: 0px;">DE:<?= $informacion_empresa['razonSocial'] ?></P>
     </div>
-    <div style="text-align: center;">
-        <strong style="font-size: 9px;margin: 0px;padding: 0px;"><?php 
-        if ($informacion_empresa['tipo_documento'] == "NOTA_VENTA") {
-           echo "NOTA VENTA";
-        }
-        ?> DE VENTA ELECTRONICA</strong>
-    </div>
-    <div style="text-align: center;">
-        <strong style="font-size: 9px;margin: 0px;padding: 0px;"><?php 
-        if ($informacion_documento['serie']) {
-            echo $informacion_documento['serie'].'-';
-        }else{
-            echo 'N° ';
-        }
-        ?>
-        <?= $informacion_documento['correlativo'] ?> </strong>
-    </div>
-
-
     <div style="text-align: center;">
         <p style="font-size: 9px;margin: 0px;"><?= $informacion_empresa['direccion'] ?></p>
     </div>
     <div style="text-align: center;">
         <p style="font-size: 9px;margin: 0px;"><?= $informacion_empresa['departamento'] ?>-<?= $informacion_empresa['provincia'] ?>-<?= $informacion_empresa['distrito'] ?></p>
+    </div>
+    <hr>
+    <div style="text-align: center;">
+        <strong style="font-size: 0.8rem;margin: 0px;padding: 0px;"><?php
+                                                                    if ($informacion_empresa['tipo_documento'] == "NOTA_VENTA") {
+                                                                        echo "NOTA VENTA";
+                                                                    } else {
+                                                                        echo $informacion_empresa['tipo_documento'] . '  DE VENTA ELECTRONICA';
+                                                                    }
+                                                                    ?>
+        </strong>
+    </div>
+    <div style="text-align: center;">
+        <strong style="font-size: 0.8rem;margin: 0px;padding: 0px;"><?php
+                                                                    if ($informacion_documento['serie']) {
+                                                                        echo $informacion_documento['serie'] . '-';
+                                                                    } else {
+                                                                        echo 'N° ';
+                                                                    }
+                                                                    ?>
+            <?= $informacion_documento['correlativo'] ?> </strong>
     </div>
     <hr>
     <div style="text-align: start;">
@@ -213,7 +215,7 @@
         ?>
             <p style="font-size: 9px;margin: 0px;">DNI:<?= $informacion_cliente['dni_cliente'] ?></p>
         <?php
-        } else if($informacion_empresa['tipo_documento'] === "FACTURA"){
+        } else if ($informacion_empresa['tipo_documento'] === "FACTURA") {
         ?>
             <p style="font-size: 9px;margin: 0px;">RUC:<?= $informacion_cliente['ruc_cliente'] ?></p>
         <?php
@@ -222,6 +224,9 @@
     </div>
     <div style="text-align: start;">
         <p style="font-size: 9px;margin: 0px;">DIRECCIÓN:<?= $informacion_cliente['direccion_cliente'] ?></p>
+    </div>
+    <div style="text-align: start;">
+        <p style="font-size: 9px;margin: 0px;">VENDEDOR:<?= $informacion_documento['vendedor_documento'] ?></p>
     </div>
     <hr>
     <table style="text-align:center;" class="t-desglose miTabla fs-small w-100">

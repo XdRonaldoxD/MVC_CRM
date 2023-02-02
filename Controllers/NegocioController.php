@@ -403,33 +403,36 @@ class NegocioController
         if ($tipo_documento === 'BOLETA') {
             $Boleta = Boleta::where('id_negocio', $id_negocio)
                 ->join('usuario', 'usuario.id_usuario', 'boleta.id_usuario')
+                ->join("staff",'staff.id_staff','usuario.id_staff')
                 ->first();
             $serie = $Boleta->serie_boleta;
             $correlativo = $Boleta->numero_boleta;
             $total_afecto = $Boleta->valor_boleta;
             $igv_total = $Boleta->iva_boleta;
             $importe_total = $Boleta->total_boleta;
-            $vendedor_documento = $Boleta->apellido_usuario . ' ' . $Boleta->nombre_usuario;
+            $vendedor_documento = $Boleta->apellidopaterno_staff .' '.$Boleta->apellidomaterno_staff.' '. $Boleta->nombre_staff;
         } else if ($tipo_documento === 'FACTURA') {
             $Factura = Factura::where('id_negocio', $id_negocio)
                 ->join('usuario', 'usuario.id_usuario', 'factura.id_usuario')
+                ->join("staff",'staff.id_staff','usuario.id_staff')
                 ->first();
             $serie = $Factura->serie_factura;
             $correlativo = $Factura->numero_factura;
             $total_afecto = $Factura->valorafecto_factura;
             $igv_total = $Factura->iva_factura;
             $importe_total = $Factura->total_factura;
-            $vendedor_documento = $Factura->apellido_usuario . ' ' . $Factura->nombre_usuario;
+            $vendedor_documento = $Factura->apellidopaterno_staff .' '.$Factura->apellidomaterno_staff.' '. $Factura->nombre_staff;
         } else {
             $NotaVenta = NotaVenta::where('id_negocio', $id_negocio)
                 ->join('usuario', 'usuario.id_usuario', 'nota_venta.id_usuario')
+                ->join("staff",'staff.id_staff','usuario.id_staff')
                 ->first();
             $serie = null;
             $correlativo = $NotaVenta->numero_nota_venta;
             $total_afecto = $NotaVenta->valor_nota_venta;
             $igv_total = $NotaVenta->iva_nota_venta;
             $importe_total = $NotaVenta->total_nota_venta;
-            $vendedor_documento = $NotaVenta->apellido_usuario . ' ' . $NotaVenta->nombre_usuario;
+            $vendedor_documento = $NotaVenta->apellidopaterno_staff .' '.$NotaVenta->apellidomaterno_staff.' '. $NotaVenta->nombre_staff;
         }
         $fecha = date("Y-m-d H:i:s");
         $separaFecha = explode(" ", $fecha);

@@ -49,4 +49,5 @@ return array(
     'Complex\\' => array($vendorDir . '/markbaker/complex/classes/src'),
     'Carbon\\' => array($vendorDir . '/nesbot/carbon/src/Carbon'),
     'Box\\Spout\\' => array($vendorDir . '/box/spout/src/Spout'),
+    'BenMajor\\ImageResize\\' => array($vendorDir . '/benmajor/php-image-resize/src/BenMajor'),
 );

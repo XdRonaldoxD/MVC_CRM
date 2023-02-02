@@ -103,6 +103,7 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         'B' => 
         array (
             'Box\\Spout\\' => 10,
+            'BenMajor\\ImageResize\\' => 21,
         ),
     );
 
@@ -280,6 +281,10 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         array (
             0 => __DIR__ . '/..' . '/box/spout/src/Spout',
         ),
+        'BenMajor\\ImageResize\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/benmajor/php-image-resize/src/BenMajor',
+        ),
     );
 
     public static $prefixesPsr0 = array (
@@ -314,6 +319,7 @@ class ComposerStaticInit8d077ba1f48a24c98b0f0aeff0d3af19
         'Stringable' => __DIR__ . '/..' . '/myclabs/php-enum/stubs/Stringable.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
+        'Verot\\Upload\\Upload' => __DIR__ . '/..' . '/verot/class.upload.php/src/class.upload.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

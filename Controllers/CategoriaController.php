@@ -1,6 +1,7 @@
 <?php
 
-
+use BenMajor\ImageResize\Image;
+use Verot\Upload\Upload;
 
 require_once "models/Categorias.php";
 require_once "models/TipoInventario.php";
@@ -168,12 +169,14 @@ class CategoriaController
             'descripcion_categoria' => $_POST['descripcion_categoria'],
             'vigente_categoria' => 1,
             'visibleonline_categoria' => ($_POST['visibleOnline'] == "true") ? 1 : 0,
-            'urlamigable_categoria'=>$urlAmigable
+            'urlamigable_categoria' => $urlAmigable
         ];
 
         if (!empty($_FILES['imagen'])) {
-            $nombre_imagen = $_FILES['imagen']['name'];
-            $temp = $_FILES['imagen']['tmp_name'];
+            $imagen = $_FILES['imagen']['name'];
+            $ext = pathinfo($imagen, PATHINFO_EXTENSION);
+            $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
+            // $temp = $_FILES['imagen']['tmp_name'];
             //crear el directorio
             if (!file_exists(__DIR__ . "/../archivo/imagen_categoria")) {
                 mkdir(__DIR__ . "/../archivo/imagen_categoria", 0777, true);
@@ -182,7 +185,9 @@ class CategoriaController
             if ($_POST['accion'] !== "CREAR") {
                 $Categorias = Categorias::where('id_categoria', $_POST['id_categoria'])->first();
                 if ($Categorias->pathimagen_categoria) {
-                    unlink(__DIR__ . "/../archivo/imagen_categoria/$Categorias->pathimagen_categoria");
+                    if (file_exists(__DIR__ . "/../archivo/imagen_categoria/$Categorias->pathimagen_categoria")) {
+                        unlink(__DIR__ . "/../archivo/imagen_categoria/$Categorias->pathimagen_categoria");
+                    }
                 }
             }
 
@@ -190,10 +195,37 @@ class CategoriaController
             $fechacreacion = date('Y-m-d H:i:s');
             $separaFecha = explode(" ", $fechacreacion);
             $Fecha = explode("-", $separaFecha[0]);
-            $path = mt_srand(10) . "_" . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . $nombre_imagen;
-            move_uploaded_file($temp, __DIR__ . "/../archivo/imagen_categoria/$path");
+            $path =  $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . $nombre_imagen;
+            // move_uploaded_file($temp, __DIR__ . "/../archivo/imagen_categoria/$path.'.'.$ext"); //
+
+            //SEGUNDA LIBRERIA
+            $foo = new Upload($_FILES['imagen']);
+            if (!$foo) {
+                echo json_encode("Error");
+                die;
+            }
+            // $foo->process(__DIR__ . "/../archivo/imagen_categoria/");
             //
-            $datos += ["pathimagen_categoria" => $path];
+            // if ($foo->processed) {
+            //     echo 'image renamed "foo" copied';
+            // } else {
+            //     echo 'error : ' . $foo->error;
+            // }
+            $foo->file_new_name_body = $path;
+            $foo->image_resize          = true;
+            //SI DESEAMOS PONER EL MISMO TAMAÑO Y  DARLE LA MISMA ANCHO Y ALTO COMENTAR EL IMAGE RATIO
+            $foo->image_ratio           = true;
+            //
+            $foo->image_x               = 220;
+            $foo->image_y               = 100;
+            $foo->process(__DIR__ . "/../archivo/imagen_categoria/");
+            if ($foo->processed) {
+                $foo->clean();
+            } else {
+                echo 'error : ' . $foo->error;
+                die();
+            }
+            $datos += ["pathimagen_categoria" => $path.'.'.$ext];
         }
 
 
@@ -248,6 +280,4 @@ class CategoriaController
         }
         echo $categoria;
     }
-
-
 }

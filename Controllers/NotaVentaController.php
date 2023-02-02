@@ -144,4 +144,32 @@ class NotaVentaController
         }
       
     }
+
+    public function BuscarDepartamento(){
+        $departamento=Departamento::where("departamento",$_GET['departamento'])->first();
+        if (isset($departamento)) {
+            echo json_encode($departamento->idDepartamento);
+        }else{
+            echo json_encode("No existe departamento en base");
+            http_response_code(404);
+        }
+    }
+    public function BuscarProvincia(){
+        $Provincia=Provincia::where("provincia",$_GET['provincia'])->first();
+        if (isset($Provincia)) {
+            echo json_encode($Provincia->idProvincia);
+        }else{
+            echo json_encode("No existe departamento en base");
+            http_response_code(404);
+        }
+    }
+    public function BuscarDistrito(){
+        $Distrito=Distrito::where("distrito",$_GET['distrito'])->first();
+        if (isset($Distrito)) {
+            echo json_encode($Distrito->idDistrito);
+        }else{
+            echo json_encode("No existe departamento en base");
+            http_response_code(404);
+        }
+    }
 }

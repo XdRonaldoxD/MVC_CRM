@@ -7,6 +7,8 @@
         "milon/barcode": "^7.0",
         "illuminate/database": "*",
         "pusher/pusher-php-server": "^7.0",
-        "chillerlan/php-qrcode": "^4.3"
+        "chillerlan/php-qrcode": "^4.3",
+        "benmajor/php-image-resize": "^1.1",
+        "verot/class.upload.php": "^2.1"
     }
 }
