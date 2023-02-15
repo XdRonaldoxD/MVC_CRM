@@ -12,7 +12,6 @@ class Cliente extends Model
     'id_institucion_financiera',
     'id_tipo_cuenta',
     'id_comuna',
-    'idProvincia',
     'idDistrito',
     'dni_cliente',
     'dv_cliente',

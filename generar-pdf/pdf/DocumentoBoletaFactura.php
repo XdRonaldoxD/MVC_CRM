@@ -1,9 +1,4 @@
-<?php
-
-use App\Helpers\Helper;
-?>
 <html lang="en">
-
 <head>
     <title><?php
             echo $informacion_empresa['tipo_documento']
@@ -205,7 +200,7 @@ use App\Helpers\Helper;
                                                                                                             echo  $fechas[2] . " de " . helpers::nombreMes($fecha_emision_dte) . " del " .  $fechas[0] ?></p>
             </td>
         </tr>
-        <tr>
+        <tr>    
             <td class="percent-100 border">
                 <table class=" percent-100">
                     <tr>

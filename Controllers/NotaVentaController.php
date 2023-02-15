@@ -1,4 +1,8 @@
 <?php
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+
 require_once "models/Producto.php";
 require_once "models/ProductoColor.php";
 require_once "models/ProductoImagen.php";
@@ -13,9 +17,9 @@ require_once "models/Distrito.php";
 require_once "models/Cliente.php";
 require_once "models/Usuario.php";
 require_once "models/Caja.php";
-
 require_once "models/ConsultaGlobal.php";
-require_once "config/Helper.php";
+require_once "config/Parametros.php";
+
 
 class NotaVentaController
 {
@@ -28,12 +32,12 @@ class NotaVentaController
         } else {
             $longitud = $DatosPost->length;
         }
-        if ( isset($DatosPost->filtro_buscar)) {
+        if (isset($DatosPost->filtro_buscar)) {
             $buscar = $DatosPost->filtro_buscar;
-        }else{
-            $buscar='';
+        } else {
+            $buscar = '';
         }
-       
+
         $consulta = " and (p.codigo_barra_producto = '$buscar' or p.codigooriginal_producto LIKE '%$buscar%' or p.codigo_producto LIKE '%$buscar%' or p.glosa_producto LIKE '%$buscar%'
             or p.precioventa_producto LIKE '%$buscar%' or ti.glosa_tipo_inventario LIKE '%$buscar%') ";
         $query = "SELECT * FROM producto as p 
@@ -135,41 +139,123 @@ class NotaVentaController
         }
     }
 
-    public function AsignarClienteGenerico(){
-        $cliente=Cliente::where('dni_cliente','00000000')->first();
+    public function AsignarClienteGenerico()
+    {
+        $cliente = Cliente::where('dni_cliente', '00000000')->first();
         if (isset($cliente)) {
             echo json_encode($cliente);
-        }else{
+        } else {
             http_response_code(404);
         }
-      
     }
 
-    public function BuscarDepartamento(){
-        $departamento=Departamento::where("departamento",$_GET['departamento'])->first();
+    public function BuscarDepartamento()
+    {
+        $departamento = Departamento::where("departamento", $_GET['departamento'])->first();
         if (isset($departamento)) {
             echo json_encode($departamento->idDepartamento);
-        }else{
+        } else {
             echo json_encode("No existe departamento en base");
             http_response_code(404);
         }
     }
-    public function BuscarProvincia(){
-        $Provincia=Provincia::where("provincia",$_GET['provincia'])->first();
+    public function BuscarProvincia()
+    {
+        $Provincia = Provincia::where("provincia", $_GET['provincia'])->first();
         if (isset($Provincia)) {
             echo json_encode($Provincia->idProvincia);
-        }else{
+        } else {
             echo json_encode("No existe departamento en base");
             http_response_code(404);
         }
     }
-    public function BuscarDistrito(){
-        $Distrito=Distrito::where("distrito",$_GET['distrito'])->first();
+    public function BuscarDistrito()
+    {
+        $Distrito = Distrito::where("distrito", $_GET['distrito'])->first();
         if (isset($Distrito)) {
             echo json_encode($Distrito->idDistrito);
-        }else{
+        } else {
             echo json_encode("No existe departamento en base");
             http_response_code(404);
         }
+    }
+
+    public function EnviarCorreloElectronicoEmail()
+    {
+        $DatosPost = file_get_contents("php://input");
+        $DatosPost = json_decode($DatosPost);
+
+
+        switch ($DatosPost->tipo_documento) {
+            case 'BOLETA':
+                $html = '<h1>Boleta enviada con éxito</h1>';
+                $setFrom = 'BOLETA';
+                break;
+            case 'FACTURA':
+                $html = '<h1>Factura enviada con éxito</h1>';
+                $setFrom = 'FACTURA';
+                break;
+            default:
+                $setFrom = 'NOTA VENTA';
+                $html = '<h1>Nota Venta enviada con éxito</h1>';
+                break;
+        }
+
+        if ($DatosPost->formato === "TICKET") {
+            $setFrom = 'TICKET';
+            $correo = $DatosPost->Correo_ticket;
+            $url=$DatosPost->url_ticket;
+        } else {
+            $correo = $DatosPost->Correo_pdf;
+            $url = $DatosPost->url_pdf;
+        }
+
+        $mail = new PHPMailer(true);
+        try {
+            //Server settings
+            // $mail->SMTPDebug = 0;                       // Enable verbose debug output
+            // $mail->SMTPDebug = SMTP::DEBUG_SERVER; 
+            $mail->isSMTP();
+            // smtp.mandrillapp.com  
+            // smithxd118@gmail.com     
+            // a74dac0e781527e2e06bd66041783587-us14
+            // Send using SMTP
+            $mail->Host       = Host;                  // Set the SMTP server to send through
+            $mail->SMTPAuth   = true;                                   // Enable SMTP authentication
+            $mail->Username   = Username;                     // SMTP username
+            $mail->Password   = Password;                               // SMTP password
+            $mail->SMTPSecure = 'tls';         // Enable TLS encryption; `PHPMailer::ENCRYPTION_SMTPS` encouraged
+            $mail->Port       = Port;
+            // TCP port to connect to, use 465 for `PHPMailer::ENCRYPTION_SMTPS` above
+            // id=dbecf254af
+            //Recipients
+            //DESDE DONDE
+
+            $mail->setFrom(Username, " $setFrom ELECTRONICA ");
+            //PARA QUIEN
+            // $mail->addAddress('smithxd108@gmail.com');
+            $mail->addAddress($correo);
+            //copia
+            // $mail->addCC('smithxd118@gmail.com');
+            // $mail->addAttachment($output);    // Add a recipient
+            //AGREGRAMOS EL ARCHIVO URL
+            $fichero = file_get_contents($url);
+            $mail->addStringAttachment($fichero, "$setFrom.pdf");
+            //
+            // Content
+            $mail->isHTML(true);                                  // Set email format to HTML
+            $mail->Subject = $setFrom;
+            $mail->Body    = $html;
+            $mail->CharSet = 'UTF-8';
+            $mail->send();
+            $respuesta = 'ok';
+        } catch (Exception $e) {
+            $respuesta = $e->getMessage();
+            echo "Ubo un error al Enviar {$e->getMessage()})";
+            http_response_code(403);
+            die;
+        }
+
+        echo json_encode($respuesta);
     }
 }

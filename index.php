@@ -33,7 +33,7 @@ if ($_SERVER['SERVER_NAME'] === 'crm.sistemasdurand.com') {
 }
 require_once "vendor/autoload.php";
 require_once "config/database.php";
-require_once "Helpers/helpers.php";
+// require "Helpers/helpers.php";
 require_once "Helpers/JwtAuth.php";
 
 require 'phpMailer/Exception.php';
@@ -55,12 +55,16 @@ if (isset($_GET['Apicontroller'])) {
 if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET") {
     $headers = apache_request_headers();
     $Authorization = null;
+    if (isset($_GET['Authorization'])) {
+        $Authorization = $_GET['Authorization'];
+    }
     if (isset($headers['Authorization'])) {
         $Authorization = $headers['Authorization'];
     }
     if (isset($headers['authorization'])) {
         $Authorization = $headers['authorization'];
     }
+
     if ($Authorization) {
         $jwtAth = new JwtAuth();
         $checktoken = $jwtAth->checktoken($Authorization);

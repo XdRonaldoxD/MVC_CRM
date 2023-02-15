@@ -2,7 +2,7 @@
 
 use Dompdf\Dompdf;
 use Milon\Barcode\DNS2D;
-use Symfony\Component\Console\Helper\Helper;
+
 
 require_once "models/Boleta.php";
 require_once "models/Factura.php";
@@ -15,6 +15,7 @@ require_once "models/producto.php";
 require_once "models/NotaVenta.php";
 require_once "models/Ingreso.php";
 require_once "models/Egreso.php";
+require_once "Helpers/helpers.php";
 
 class NegocioController
 {
@@ -63,10 +64,10 @@ class NegocioController
                     ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
                     ->where('id_cliente', $informacionForm->cliente)->first();
                 $folio_documento = Folio::where('id_folio', 6)->first();
-                if ($cliente->dni_cliente=='00000000') {
-                    $tipoDoc='0';
-                }else{
-                    $tipoDoc='1';
+                if ($cliente->dni_cliente == '00000000') {
+                    $tipoDoc = '0';
+                } else {
+                    $tipoDoc = '1';
                 }
                 $tipoDoc = "03";
                 $serie = "B" . $serie;
@@ -317,20 +318,20 @@ class NegocioController
                 $id_documento = $factura_creado->id_factura;
                 break;
             default:
-                $Folio=Folio::where('id_folio',17)->first();
+                $Folio = Folio::where('id_folio', 17)->first();
                 //CREAMOS LA NOTA VENTA------------------------------------------------------------------------------------------
                 $Datos_Factura = [
                     'id_usuario' => $informacionForm->vendedor,
                     'id_folio' => 17,
                     'id_negocio' => $Negocio->id_negocio,
                     'id_cliente' => $informacionForm->cliente,
-                    'numero_nota_venta'=>$Folio->numero_folio,
-                    'fechacreacion_nota_venta'=>date('Y-m-d H:i:s'),
-                    'valor_nota_venta'=>number_format($Totales->subtotal, 2),
-                    'iva_nota_venta'=>number_format($Totales->igv, 2),
-                    'total_nota_venta'=>number_format($Totales->total, 2),
-                    'estado_nota_venta'=> 1,
-                    'saldo_nota_venta'=>number_format($Totales->total, 2),
+                    'numero_nota_venta' => $Folio->numero_folio,
+                    'fechacreacion_nota_venta' => date('Y-m-d H:i:s'),
+                    'valor_nota_venta' => number_format($Totales->subtotal, 2),
+                    'iva_nota_venta' => number_format($Totales->igv, 2),
+                    'total_nota_venta' => number_format($Totales->total, 2),
+                    'estado_nota_venta' => 1,
+                    'saldo_nota_venta' => number_format($Totales->total, 2),
                 ];
                 $Folio->numero_folio += 1;
                 $Folio->save();
@@ -357,35 +358,42 @@ class NegocioController
         }
 
         foreach ($ListaMetodosPago as $key => $element) {
-            $Folio_ingreso=Folio::where('id_folio',4)->first();
-            $data_ingreso=[
-                'id_negocio'=>$Negocio->id_negocio,
-                'id_folio'=>$Folio_ingreso->id_folio,
+            $Folio_ingreso = Folio::where('id_folio', 4)->first();
+            $id_tipo_ingreso = 1;
+            if ($element->id_medio_pago === "3") {
+                $id_tipo_ingreso = 9;
+            }
+            if ($element->id_medio_pago === "4") {
+                $id_tipo_ingreso = 7;
+            }
+            $data_ingreso = [
+                'id_negocio' => $Negocio->id_negocio,
+                'id_folio' => $Folio_ingreso->id_folio,
                 // 'id_comprobante_ingreso',
-                'id_medio_pago'=>$element->id_medio_pago,
-                'id_caja'=>$id_caja,
-                'id_tipo_ingreso'=>1,
-                'valor_ingreso'=>$element->monto,
-                'numero_ingreso'=> $Folio_ingreso->numero_folio,
-                'comentario_ingreso'=>"$tipo_documento ELECTRONICA",
-                'estado_ingreso'=>1,
-                'fechacreacion_ingreso'=>date('Y-m-d H:i:s'),
+                'id_medio_pago' => $element->id_medio_pago,
+                'id_caja' => $id_caja,
+                'id_tipo_ingreso' => $id_tipo_ingreso,
+                'valor_ingreso' => $element->monto,
+                'numero_ingreso' => $Folio_ingreso->numero_folio,
+                'comentario_ingreso' => "$tipo_documento ELECTRONICA",
+                'estado_ingreso' => 1,
+                'fechacreacion_ingreso' => date('Y-m-d H:i:s'),
             ];
             $Folio_ingreso->numero_folio += 1;
             $Folio_ingreso->save();
-           Ingreso::create($data_ingreso);
+            Ingreso::create($data_ingreso);
         }
-        if ($Totales_pagados->vuelto>0) {
-            $Folio_egreso=Folio::where('id_folio',18)->first();
-            $data=[
-                'id_caja'=>$id_caja,
-                'id_folio'=>$Folio_egreso->id_folio,
+        if ($Totales_pagados->vuelto > 0) {
+            $Folio_egreso = Folio::where('id_folio', 18)->first();
+            $data = [
+                'id_caja' => $id_caja,
+                'id_folio' => $Folio_egreso->id_folio,
                 'id_usuario' => $informacionForm->vendedor,
-                'id_negocio'=>$Negocio->id_negocio,
-                'id_tipo_egreso'=>6,
-                'numero_egreso'=>$Folio_egreso->numero_folio,
-                'fechacreacion_egreso'=>date('Y-m-d H:i:s'),
-                'valor_egreso'=>$Totales_pagados->vuelto
+                'id_negocio' => $Negocio->id_negocio,
+                'id_tipo_egreso' => 6,
+                'numero_egreso' => $Folio_egreso->numero_folio,
+                'fechacreacion_egreso' => date('Y-m-d H:i:s'),
+                'valor_egreso' => $Totales_pagados->vuelto
             ];
             $Folio_egreso->numero_folio += 1;
             $Folio_egreso->save();
@@ -403,36 +411,36 @@ class NegocioController
         if ($tipo_documento === 'BOLETA') {
             $Boleta = Boleta::where('id_negocio', $id_negocio)
                 ->join('usuario', 'usuario.id_usuario', 'boleta.id_usuario')
-                ->join("staff",'staff.id_staff','usuario.id_staff')
+                ->join("staff", 'staff.id_staff', 'usuario.id_staff')
                 ->first();
             $serie = $Boleta->serie_boleta;
             $correlativo = $Boleta->numero_boleta;
             $total_afecto = $Boleta->valor_boleta;
             $igv_total = $Boleta->iva_boleta;
             $importe_total = $Boleta->total_boleta;
-            $vendedor_documento = $Boleta->apellidopaterno_staff .' '.$Boleta->apellidomaterno_staff.' '. $Boleta->nombre_staff;
+            $vendedor_documento = $Boleta->apellidopaterno_staff . ' ' . $Boleta->apellidomaterno_staff . ' ' . $Boleta->nombre_staff;
         } else if ($tipo_documento === 'FACTURA') {
             $Factura = Factura::where('id_negocio', $id_negocio)
                 ->join('usuario', 'usuario.id_usuario', 'factura.id_usuario')
-                ->join("staff",'staff.id_staff','usuario.id_staff')
+                ->join("staff", 'staff.id_staff', 'usuario.id_staff')
                 ->first();
             $serie = $Factura->serie_factura;
             $correlativo = $Factura->numero_factura;
             $total_afecto = $Factura->valorafecto_factura;
             $igv_total = $Factura->iva_factura;
             $importe_total = $Factura->total_factura;
-            $vendedor_documento = $Factura->apellidopaterno_staff .' '.$Factura->apellidomaterno_staff.' '. $Factura->nombre_staff;
+            $vendedor_documento = $Factura->apellidopaterno_staff . ' ' . $Factura->apellidomaterno_staff . ' ' . $Factura->nombre_staff;
         } else {
             $NotaVenta = NotaVenta::where('id_negocio', $id_negocio)
                 ->join('usuario', 'usuario.id_usuario', 'nota_venta.id_usuario')
-                ->join("staff",'staff.id_staff','usuario.id_staff')
+                ->join("staff", 'staff.id_staff', 'usuario.id_staff')
                 ->first();
             $serie = null;
             $correlativo = $NotaVenta->numero_nota_venta;
             $total_afecto = $NotaVenta->valor_nota_venta;
             $igv_total = $NotaVenta->iva_nota_venta;
             $importe_total = $NotaVenta->total_nota_venta;
-            $vendedor_documento = $NotaVenta->apellidopaterno_staff .' '.$NotaVenta->apellidomaterno_staff.' '. $NotaVenta->nombre_staff;
+            $vendedor_documento = $NotaVenta->apellidopaterno_staff . ' ' . $NotaVenta->apellidomaterno_staff . ' ' . $NotaVenta->nombre_staff;
         }
         $fecha = date("Y-m-d H:i:s");
         $separaFecha = explode(" ", $fecha);

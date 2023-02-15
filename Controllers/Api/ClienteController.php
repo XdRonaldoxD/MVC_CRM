@@ -62,6 +62,7 @@ class ClienteController
     }
     public function GuardarCliente()
     {
+     
         $formulario = json_decode($_POST['formulario']);
         $existeCliente =  Cliente::join('usuario', "usuario.id_cliente", "cliente.id_cliente")
             ->where('dni_cliente', $formulario->dni_cliente)
@@ -84,7 +85,7 @@ class ClienteController
             'mediollegada_cliente' => "RESERVA_ONLINE",
             "idDistrito" => $formulario->idDistrito
         );
-        if (empty($existeCliente)) {
+        if (!isset($existeCliente)) {
             $nuevoCiente = Cliente::create($datos);
             if ($formulario->crearcuenta == true) {
                 $contrasenia = hash('sha256', $formulario->password);
@@ -124,7 +125,9 @@ class ClienteController
             $rpta = [
                 'success' => true,
             ];
+         
         }
+    
         $sitio_cliente = Provincia::join('departamentos', 'departamentos.idDepartamento', "provincia.idDepartamento")
             ->where("provincia.idProvincia", $formulario->idProvincia)
             ->first();
@@ -167,10 +170,12 @@ class ClienteController
 
         $pws = hash('sha256', $_POST['password_usuario']);
         $cliente = Cliente::join("usuario", "usuario.id_cliente", "cliente.id_cliente")
-            ->join("provincia", "provincia.idProvincia", "cliente.idProvincia")
+            ->leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
+            ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
+            ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
             ->where("cliente.e_mail_cliente", $_POST['e_mail_cliente'])
             ->where("usuario.password_usuario", $pws)
-            ->select("cliente.*", 'provincia.idDepartamento', "usuario.id_usuario")
+            ->select("cliente.*", 'distrito.idDistrito', 'departamentos.idDepartamento', 'provincia.idProvincia', "usuario.id_usuario")
             ->first();
         if (isset($cliente)) {
             echo json_encode($cliente);
@@ -356,30 +361,29 @@ class ClienteController
             $producto->stock_producto -= $elemento->quantity;
             $producto->save();
             $options = [];
-       
+
             foreach ($elemento->atributo_producto as $key => $value) {
-                    $AtributoProducto = AtributoProducto::join('atributo', 'atributo.id_atributo', 'atributo_producto.id_atributo')
-                        ->where('atributo_producto.id_atributo_producto', $value->id_atributo_producto)
-                        ->first();
-                    $ProductoColor = ProductoColor::where('id_producto_color', $value->id_producto_color)->first();
-                    $AtributoProducto->stock_atributo -= $value->cantidad;
-                    $AtributoProducto->save();
-                    $fillable = [
-                        'id_pedido_detalle' => $PedidoDetalle->id_pedido_detalle,
-                        'id_atributo' => $AtributoProducto->id_atributo,
-                        'hexadecimal_producto_color' => $ProductoColor->hexadecimal_producto_color,
-                        'nombre_color_detalle_atributo_producto' => $ProductoColor->nombre_producto_color,
-                        'cantidad_pedido_detalle_atributo_producto' => $value->cantidad
-                    ];
-                    PedidoDetalleAtributoProducto::create($fillable);
-                    $option = [
-                        'label' => 'Color',
-                        'value' => $ProductoColor->nombre_producto_color,
-                        'label_atributo' => 'Talla',
-                        'value_atributo' => $AtributoProducto->glosa_atributo,
-                    ];
-                    array_push($options, $option);
-             
+                $AtributoProducto = AtributoProducto::join('atributo', 'atributo.id_atributo', 'atributo_producto.id_atributo')
+                    ->where('atributo_producto.id_atributo_producto', $value->id_atributo_producto)
+                    ->first();
+                $ProductoColor = ProductoColor::where('id_producto_color', $value->id_producto_color)->first();
+                $AtributoProducto->stock_atributo -= $value->cantidad;
+                $AtributoProducto->save();
+                $fillable = [
+                    'id_pedido_detalle' => $PedidoDetalle->id_pedido_detalle,
+                    'id_atributo' => $AtributoProducto->id_atributo,
+                    'hexadecimal_producto_color' => $ProductoColor->hexadecimal_producto_color,
+                    'nombre_color_detalle_atributo_producto' => $ProductoColor->nombre_producto_color,
+                    'cantidad_pedido_detalle_atributo_producto' => $value->cantidad
+                ];
+                PedidoDetalleAtributoProducto::create($fillable);
+                $option = [
+                    'label' => 'Color',
+                    'value' => $ProductoColor->nombre_producto_color,
+                    'label_atributo' => 'Talla',
+                    'value_atributo' => $AtributoProducto->glosa_atributo,
+                ];
+                array_push($options, $option);
             }
             // -----------------------------------------------------------------
             $elemento->options = $options;
