@@ -12,6 +12,9 @@
 
 RewriteEngine On
 RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTPS} off [OR]
+RewriteCond %{HTTP_HOST} !^www\. [NC]
+RewriteCond %{HTTP_HOST} ^(?:www\.)?(.+)$ [NC]
 RewriteRule ^(.*)$ https://crm.sistemasdurand.com/$1 [L,R=301,NE]
 
     # Handle Front Controller...
