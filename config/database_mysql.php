@@ -1,9 +1,10 @@
 <?php
 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'carrito_compras');
+
+define('DB_HOST', $host);
+define('DB_USER', $username);
+define('DB_PASS', $password);
+define('DB_NAME', $base_datos);
 class database
 {
     public static function conectar()

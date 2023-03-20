@@ -7,6 +7,7 @@ require_once "Helpers/helpers.php";
 require_once "models/Usuario.php";
 require_once "models/Staff.php";
 require_once "models/Categorias.php";
+require_once "models/EmpresaVentaOnline.php";
 
 
 class UsuarioController

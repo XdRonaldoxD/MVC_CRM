@@ -312,7 +312,7 @@ class ProductoController
         $data = [];
         foreach ($Productos as $key => $value) {
             $fecha_actual = date("Y-m-d");
-            $fecha_producto = date('Y-m-d', strtotime($value->fechacreacion_producto . "+ 2 days"));
+            $fecha_producto = date('Y-m-d', strtotime($value->fechacreacion_producto . "+ 5 months"));
             if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
                 $arreglos = $this->ConstruirProducto($value);
                 array_push($data, $arreglos[0]);
@@ -732,7 +732,7 @@ class ProductoController
         }
 
         $fecha_actual = date("Y-m-d");
-        $fecha_producto = date('Y-m-d', strtotime($element->fechacreacion_producto . "+ 2 days"));
+        $fecha_producto = date('Y-m-d', strtotime($element->fechacreacion_producto . "+ 5 months"));
         $new = [];
         if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
             $new = ["new"];

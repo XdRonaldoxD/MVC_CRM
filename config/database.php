@@ -5,10 +5,10 @@ use Illuminate\Database\Capsule\Manager;
 $database = new Manager();
 $database->addConnection([
     'driver' => 'mysql',
-    'host' => 'localhost',
-    'database' => 'carrito_compras',
-    'username' => 'root',
-    'password' => '',
+    'host' => $host,
+    'database' => $base_datos,
+    'username' => $username,
+    'password' => $password,
     'charset' => 'utf8',
     'collation' => 'utf8_unicode_ci',
     'prefix' => '',

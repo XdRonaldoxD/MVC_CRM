@@ -15,6 +15,7 @@ require_once "models/producto.php";
 require_once "models/NotaVenta.php";
 require_once "models/Ingreso.php";
 require_once "models/Egreso.php";
+require_once "models/EmpresaVentaOnline.php";
 require_once "Helpers/helpers.php";
 
 class NegocioController
@@ -35,8 +36,9 @@ class NegocioController
         $id_caja = $datos->id_caja;
         // $permitted_chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         // $serie = strtoupper(helpers::generate_string($permitted_chars, 3));
-        $serie = "D01";
+        $serie = "R01";
         $tipo_documento = $informacionForm->tipo_documento;
+        $jsonArray = [];
         if ($tipo_documento === 'FACTURA' || $tipo_documento === 'BOLETA') {
             if ($tipo_documento === 'FACTURA') {
                 $cliente = Cliente::leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
@@ -65,14 +67,14 @@ class NegocioController
                     ->where('id_cliente', $informacionForm->cliente)->first();
                 $folio_documento = Folio::where('id_folio', 6)->first();
                 if ($cliente->dni_cliente == '00000000') {
-                    $tipoDoc = '0';
+                    $tipoDoc_cliente = '0';
                 } else {
-                    $tipoDoc = '1';
+                    $tipoDoc_cliente = '1';
                 }
                 $tipoDoc = "03";
                 $serie = "B" . $serie;
                 $datos_cliente = [
-                    "tipoDoc" => $tipoDoc,
+                    "tipoDoc" => $tipoDoc_cliente,
                     "numDoc" =>  $cliente->dni_cliente,
                     "rznSocial" => $cliente->nombre_cliente . ' ' . $cliente->apellidopaterno_cliente . ' ' . $cliente->apellidomaterno_cliente,
                     "address" => [
@@ -130,14 +132,35 @@ class NegocioController
             // $correlativo = "00000000";
             // $correlativo = substr($correlativo, 0, (8 - $cantidad_digito_folio));
             // $correlativo = $correlativo . $folio_documento->numero_folio;
+            $EmpresaVentaOnline = EmpresaVentaOnline::join('certificado_digital_empresa','certificado_digital_empresa.id_empresa_venta_online','empresa_venta_online.id_empresa_venta_online')
+            ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
+            ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
+            ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
+            ->where('empresa_venta_online.id_empresa_venta_online', $informacionForm->id_empresa)
+            ->first();
+ 
+
+            $mensaje_encriptado = base64_decode($EmpresaVentaOnline->clavearchivo_certificado_digital);
+            $partes = explode('::', $mensaje_encriptado);
+            $clave_certificado = openssl_decrypt($partes[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes[1]);
+
+            $clave_sol = base64_decode($EmpresaVentaOnline->clavesol_certificado_digital);
+            $partes_clave = explode('::', $clave_sol);
+            $clave_sol_certificado = openssl_decrypt($partes_clave[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes_clave[1]);
+            
             $correlativo = $folio_documento->numero_folio;
             $arregloJson = array(
+                //EMPRESA------------------------------------------------
+                "clave_certificado" =>$clave_certificado,
+                "usuario_sol" =>  $EmpresaVentaOnline->usuariosol_certificado_digital,
+                "clave_sol" => $clave_sol_certificado,
+                //-------------------------------------------------------
                 "ublVersion" => "2.1",
                 "tipoOperacion" => "0101",
                 "tipoDoc" => $tipoDoc,
                 "serie" => $serie,
                 "correlativo" => $correlativo,
-                "fechaEmision" => date('Y-m-d') . "T00:00:00-05:00",
+                "fechaEmision" => date('Y-m-d H:i:s') . "-05:00",
                 "formaPago" => [
                     "moneda" => "PEN",
                     "tipo" => "Contado"
@@ -145,14 +168,14 @@ class NegocioController
                 "tipoMoneda" => "PEN",
                 "client" => $datos_cliente,
                 "company" => [
-                    "ruc" => 90254813519,
-                    "razonSocial" => "PRUEBA",
-                    "nombreComercial" => "PRUEBA",
+                    "ruc" => $EmpresaVentaOnline->ruc_empresa_venta_online,
+                    "razonSocial" => $EmpresaVentaOnline->razon_social_empresa_venta_online,
+                    "nombreComercial" => "",
                     "address" => [
-                        "direccion" => "Lima , L. 123",
-                        "provincia" => "LIMA",
-                        "departamento" => "LIMA",
-                        "distrito" => "LIMA",
+                        "direccion" =>  $EmpresaVentaOnline->direccion_empresa_venta_online ?  $EmpresaVentaOnline->direccion_empresa_venta_online : 'Av. Villa Nueva 221',
+                        "provincia" =>  $EmpresaVentaOnline->provincia ?  $EmpresaVentaOnline->provincia : 'LIMA',
+                        "departamento" => $EmpresaVentaOnline->departamento ? $EmpresaVentaOnline->departamento : 'LIMA',
+                        "distrito" =>  $EmpresaVentaOnline->distrito ?  $EmpresaVentaOnline->distrito: 'LIMA',
                         "ubigueo" => "150101"
                     ]
                 ],
@@ -174,31 +197,35 @@ class NegocioController
             $payload = json_encode($arregloJson);
             $curl = curl_init();
             curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://facturacion.apisperu.com/api/v1/invoice/send',
+                CURLOPT_URL => API_SUNAT.'/api/GenerarDocumentacion',
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_ENCODING => '',
                 CURLOPT_MAXREDIRS => 10,
                 CURLOPT_TIMEOUT => 0,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_CUSTOMREQUEST => 'GET',
                 CURLOPT_POSTFIELDS => $payload,
                 CURLOPT_HTTPHEADER => array(
-                    'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE2MjA0NDkxODcsImV4cCI6NDc3NDA0OTE4NywidXNlcm5hbWUiOiJ4cm9uYWxkbyIsImNvbXBhbnkiOiI5MDI1NDgxMzUxOSJ9.AqigLZMv7h7KQtC6ZUzXPJqbWdlr_ymmSCrqJeGUYu4WAe_gs16Vr0diNvK7qQFR9D87xIvzx68iviMOljqMH1WDkWM6CncplHhvuLeuG_ZobV3TKq5HbExSBtw8KTVE9R5gMDm_yQ_5uu1yw6sAwQduOF3LtmlegQaQjO0-1VezTD_gEqbT7ck5QGEdJq0ULemnlSszK8aZJE7b_cNvr_7n8Ha5of4P9VYtYfVgHa8D5JOezvODRtVauNsGRPxS4YzR35DTyPSJ_GNbvZ34lhm7BTxJqCXlXuxj081GBi2KdXWFt6XR603mOGQ2C6LKlatg95NYA3swooGvrwZHq3KF1oWghckfrKPieGZ3_p7N6O5_0dqHqUSsMLKcrY3de6y80WpOdyTkljVtyEJIhVn3CKyvL_-fNTz82qf71bLid18ozW7TGFAN6iGcRulHqWYVHBge_uAZa5lJGuThwKIIgR112rNM7tkoLVga1xd3juz9mPdCLPCaWC2HG6hB5J4bJA_afx3EvRGtRKrNZTuzmEcRdbYN1RBgvs6dRXQpmFr95ZnjdHPnJPRSlVHPC-ULkJd3Q6uegVrbYPpbIkNyY8Xa0Tm28_6PGFZYeabNw5AkRzRFxwR1oktQ9nyCLhi3539Gk_FD7noa86Vk5mNrnW5evSSACCDZ_YNOhUg',
+                    'Authorization: Bearer FACTURACION_GREENTER_ELECTRONICO_2023_123456789',
                     'Content-Type: application/json'
                 ),
             ));
             $response = curl_exec($curl);
             curl_close($curl);
             $jsonArray  = json_decode($response, true);
-            if ($jsonArray['sunatResponse']['success'] == false) {
+
+            // http_response_code(404);
+            // var_dump($jsonArray);
+            // exit();
+
+            if (isset($jsonArray['Codigo Error']) || count($jsonArray['notes']) > 0) {
                 http_response_code(404);
-                echo  $response;
+                echo $response;
                 exit();
             }
-            // http_response_code(404);
-            // echo  $response;
-            // exit();
+
+        
             //-----------------------------------------------------------------------------
 
         }
@@ -281,12 +308,12 @@ class NegocioController
                     'fechacreacion_boleta' => date('Y-m-d H:i:s'),
                     'iva_boleta' => $igv_global,
                     'total_boleta' => $total_venta_global,
-                    'xml_boleta' => $jsonArray['xml'],
-                    'cdrzip_boleta' => $jsonArray['sunatResponse']['cdrZip'],
+                    'xml_boleta' => $jsonArray['ruta_xml'],
+                    'cdrzip_boleta' => $jsonArray['ruta_zip'],
                     'estado_boleta' => 1,
                     'id_negocio' => $Negocio->id_negocio,
                     'id_cliente' => $informacionForm->cliente,
-                    'comentario_boleta' => $jsonArray['sunatResponse']['cdrResponse']['description'],
+                    'comentario_boleta' => $jsonArray['description'],
                 ];
                 $folio_documento->numero_folio += 1;
                 $folio_documento->save();
@@ -305,12 +332,12 @@ class NegocioController
                     'valorafecto_factura' => $precio_sin_igv_global,
                     'iva_factura' => $igv_global,
                     'total_factura' => $total_venta_global,
-                    'xml_factura' => $jsonArray['xml'],
-                    'cdrzip_factura' => $jsonArray['sunatResponse']['cdrZip'],
+                    'xml_factura' => $jsonArray['ruta_xml'],
+                    'cdrzip_factura' => $jsonArray['ruta_zip'],
                     'estado_factura' => 1,
                     'id_negocio' => $Negocio->id_negocio,
                     'id_cliente' => $informacionForm->cliente,
-                    'comentario_factura' => $jsonArray['sunatResponse']['cdrResponse']['description'],
+                    'comentario_factura' => $jsonArray['description'],
                 ];
                 $folio_documento->numero_folio += 1;
                 $folio_documento->save();

@@ -9,30 +9,39 @@ header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE,OPTIONS");
 header("Allow: GET, POST, PUT, DELETE,OPTIONS");
 header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
 
-
 //EVITAR ATAQUE DDOS(PARA LA SOBRECARGA DE PETICIONES)
-// require_once "config/EvitarDDos.php";
-// EvitarDDos::antiflood_countaccess();
-//
+require_once "config/EvitarDDos.php";
+//50 solicitudes x 60 Segundos que es 1 minuto
+if ((new EvitarDDos())->limitarSolicitudes(50, 60)) {
+    header('HTTP/1.1 429 Too Many Requests');
+    die('Too Many Requests');
+}
+//-----------------------------------------------------
 
-if ($_SERVER['SERVER_NAME'] === 'crm.sistemasdurand.com') {
-    $host = '162.241.60.172';
-    $username = 'siste268';
-    $password = 'zSj55IiL2+e8:E';
-    $base_datos = 'siste268_nota_venta';
-    $ruta_archivo = 'https://crm.sistemasdurand.com/';
-    define('RUTA_ARCHIVO', $ruta_archivo);
-} else {
-    $dominio = "";
-    $host = 'localhost';
-    $username = 'root';
-    $password = '';
-    $base_datos = 'notaventa';
-    $ruta_archivo = 'http://localhost/MVC_CRM/';
-    define('RUTA_ARCHIVO', $ruta_archivo);
+switch ($_SERVER['SERVER_NAME']) {
+    case 'crm.sistemasdurand.com':
+        $host = '162.241.60.172';
+        $username = 'siste268';
+        $password = 'zSj55IiL2+e8:E';
+        $base_datos = 'siste268_nota_venta';
+        $ruta_archivo = 'https://crm.sistemasdurand.com/';
+        define('RUTA_ARCHIVO', $ruta_archivo);
+        define('API_SUNAT', 'https://apigreenter.sistemasdurand.com');
+        break;
+    default:
+        $dominio = "";
+        $host = 'localhost';
+        $username = 'root';
+        $password = '';
+        $base_datos = 'carrito_compras';
+        $ruta_archivo = 'http://localhost/MVC_CRM/';
+        define('RUTA_ARCHIVO', $ruta_archivo);
+        define('API_SUNAT','http://127.0.0.1:8000');
+        break;
 }
 require_once "vendor/autoload.php";
 require_once "config/database.php";
+require_once "config/database_mysql.php";
 // require "Helpers/helpers.php";
 require_once "Helpers/JwtAuth.php";
 
@@ -51,10 +60,9 @@ if (isset($_GET['Apicontroller'])) {
 }
 //
 //REQUES VEO SI ESTAN LAS PETICIONES ENVIANDO EL CONTROLADOR Y SU ACCION SI NO ENVIA NO ENTRARA 
-
 if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET") {
-    $headers = apache_request_headers();
     $Authorization = null;
+    $headers = apache_request_headers();
     if (isset($_GET['Authorization'])) {
         $Authorization = $_GET['Authorization'];
     }
@@ -64,7 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
     if (isset($headers['authorization'])) {
         $Authorization = $headers['authorization'];
     }
-
     if ($Authorization) {
         $jwtAth = new JwtAuth();
         $checktoken = $jwtAth->checktoken($Authorization);
@@ -123,5 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
             die(http_response_code(404));
         }
     }
-    die();
 }
+
+
+die();

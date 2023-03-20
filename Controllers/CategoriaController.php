@@ -280,4 +280,10 @@ class CategoriaController
         }
         echo $categoria;
     }
+
+    public function FiltrarCategoria(){
+        $buscar=$_GET['search'];
+        $respuesta=Categorias::where('glosa_categoria','LIKE',"%$buscar%")->get();
+        echo $respuesta;
+    }
 }

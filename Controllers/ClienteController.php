@@ -6,7 +6,12 @@ class ClienteController{
 
     public function FiltrarCliente(){
         $buscar=$_GET['search'];
-        $CONSULTA="SELECT * FROM cliente where vigente_cliente=1 and
+        $buscar_factura=$_GET['factura'];
+        $solo_factura='';
+        if ($buscar_factura==='true') {
+            $solo_factura=" tipodocumento_cliente='RUC' and ";
+        }
+        $CONSULTA="SELECT * FROM cliente where vigente_cliente=1 and $solo_factura
         ( concat(nombre_cliente,' ',apellidopaterno_cliente,' ',apellidomaterno_cliente) like '%$buscar%'
            or nombre_cliente like '%$buscar%' or
              apellidopaterno_cliente like '%$buscar%' or
