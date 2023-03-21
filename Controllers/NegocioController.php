@@ -34,8 +34,7 @@ class NegocioController
         $Totales_pagados = $datos->Totales_pagados;
         $informacionForm = $datos->informacionForm;
         $id_caja = $datos->id_caja;
-        // $permitted_chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        // $serie = strtoupper(helpers::generate_string($permitted_chars, 3));
+
         $serie = "R01";
         $tipo_documento = $informacionForm->tipo_documento;
         $jsonArray = [];

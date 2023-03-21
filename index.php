@@ -42,9 +42,7 @@ switch ($_SERVER['SERVER_NAME']) {
 require_once "vendor/autoload.php";
 require_once "config/database.php";
 require_once "config/database_mysql.php";
-// require "Helpers/helpers.php";
 require_once "Helpers/JwtAuth.php";
-
 require 'phpMailer/Exception.php';
 require 'phpMailer/PHPMailer.php';
 require 'phpMailer/SMTP.php';
