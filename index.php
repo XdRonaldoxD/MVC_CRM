@@ -110,6 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
     } else {
         if (isset($_GET['controller']) && $_GET['controller'] == 'Usuario') {
             $nombre_controlador = $_GET['controller'] . "Controller";
+            echo "ENCONTRO USUARIO";
+            die(http_response_code(404));
         } else {
             echo "No exite la Pagina";
             die(http_response_code(404));
