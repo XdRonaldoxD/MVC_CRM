@@ -131,4 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
     }
 }
 
+echo "No existe la pagina Inicio";
+die(http_response_code(404));
+
 
