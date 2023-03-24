@@ -20,6 +20,9 @@ class EmpresaController
             'dominio_empresa_venta_online' => $_SERVER['SERVER_NAME'],
             'pixelgoogle_empresa_venta_online' => $informacionForm->pixelgoogle_empresa,
             'pixelfacebook_empresa_venta_online' => $informacionForm->pixelfacebook_empresa,
+            'nombre_empresa_venta_online'=>$informacionForm->nombre_empresa,
+            'email_empresa_venta_online'=>$informacionForm->email_empresa_venta_online,
+            'giro_empresa_venta_online'=>$informacionForm->giro_empresa_venta_online
         ];
         if (isset($_FILES['pathfoto_empresa_venta_online'])) {
             $imagen = $_FILES['pathfoto_empresa_venta_online']['name'];

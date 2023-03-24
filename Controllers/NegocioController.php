@@ -38,6 +38,12 @@ class NegocioController
         $serie = "R01";
         $tipo_documento = $informacionForm->tipo_documento;
         $jsonArray = [];
+        $EmpresaVentaOnline = EmpresaVentaOnline::join('certificado_digital_empresa','certificado_digital_empresa.id_empresa_venta_online','empresa_venta_online.id_empresa_venta_online')
+        ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
+        ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
+        ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
+        ->where('empresa_venta_online.id_empresa_venta_online', $informacionForm->id_empresa)
+        ->first();
         if ($tipo_documento === 'FACTURA' || $tipo_documento === 'BOLETA') {
             if ($tipo_documento === 'FACTURA') {
                 $cliente = Cliente::leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
@@ -131,12 +137,7 @@ class NegocioController
             // $correlativo = "00000000";
             // $correlativo = substr($correlativo, 0, (8 - $cantidad_digito_folio));
             // $correlativo = $correlativo . $folio_documento->numero_folio;
-            $EmpresaVentaOnline = EmpresaVentaOnline::join('certificado_digital_empresa','certificado_digital_empresa.id_empresa_venta_online','empresa_venta_online.id_empresa_venta_online')
-            ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
-            ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
-            ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
-            ->where('empresa_venta_online.id_empresa_venta_online', $informacionForm->id_empresa)
-            ->first();
+  
  
 
             $mensaje_encriptado = base64_decode($EmpresaVentaOnline->clavearchivo_certificado_digital);
@@ -365,7 +366,7 @@ class NegocioController
                 $id_documento = $NotaVenta->id_nota_venta;
                 break;
         }
-        $pathNotaVenta = $this->EnviarNegocioVenta($Negocio->id_negocio, $tipo_documento);
+        $pathNotaVenta = $this->EnviarNegocioVenta($Negocio->id_negocio, $tipo_documento,$EmpresaVentaOnline);
         if ($tipo_documento === 'BOLETA') {
             $Boletas = Boleta::where('id_boleta', $id_documento)->first();
             $Boletas->path_boleta = $pathNotaVenta['path'];
@@ -432,7 +433,7 @@ class NegocioController
         ];
         echo json_encode($rutaspdf);
     }
-    public function EnviarNegocioVenta($id_negocio, $tipo_documento)
+    public function EnviarNegocioVenta($id_negocio, $tipo_documento,$EmpresaVentaOnline)
     {
         if ($tipo_documento === 'BOLETA') {
             $Boleta = Boleta::where('id_negocio', $id_negocio)
@@ -491,13 +492,13 @@ class NegocioController
         $fecha_emision_dte = date('Y-m-d', strtotime($negocios[0]['fechacreacion_negocio_detalle']));
         $codigoBarra = base64_encode(file_get_contents((new \chillerlan\QRCode\QRCode())->render($valorventa)));
         $informacion_empresa = [
-            "nombre_empresa" => "AHORROFARMA",
-            "ruc" => "10468481940",
-            "razonSocial" => 'DORA YULITH REMIGIO ZELAYA',
-            "direccion" => 'RB. LOS JARDINES MZ. C LT. 10',
-            "departamento" => 'LIMA',
-            "provincia" => 'HUAURA',
-            "distrito" => 'SANTA MARIA',
+            "nombre_empresa" => $EmpresaVentaOnline->nombre_empresa_venta_online,
+            "ruc" => $EmpresaVentaOnline->ruc_empresa_venta_online,
+            "razonSocial" => $EmpresaVentaOnline->razon_social_empresa_venta_online,
+            "direccion" =>  $EmpresaVentaOnline->direccion_empresa_venta_online,
+            "departamento" =>  $EmpresaVentaOnline->departamento,
+            "provincia" => $EmpresaVentaOnline->provincia,
+            "distrito" => $EmpresaVentaOnline->distrito,
             'tipo_documento' => $tipo_documento
         ];
         $informacion_cliente = [

@@ -111,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
         if (isset($_GET['controller']) && $_GET['controller'] == 'Usuario') {
             $nombre_controlador = $_GET['controller'] . "Controller";
         } else {
+            echo "No exite la Pagina";
             die(http_response_code(404));
         }
         if (isset($_GET['action']) && class_exists($nombre_controlador)) {
@@ -120,15 +121,14 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
                 $controller = new $nombre_controlador();
                 $controller->$accion();
             } else {
-                // echo "No existe la pagina";
+                echo "No existe la pagina";
                 die(http_response_code(404));
             }
         } else {
-            // echo "No existe la pagina Inicio";
+            echo "No existe la pagina Inicio";
             die(http_response_code(404));
         }
     }
 }
 
 
-die();
