@@ -1,5 +1,7 @@
 <?php
 //PARA EL SERVIDOR
+echo $_SERVER['SERVER_NAME'];
+die;
 switch ($_SERVER['SERVER_NAME']) {
     case 'crm.sistemasdurand.com':
         $host = '162.241.60.432';
