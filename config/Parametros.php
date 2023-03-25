@@ -1,9 +1,7 @@
 <?php
 //PARA EL SERVIDOR
-echo $_SERVER['SERVER_NAME'];
-die;
-switch ($_SERVER['SERVER_NAME']) {
-    case 'crm.sistemasdurand.com':
+switch (true) {
+    case (strpos($_SERVER['SERVER_NAME'], 'crm.sistemasdurand.com') !== false):
         $host = '162.241.60.432';
         $username = 'siste268';
         $password = 'zSj55IiL2+e8:E';
