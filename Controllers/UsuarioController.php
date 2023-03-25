@@ -44,7 +44,7 @@ class UsuarioController
         ];
      
         $staff=Staff::create($staff);
-        echo json_encode($staff);
+        var_dump($staff);
         die;
         $usuario=[
             "password_usuario"=>$pwd,

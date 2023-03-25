@@ -12,8 +12,6 @@ $conexion=[
     'collation' => 'utf8_unicode_ci',
     'prefix' => '',
 ];
-var_dump($conexion);
-die;
 $database = new Manager();
 $database->addConnection($conexion);
 // $database->setAsGlobal();
