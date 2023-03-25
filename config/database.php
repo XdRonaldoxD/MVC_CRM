@@ -2,8 +2,7 @@
 
 use Illuminate\Database\Capsule\Manager;
 
-$database = new Manager();
-$database->addConnection([
+$conexion=[
     'driver' => 'mysql',
     'host' => $host,
     'database' => $base_datos,
@@ -12,7 +11,11 @@ $database->addConnection([
     'charset' => 'utf8',
     'collation' => 'utf8_unicode_ci',
     'prefix' => '',
-]);
+];
+var_dump($conexion);
+die;
+$database = new Manager();
+$database->addConnection($conexion);
 // $database->setAsGlobal();
 $database->bootEloquent();
 
