@@ -34,8 +34,6 @@ class UsuarioController
 
     public function RegistrarUsuario()
     { 
-        echo "aca";
-        die(http_response_code(404));
         //Cifrar las contraseña - Cifrando 4 veces
         $pwd = hash('sha256', $_POST['password_usuario']);
         $staff=[
