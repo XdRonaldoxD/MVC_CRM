@@ -1,5 +1,5 @@
 <?php
-
+session_start();
 date_default_timezone_set('America/Lima');
 // Definir constante con directorio actual
 define('PROY_RUTA', __DIR__);
@@ -16,30 +16,10 @@ if ((new EvitarDDos())->limitarSolicitudes(50, 60)) {
     header('HTTP/1.1 429 Too Many Requests');
     die('Too Many Requests');
 }
-//-----------------------------------------------------
 
-switch ($_SERVER['SERVER_NAME']) {
-    case 'crm.sistemasdurand.com':
-        $host = '162.241.60.172';
-        $username = 'siste268';
-        $password = 'zSj55IiL2+e8:E';
-        $base_datos = 'siste268_nota_venta';
-        $ruta_archivo = 'https://crm.sistemasdurand.com/';
-        define('RUTA_ARCHIVO', $ruta_archivo);
-        define('API_SUNAT', 'https://apigreenter.sistemasdurand.com');
-        break;
-    default:
-        $dominio = "";
-        $host = 'localhost';
-        $username = 'root';
-        $password = '';
-        $base_datos = 'carrito_compras';
-        $ruta_archivo = 'http://localhost/MVC_CRM/';
-        define('RUTA_ARCHIVO', $ruta_archivo);
-        define('API_SUNAT','http://127.0.0.1:8000');
-        break;
-}
+//-----------------------------------------------------
 require_once "vendor/autoload.php";
+require_once "config/Parametros.php";
 require_once "config/database.php";
 require_once "config/database_mysql.php";
 require_once "Helpers/JwtAuth.php";
@@ -130,8 +110,4 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
         }
     }
 }
-
-echo "No existe la pagina Inicio";
-die(http_response_code(404));
-
-
+session_destroy();
