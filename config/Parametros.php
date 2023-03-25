@@ -5,7 +5,7 @@ switch ($_SERVER['SERVER_NAME']) {
         $host = '162.241.60.432';
         $username = 'siste268';
         $password = 'zSj55IiL2+e8:E';
-        $base_datos = 'siste268_nota_venta';
+        $base_datos = 'siste268_crmventas';
         $ruta_archivo = 'https://crm.sistemasdurand.com/';
         define('RUTA_ARCHIVO', $ruta_archivo);
         define('API_SUNAT', 'https://apigreenter.sistemasdurand.com');
