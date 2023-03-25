@@ -481,7 +481,7 @@ class ProductoExcelController
         $fechacreacion = date('Y-m-d');
         $spread = new Spreadsheet();
         $sheet = $spread->getActiveSheet();
-        $gdImage = imagecreatefrompng("http://localhost/MVC_APIVENTA//archivos/imagenes/ahorro_farma.png");
+        $gdImage = imagecreatefrompng(RUTA_ARCHIVO."/archivos/imagenes/ahorro_farma.png");
         // $textColor = imagecolorallocate($gdImage, 255, 255, 5);
         // imagestring($gdImage, 1, 7, 5, date("F Y"), $textColor);
 
