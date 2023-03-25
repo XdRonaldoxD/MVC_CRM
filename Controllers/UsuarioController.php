@@ -42,10 +42,10 @@ class UsuarioController
             "apellidomaterno_staff"=>$_POST['apellido_m_usuario'],
             'e_mail_staff'=>$_POST['email_usuario']
         ];
+     
+        $staff=Staff::create($staff);
         echo json_encode($staff);
         die;
-        $staff=Staff::create($staff);
-     
         $usuario=[
             "password_usuario"=>$pwd,
             "id_staff"=>$staff->id_staff,
