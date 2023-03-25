@@ -2,7 +2,7 @@
 //PARA EL SERVIDOR
 switch (true) {
     case (strpos($_SERVER['SERVER_NAME'], 'crm.sistemasdurand.com') !== false):
-        $host = '162.241.60.432';
+        $host = '162.241.60.172';
         $username = 'siste268';
         $password = 'zSj55IiL2+e8:E';
         $base_datos = 'siste268_crmventas';
