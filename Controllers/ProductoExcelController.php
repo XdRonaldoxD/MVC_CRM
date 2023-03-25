@@ -6,7 +6,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
-require_once "models/producto.php";
+require_once "models/Producto.php";
 require_once "models/Proveedor.php";
 require_once "models/Marca.php";
 require_once "models/TipoConcentracion.php";
