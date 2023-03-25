@@ -43,6 +43,8 @@ class UsuarioController
             'e_mail_staff'=>$_POST['email_usuario']
         ];
         $staff=Staff::create($staff);
+        echo $staff;
+        die;
         $usuario=[
             "password_usuario"=>$pwd,
             "id_staff"=>$staff->id_staff,
