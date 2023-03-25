@@ -1,5 +1,5 @@
 <?php
-session_start();
+
 date_default_timezone_set('America/Lima');
 // Definir constante con directorio actual
 define('PROY_RUTA', __DIR__);
@@ -110,4 +110,3 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
         }
     }
 }
-session_destroy();

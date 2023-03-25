@@ -3,8 +3,8 @@
 switch ($_SERVER['SERVER_NAME']) {
     case 'crm.sistemasdurand.com':
         $host = '162.241.60.432';
-        $username = 'sisDSFFSDFte268';
-        $password = 'zSSDF5IDSADWiL2FSDFeFSDFSDF8:EAEWRWEDS';
+        $username = 'siste268';
+        $password = 'zSj55IiL2+e8:E';
         $base_datos = 'siste268_nota_venta';
         $ruta_archivo = 'https://crm.sistemasdurand.com/';
         define('RUTA_ARCHIVO', $ruta_archivo);
