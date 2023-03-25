@@ -34,6 +34,7 @@ class UsuarioController
 
     public function RegistrarUsuario()
     { 
+
         //Cifrar las contraseña - Cifrando 4 veces
         $pwd = hash('sha256', $_POST['password_usuario']);
         $staff=[
@@ -42,10 +43,7 @@ class UsuarioController
             "apellidomaterno_staff"=>$_POST['apellido_m_usuario'],
             'e_mail_staff'=>$_POST['email_usuario']
         ];
-     
         $staff=Staff::create($staff);
-        var_dump($staff);
-        die;
         $usuario=[
             "password_usuario"=>$pwd,
             "id_staff"=>$staff->id_staff,
