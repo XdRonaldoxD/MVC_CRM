@@ -96,8 +96,6 @@ class NuevoProductoController
             foreach ($imagenes_producto as $key => $archivos) {
                 if (isset($archivos->id_producto_imagen)) {
                     $ProductoImagen = ProductoImagen::where('id_producto_imagen', $archivos->id_producto_imagen)->first();
-                }
-                if (isset($ProductoImagen)) {
                     $ver = array_search($archivos->id_producto_imagen, $ProductoImagen_existe);
                     unset($ProductoImagen_existe[$ver]);
                     $ProductoImagen->portada_producto_imagen=($archivos->portada==true) ? 1 : 0;
