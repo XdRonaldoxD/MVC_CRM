@@ -174,24 +174,31 @@ class ProductoExcelController
                         if (isset($elemento[3])) {
                             if (!empty($elemento[3])) {
                                 $tipo_inventario_insertar = trim($elemento[3]);
+                                $tipo_inventario_insertar = str_replace("  ", " ", $tipo_inventario_insertar);
                             }
                         }
                         $marca_insertar = null;
                         if (isset($elemento[4])) {
                             if (!empty($elemento[4])) {
                                 $marca_insertar =  trim($elemento[4]);
+                                $marca_insertar = str_replace("  ", " ", $marca_insertar);
+
                             }
                         }
                         $nombre_proveedor_insertar = null;
                         if (isset($elemento[5])) {
                             if (!empty($elemento[5])) {
                                 $nombre_proveedor_insertar =  trim($elemento[5]);
+                                $nombre_proveedor_insertar = str_replace("  ", " ", $nombre_proveedor_insertar);
+
                             }
                         }
                         $nombre_producto_insertar = null;
                         if (isset($elemento[6])) {
                             if (!empty($elemento[6])) {
                                 $nombre_producto_insertar = trim($elemento[6]);
+                                $nombre_producto_insertar = str_replace("  ", " ", $nombre_producto_insertar);
+
                             }
                         }
                         $codigo_producto_insertar = null;

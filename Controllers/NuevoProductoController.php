@@ -7,6 +7,7 @@ require_once "models/ProductoEspecificaciones.php";
 require_once "models/AtributoProducto.php";
 require_once "models/CategoriaProducto.php";
 require_once "config/Helper.php";
+require_once "config/Parametros.php";
 
 class NuevoProductoController
 {
@@ -34,6 +35,12 @@ class NuevoProductoController
 
     public function GuardarProductoActualizar()
     {
+        Cloudinary::config([
+            'cloud_name' => cloud_name,
+            'api_key'    => api_key,
+            'api_secret' => api_secret,
+            "secure" => true
+        ]);
         try {
             $Helper = new Helper();
             $imagenes_producto = json_decode($_POST['imagenes_producto']);
@@ -92,13 +99,13 @@ class NuevoProductoController
                 ];
                 ProductoColor::create($colores);
             }
-            $ProductoImagen_existe = ProductoImagen::where('id_producto',$id_producto)->pluck('id_producto_imagen')->toArray();
+            $ProductoImagen_existe = ProductoImagen::where('id_producto', $id_producto)->pluck('id_producto_imagen')->toArray();
             foreach ($imagenes_producto as $key => $archivos) {
                 if (isset($archivos->id_producto_imagen)) {
                     $ProductoImagen = ProductoImagen::where('id_producto_imagen', $archivos->id_producto_imagen)->first();
                     $ver = array_search($archivos->id_producto_imagen, $ProductoImagen_existe);
                     unset($ProductoImagen_existe[$ver]);
-                    $ProductoImagen->portada_producto_imagen=($archivos->portada==true) ? 1 : 0;
+                    $ProductoImagen->portada_producto_imagen = ($archivos->portada == true) ? 1 : 0;
                     $ProductoImagen->save();
                 } else {
                     //DECODIFICA LA IMAGEN BASE64
@@ -116,32 +123,38 @@ class NuevoProductoController
                     $separaFecha = explode(" ", $fechacreacion);
                     $Fecha = explode("-", $separaFecha[0]);
                     $path = $archivos->nombre_imagen . mt_srand(10) . "_" . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . $key . "_.$extension";
-                    $file = fopen(__DIR__ . "/../archivo/imagen_producto/$path", "wb");
+                    $ruta_imagen = __DIR__ . "/../archivo/imagen_producto/$path";
+                    $file = fopen($ruta_imagen, "wb");
                     fwrite($file, $Base64Img);
                     fclose($file);
-                    // print_r($archivos);
-                    // die;
+                    //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
+                    $respuesta = \Cloudinary\Uploader::upload($ruta_imagen, [
+                        "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagen_producto'
+                    ]);
+                    //----------------------------------------------------------------------------
+                    unlink($ruta_imagen);
                     $ProductoImagen = array(
                         "id_producto" =>  $id_producto,
                         "nombre_producto_imagen" => $archivos->nombre_imagen,
-                        "extension_producto_imagen" => "$extension",
-                        "peso_producto_imagen" => filesize(__DIR__ . "/../archivo/imagen_producto/$path"),
+                        // "extension_producto_imagen" => "$extension",
+                        // "peso_producto_imagen" => filesize($ruta_imagen),
                         "path_producto_imagen" => $path,
                         "fechacreacion_producto_imagen" => date('Y-m-d H:i:s'),
                         'orden_producto_imagen' => $archivos->orden_imagen,
                         "estado_producto_imagen" => 1,
-                        "portada_producto_imagen" => $archivos->portada
+                        "portada_producto_imagen" => $archivos->portada,
+                        'public_id_producto_imagen' => $respuesta['public_id'],
+                        'url_producto_imagen' => $respuesta['secure_url']
                     );
                     ProductoImagen::create($ProductoImagen);
                 }
             }
             //ELIMINAMOS LAS IMAGENES 
             foreach ($ProductoImagen_existe as $key => $value) {
-                $ProductoImagen = ProductoImagen::where('id_producto_imagen',$value)->first();
-                $ruta_imagen=__DIR__ . "/../archivo/imagen_producto/$ProductoImagen->path_producto_imagen";
-                if (is_file($ruta_imagen)) {
-                    unlink($ruta_imagen);
-                }
+                $ProductoImagen = ProductoImagen::where('id_producto_imagen', $value)->first();
+                $respuesta = \Cloudinary\Uploader::destroy($ProductoImagen->public_id_producto_imagen, [
+                    "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagen_producto'
+                ]);
                 $ProductoImagen->delete();
             }
 

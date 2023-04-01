@@ -350,4 +350,17 @@ class CajaController
 
         echo json_encode("Enviando");
     }
+
+    public function VerificarCajaAbierta(){
+        $caja = Caja::leftjoin('usuario','usuario.id_staff','caja.id_staff')
+        ->where('usuario.id_usuario', $_GET['id_usuario'])
+        ->where('estado_caja',1)
+        ->first();
+       if (isset($caja)) {
+            echo json_encode(true);
+            die(http_response_code(404));
+       } else{
+            echo json_encode(false);
+       }
+    }
 }

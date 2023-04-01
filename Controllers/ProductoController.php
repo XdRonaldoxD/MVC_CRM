@@ -193,14 +193,17 @@ class ProductoController
                 foreach ($producto_relacionado as $key => $element) {
                     $consulta = " WHERE id_producto= {$element}  ";
                     $ConsultRelacionado = (new ConsultaGlobal())->ConsultaProductosRelacionado($consulta);
-                    $path_producto_imagen = __DIR__ . "/../archivo/imagen_producto/{$ConsultRelacionado->path_producto_imagen}";
-                    if (is_file($path_producto_imagen)) {
-                        // $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
-                        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                        $domain = $_SERVER['HTTP_HOST'];
-                        $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$ConsultRelacionado->path_producto_imagen";
-                    } else {
-                        $imagens = '';
+                    // $path_producto_imagen = __DIR__ . "/../archivo/imagen_producto/{$ConsultRelacionado->path_producto_imagen}";
+                    // if (is_file($path_producto_imagen)) {
+                    //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+                    //     $domain = $_SERVER['HTTP_HOST'];
+                    //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$ConsultRelacionado->path_producto_imagen";
+                    // } else {
+                    //     $imagens = '';
+                    // }
+                    $imagens = '';
+                    if ($ConsultRelacionado->url_producto_imagen) {
+                        $imagens = $ConsultRelacionado->url_producto_imagen;
                     }
 
                     $element = [
@@ -242,22 +245,22 @@ class ProductoController
                     $elementos = explode('|', $element);
                     $id_producto_imagen = $elementos[0];
                     $nombre_producto_imagen = $elementos[1];
-                    $path_producto_imagen = $elementos[2];
+                    $url_producto_imagen = $elementos[2];
                     $portada_imagen = isset($elementos[3]) ? $elementos[3] : 0;
-                    $imagen_base_64 = __DIR__ . "/../archivo/imagen_producto/{$path_producto_imagen}";
-                    if (is_file($imagen_base_64)) {
-                        // $imagenComoBase64 = base64_encode(file_get_contents($imagen_base_64));
-                        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                        $domain = $_SERVER['HTTP_HOST'];
-                        $imagenComoBase64 = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$path_producto_imagen";
-                    } else {
-                        $imagenComoBase64 = '';
-                    }
+                    // $imagen_base_64 = __DIR__ . "/../archivo/imagen_producto/{$path_producto_imagen}";
+                    // if (is_file($imagen_base_64)) {
+                    //     // $imagenComoBase64 = base64_encode(file_get_contents($imagen_base_64));
+                    //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+                    //     $domain = $_SERVER['HTTP_HOST'];
+                    //     $imagenComoBase64 = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$path_producto_imagen";
+                    // } else {
+                    //     $imagenComoBase64 = '';
+                    // }
                     $datos = [
                         'id_producto_imagen' => $id_producto_imagen,
                         'nombre_imagen' => $nombre_producto_imagen,
                         'orden_imagen' => $key + 1,
-                        "imagen" => $imagenComoBase64,
+                        "imagen" => $url_producto_imagen,
                         "portada" => ($portada_imagen === "1") ? true : false
                     ];
                     array_push($arreglo_imagen, $datos);

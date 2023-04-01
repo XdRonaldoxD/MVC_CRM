@@ -26,6 +26,13 @@ class EmpresaVentaOnline extends Model
         'pathfoto_empresa_venta_online',
         'pixelgoogle_empresa_venta_online',
         'pixelfacebook_empresa_venta_online',
-        
+        'urlicono_empresa_venta_online',
+        'public_idicono_empresa_venta_online',
+        'urllogohorizontal_empresa_venta_online',
+        'public_idlogohorizontal_empresa_venta_online',
+        'urllogovertical_empresa_venta_online',
+        'public_idlogovertical_empresa_venta_online',
+
+
     ];
 }

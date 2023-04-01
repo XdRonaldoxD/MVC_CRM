@@ -108,4 +108,14 @@ class UsuarioController
 
         echo "Generado Correctamente";
     }
+
+    public function ConsultarDominio(){
+        $EmpresaVentaOnline=EmpresaVentaOnline::where('dominio_empresa_venta_online',$_POST['dominio'])->first();
+        if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->urlicono_empresa_venta_online) {
+            echo json_encode($EmpresaVentaOnline->urlicono_empresa_venta_online);
+        }else{
+            die(http_response_code(404));
+        }
+       
+    }
 }

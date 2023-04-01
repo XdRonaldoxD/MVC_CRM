@@ -27,4 +27,8 @@ define('Host', 'smtp-relay.sendinblue.com');
 define('Username', 'smithxd108@gmail.com');
 define('Password', 'nPmB32Gcyw45Dbfg');
 define('Port', '587');
-//
+//Cloudinary
+define('cloud_name', 'do7dzakiw');
+define('api_key', '588565748574254');
+define('api_secret', 'VkYxLX75qH0TYoIWpJ7jc4ePKQ0');
+//-----------------

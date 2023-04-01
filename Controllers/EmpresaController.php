@@ -4,11 +4,20 @@
 require_once "models/EmpresaVentaOnline.php";
 require_once "models/CertificadoDigital.php";
 require_once "models/ConsultaGlobal.php";
+require_once "config/Parametros.php";
+
 class EmpresaController
 {
 
     public function GuardarInformacion()
     {
+        $arreglo=[
+            'cloud_name' => cloud_name,
+            'api_key'    => api_key,
+            'api_secret' => api_secret,
+            "secure" => true
+        ];
+        Cloudinary::config($arreglo);
         $informacionForm = json_decode($_POST['informacionForm']);
         $fillable = [
             'ruc_empresa_venta_online' => $informacionForm->ruc_empresa,
@@ -20,34 +29,140 @@ class EmpresaController
             'dominio_empresa_venta_online' => $_SERVER['SERVER_NAME'],
             'pixelgoogle_empresa_venta_online' => $informacionForm->pixelgoogle_empresa,
             'pixelfacebook_empresa_venta_online' => $informacionForm->pixelfacebook_empresa,
-            'nombre_empresa_venta_online'=>$informacionForm->nombre_empresa,
-            'email_empresa_venta_online'=>$informacionForm->email_empresa_venta_online,
-            'giro_empresa_venta_online'=>$informacionForm->giro_empresa_venta_online
+            'nombre_empresa_venta_online' => $informacionForm->nombre_empresa,
+            'email_empresa_venta_online' => $informacionForm->email_empresa_venta_online,
+            'giro_empresa_venta_online' => $informacionForm->giro_empresa_venta_online
         ];
-        if (isset($_FILES['pathfoto_empresa_venta_online'])) {
-            $imagen = $_FILES['pathfoto_empresa_venta_online']['name'];
+
+        if (isset($_FILES['icono_empresa'])) {
+            $imagen = $_FILES['icono_empresa']['name'];
             $ext = pathinfo($imagen, PATHINFO_EXTENSION);
             $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
             $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
-            $temp = $_FILES['pathfoto_empresa_venta_online']['tmp_name'];
+            $temp = $_FILES['icono_empresa']['tmp_name'];
             //crear el directorio
             if (!file_exists(__DIR__ . "/../archivo/imagenes_empresa")) {
                 mkdir(__DIR__ . "/../archivo/imagenes_empresa", 0777, true);
             }
-            $EmpresaVentaOnline = EmpresaVentaOnline::where('pathfoto_empresa_venta_online', $informacionForm->pathfoto_empresa_venta_online)->first();
-            if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->pathfoto_empresa_venta_online) {
-                if (file_exists(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online")) {
-                    unlink(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online");
+            if (!empty($informacionForm->id_empresa_venta_online) && $informacionForm->id_empresa_venta_online != '') {
+                $EmpresaVentaOnline = EmpresaVentaOnline::where('id_empresa_venta_online', $informacionForm->id_empresa_venta_online)->first();
+                if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->public_idicono_empresa_venta_online) {
+                    \Cloudinary\Uploader::destroy($EmpresaVentaOnline->public_idicono_empresa_venta_online, [
+                        "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa'
+                    ]);
+                    // if (file_exists(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online")) {
+                    //     unlink(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online");
+                    // }
                 }
             }
+
             $path = time() . $nombre_imagen;
-            $ruta_archivo = __DIR__ . "/../archivo/imagenes_empresa/$path.'.'.$ext";
-            move_uploaded_file($temp, $ruta_archivo);  // GUARDA LA archivo_digital
+            $ruta_archivo = __DIR__ . "/../archivo/imagenes_empresa/$path.$ext";
+            move_uploaded_file($temp, $ruta_archivo);
+            //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
+            $respuesta = \Cloudinary\Uploader::upload($ruta_archivo, [
+                "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa',
+                "transformation" => array(
+                    array(
+                        "width" => 32, // especifica el ancho deseado
+                        "height" => 32, // especifica la altura deseada
+                        "crop" => "fill" // ajusta la imagen para llenar las dimensiones especificadas
+                    )
+                )
+            ]);
+            //----------------------------------------------------------------------------
+            unlink($ruta_archivo);
             $fillable += [
-                'pathfoto_empresa_venta_online' => date("Y-m-d H:i:s", "$path.'.'.$ext")
+                'urlicono_empresa_venta_online' => $respuesta['secure_url'],
+                'public_idicono_empresa_venta_online' => $respuesta['public_id']
             ];
         }
 
+        if (isset($_FILES['logo_empresa_horizonta'])) {
+            $imagen = $_FILES['logo_empresa_horizonta']['name'];
+            $ext = pathinfo($imagen, PATHINFO_EXTENSION);
+            $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
+            $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
+            $temp = $_FILES['logo_empresa_horizonta']['tmp_name'];
+            //crear el directorio
+            if (!file_exists(__DIR__ . "/../archivo/imagenes_empresa")) {
+                mkdir(__DIR__ . "/../archivo/imagenes_empresa", 0777, true);
+            }
+            if (!empty($informacionForm->id_empresa_venta_online) && $informacionForm->id_empresa_venta_online != '') {
+                $EmpresaVentaOnline = EmpresaVentaOnline::where('id_empresa_venta_online', $informacionForm->id_empresa_venta_online)->first();
+                if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->public_idlogohorizontal_empresa_venta_online) {
+                    \Cloudinary\Uploader::destroy($EmpresaVentaOnline->public_idlogohorizontal_empresa_venta_online, [
+                        "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa'
+                    ]);
+                    // if (file_exists(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online")) {
+                    //     unlink(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online");
+                    // }
+                }
+            }
+            $path = time() . $nombre_imagen;
+            $ruta_archivo = __DIR__ . "/../archivo/imagenes_empresa/$path.$ext";
+            move_uploaded_file($temp, $ruta_archivo);
+            //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
+            $respuesta = \Cloudinary\Uploader::upload($ruta_archivo, [
+                "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa',
+                "transformation" => array(
+                    array(
+                        "width" => 250, // especifica el ancho deseado
+                        "height" => 150, // especifica la altura deseada
+                        "crop" => "fill" // ajusta la imagen para llenar las dimensiones especificadas
+                    )
+                )
+            ]);
+            //----------------------------------------------------------------------------
+            unlink($ruta_archivo);
+            $fillable += [
+                'urllogohorizontal_empresa_venta_online' => $respuesta['secure_url'],
+                'public_idlogohorizontal_empresa_venta_online' => $respuesta['public_id']
+            ];
+        }
+
+        if (isset($_FILES['logo_empresa_vertical'])) {
+            $imagen = $_FILES['logo_empresa_vertical']['name'];
+            $ext = pathinfo($imagen, PATHINFO_EXTENSION);
+            $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
+            $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
+            $temp = $_FILES['logo_empresa_vertical']['tmp_name'];
+            //crear el directorio
+            if (!file_exists(__DIR__ . "/../archivo/imagenes_empresa")) {
+                mkdir(__DIR__ . "/../archivo/imagenes_empresa", 0777, true);
+            }
+            if (!empty($informacionForm->id_empresa_venta_online) && $informacionForm->id_empresa_venta_online != '') {
+                $EmpresaVentaOnline = EmpresaVentaOnline::where('id_empresa_venta_online', $informacionForm->id_empresa_venta_online)->first();
+                if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->public_idlogovertical_empresa_venta_online) {
+                    \Cloudinary\Uploader::destroy($EmpresaVentaOnline->public_idlogovertical_empresa_venta_online, [
+                        "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa'
+                    ]);
+                    // if (file_exists(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online")) {
+                    //     unlink(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online");
+                    // }
+                }
+            }
+            $path = time() . $nombre_imagen;
+            $ruta_archivo = __DIR__ . "/../archivo/imagenes_empresa/$path.$ext";
+            move_uploaded_file($temp, $ruta_archivo);
+            //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
+            $respuesta = \Cloudinary\Uploader::upload($ruta_archivo, [
+                "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa',
+                "transformation" => array(
+                    array(
+                        "width" => 160, // especifica el ancho deseado
+                        "height" => 160, // especifica la altura deseada
+                        "crop" => "fill" // ajusta la imagen para llenar las dimensiones especificadas
+                    )
+                )
+            ]);
+            //----------------------------------------------------------------------------
+            unlink($ruta_archivo);
+            $fillable += [
+                'urllogovertical_empresa_venta_online' => $respuesta['secure_url'],
+                'public_idlogovertical_empresa_venta_online' => $respuesta['public_id']
+            ];
+        }
         if (isset($_FILES['archivo_digital'])) {
             $imagen = $_FILES['archivo_digital']['name'];
             $ext = pathinfo($imagen, PATHINFO_EXTENSION);
@@ -142,10 +257,9 @@ class EmpresaController
         $query = "SELECT * FROM empresa_venta_online
         left join distrito using (idDistrito)
         left join provincia using (idProvincia)
-        left join departamentos using (idDepartamento)
-        limit 1 ";
-        $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
-        echo json_encode(count($ConsultaGlobal) > 0 ? $ConsultaGlobal[0] : null);
+        left join departamentos using (idDepartamento)";
+        $ConsultaGlobal = (new ConsultaGlobal())->ConsultaSingular($query);
+        echo json_encode($ConsultaGlobal);
     }
 
     public function CargarPixelEmpresa()

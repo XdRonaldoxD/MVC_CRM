@@ -107,7 +107,7 @@ class ConsultaGlobal
         $consulta = "SELECT producto.*,
         (select GROUP_CONCAT(id_producto SEPARATOR '~') from producto_relacionado where idproductopadre_producto_relacionado=producto.id_producto) as producto_relacionado,
         (select GROUP_CONCAT(CONCAT(hexadecimal_producto_color,'|',id_producto_color,'|',nombre_producto_color) SEPARATOR '~') from producto_color where id_producto=producto.id_producto) as color_producto,
-        (select GROUP_CONCAT(CONCAT(id_producto_imagen,'|',nombre_producto_imagen,'|',path_producto_imagen,'|',portada_producto_imagen) SEPARATOR '~') from producto_imagen where id_producto=producto.id_producto ORDER BY orden_producto_imagen ) as producto_imagen,
+        (select GROUP_CONCAT(CONCAT(id_producto_imagen,'|',nombre_producto_imagen,'|',url_producto_imagen,'|',portada_producto_imagen) SEPARATOR '~') from producto_imagen where id_producto=producto.id_producto ORDER BY orden_producto_imagen ) as producto_imagen,
         (select GROUP_CONCAT(CONCAT(id_especificaciones_producto,'|',glosa_especificaciones_producto,'|',respuesta_especificaciones_producto) SEPARATOR '~') from especificaciones_producto where id_producto=producto.id_producto) as producto_especificaciones,
         (select GROUP_CONCAT(CONCAT(id_categoria_producto,'|',id_categoria) SEPARATOR '~') from categoria_producto where id_producto=producto.id_producto) as categoria_producto,
         (select GROUP_CONCAT(CONCAT(atributo_producto.id_atributo_producto,'|',atributo_producto.id_atributo,'|',atributo.glosa_atributo,'|',atributo_producto.stock_atributo) SEPARATOR '~') from atributo_producto
