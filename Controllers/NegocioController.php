@@ -34,8 +34,6 @@ class NegocioController
         $Totales_pagados = $datos->Totales_pagados;
         $informacionForm = $datos->informacionForm;
         $id_caja = $datos->id_caja;
-
-        $serie = "R01";
         $tipo_documento = $informacionForm->tipo_documento;
         $jsonArray = [];
         $EmpresaVentaOnline = EmpresaVentaOnline::join('certificado_digital_empresa','certificado_digital_empresa.id_empresa_venta_online','empresa_venta_online.id_empresa_venta_online')
@@ -52,7 +50,7 @@ class NegocioController
                     ->where('id_cliente', $informacionForm->cliente)->first();
                 $folio_documento = Folio::where('id_folio', 9)->first();
                 $tipoDoc = "01";
-                $serie = "F" . $serie;
+                $serie = $folio_documento->serie_folio;
                 $datos_cliente = [
                     "tipoDoc" => "6",
                     "numDoc" =>  $cliente->ruc_cliente,
@@ -77,7 +75,7 @@ class NegocioController
                     $tipoDoc_cliente = '1';
                 }
                 $tipoDoc = "03";
-                $serie = "B" . $serie;
+                $serie = $folio_documento->serie_folio;
                 $datos_cliente = [
                     "tipoDoc" => $tipoDoc_cliente,
                     "numDoc" =>  $cliente->dni_cliente,
@@ -105,7 +103,6 @@ class NegocioController
                 $total_venta = number_format($elemento->precio_venta_producto, 2);
                 $total_venta_mtoBaseIgv = number_format($total_venta / (1 + 0.18), 2);
                 $total_venta_igv = number_format($total_venta - $total_venta_mtoBaseIgv, 2);
-                $total_venta_sin_igv = $total_venta - $igv;
 
                 $elementos = [
                     "codProducto" => $elemento->codigo_producto,

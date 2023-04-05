@@ -32,7 +32,8 @@ class EmpresaVentaOnline extends Model
         'public_idlogohorizontal_empresa_venta_online',
         'urllogovertical_empresa_venta_online',
         'public_idlogovertical_empresa_venta_online',
-
+        'serie_boleta_empresa_venta_online',
+        'serie_factura_empresa_venta_online',
 
     ];
 }

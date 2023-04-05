@@ -11,6 +11,6 @@ class Folio extends Model
         'id_folio',
         'glosa_folio',
         'numero_folio',
-        'numerosii_folio'
+        'serie_folio'
     ];
 }
