@@ -35,10 +35,10 @@ class JwtAuth
             //Generar un toke y devolver
             $token = array(
                 'id_empresa'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->id_empresa_venta_online : null),
-                'direccion_empresa'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->direccion_empresa_venta_online : null),
                 'ruc_empresa_venta_online'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->ruc_empresa_venta_online : null),
                 'telefono_empresa_venta_online'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->telefono_empresa_venta_online : null),
                 'celular_empresa_venta_online'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->celular_empresa_venta_online : null),
+                'nombre_empresa_venta_online'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->nombre_empresa_venta_online : null),
                 'sub' => $user->id_usuario,
                 'email' => $user->e_mail_staff,
                 'nombre' => $user->nombre_staff,
