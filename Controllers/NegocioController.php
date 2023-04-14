@@ -11,7 +11,7 @@ require_once "models/Cliente.php";
 require_once "models/ProductoHistorial.php";
 require_once "models/Negocio.php";
 require_once "models/NegocioDetalle.php";
-require_once "models/producto.php";
+require_once "models/Producto.php";
 require_once "models/NotaVenta.php";
 require_once "models/Ingreso.php";
 require_once "models/Egreso.php";
@@ -212,9 +212,6 @@ class NegocioController
             curl_close($curl);
             $jsonArray  = json_decode($response, true);
 
-            // http_response_code(404);
-            // var_dump($jsonArray);
-            // exit();
 
             if (isset($jsonArray['Codigo Error']) || count($jsonArray['notes']) > 0) {
                 http_response_code(404);

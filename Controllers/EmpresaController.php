@@ -200,8 +200,8 @@ class EmpresaController
                     'nombre_certificado_digital' => $nombre_certificado_digital
                 ];
             } else {
-                echo "Error con el certificado, la clave del certificado no coincide";
-                die(http_response_code(404));
+                http_response_code(404);
+                die("Error con el certificado, la clave del certificado no coincide");
             }
 
             if (!empty($informacionForm->clave_sol)) {

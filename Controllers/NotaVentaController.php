@@ -90,8 +90,8 @@ class NotaVentaController
                 ->where('ruc_cliente', $informacion_cliente->ruc_cliente)
                 ->first();
             if (isset($ruc_existe)) {
-                echo json_encode("Existe ruc");
-                die(http_response_code(404));
+                http_response_code(404);
+                die('Existe ruc');
             }
             $datos = [
                 'ruc_cliente' => $informacion_cliente->ruc_cliente,
