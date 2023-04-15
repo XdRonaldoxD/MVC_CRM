@@ -36,7 +36,7 @@ class NegocioController
         $id_caja = $datos->id_caja;
         $tipo_documento = $informacionForm->tipo_documento;
         $jsonArray = [];
-        $EmpresaVentaOnline = EmpresaVentaOnline::join('certificado_digital_empresa','certificado_digital_empresa.id_empresa_venta_online','empresa_venta_online.id_empresa_venta_online')
+        $EmpresaVentaOnline = EmpresaVentaOnline::leftjoin('certificado_digital_empresa','certificado_digital_empresa.id_empresa_venta_online','empresa_venta_online.id_empresa_venta_online')
         ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
         ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
         ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
