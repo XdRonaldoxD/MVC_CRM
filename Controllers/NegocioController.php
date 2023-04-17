@@ -188,7 +188,9 @@ class NegocioController
                 ]
             );
 
-            $payload = json_encode($arregloJson);
+            $payload = json_encode($arregloJson,JSON_UNESCAPED_UNICODE);
+            echo $payload;
+            exit();
             $curl = curl_init();
             curl_setopt_array($curl, array(
                 CURLOPT_URL => API_SUNAT.'/api/GenerarDocumentacion',
