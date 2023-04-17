@@ -128,23 +128,20 @@ class NegocioController
             $precio_sin_igv_global = number_format($total_venta_global - $igv_global, 2);
             //------------------------------------------------
 
-            //NOTA EL CORRELATIVO ES EL NUMERO DE FOLIO QUE AVANZA
-            //PARA BOELTA ES B001-FACTURA ES F001
-            // $cantidad_digito_folio = strlen($folio_documento->numero_folio);
-            // $correlativo = "00000000";
-            // $correlativo = substr($correlativo, 0, (8 - $cantidad_digito_folio));
-            // $correlativo = $correlativo . $folio_documento->numero_folio;
-  
- 
+            $clave_certificado=null;
+            if ($EmpresaVentaOnline->clavearchivo_certificado_digital) {
+                $mensaje_encriptado = base64_decode($EmpresaVentaOnline->clavearchivo_certificado_digital);
+                $partes = explode('::', $mensaje_encriptado);
+                $clave_certificado = openssl_decrypt($partes[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes[1]);
+            }
 
-            $mensaje_encriptado = base64_decode($EmpresaVentaOnline->clavearchivo_certificado_digital);
-            $partes = explode('::', $mensaje_encriptado);
-            $clave_certificado = openssl_decrypt($partes[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes[1]);
 
-            $clave_sol = base64_decode($EmpresaVentaOnline->clavesol_certificado_digital);
-            $partes_clave = explode('::', $clave_sol);
-            $clave_sol_certificado = openssl_decrypt($partes_clave[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes_clave[1]);
-            
+            $clave_sol_certificado=null;
+            if ($EmpresaVentaOnline->clavesol_certificado_digital) {
+                $clave_sol = base64_decode($EmpresaVentaOnline->clavesol_certificado_digital);
+                $partes_clave = explode('::', $clave_sol);
+                $clave_sol_certificado = openssl_decrypt($partes_clave[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes_clave[1]);
+            }   
             $correlativo = $folio_documento->numero_folio;
             $arregloJson = array(
                 //EMPRESA------------------------------------------------
