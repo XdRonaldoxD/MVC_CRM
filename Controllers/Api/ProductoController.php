@@ -51,15 +51,15 @@ class ProductoController
             // dd($productos);
         }
         foreach ($productos as $key => $element) {
-            $imagenes = ProductoImagen::where("id_producto", $element['id_producto'])->pluck('path_producto_imagen');
-            $imagen_base_64 = [];
-            foreach ($imagenes as $key => $value) {
-                //TRAER EL PROTOCOLO Y DOMINiO AL FINAL UNIRLO(NO FUNCIONA PUBLIC PATH solo laravel)
-                $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                $domain = $_SERVER['HTTP_HOST'];
-                $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$value";
-                array_push($imagen_base_64, $imagens);
-            }
+            $imagen_base_64 = ProductoImagen::where("id_producto", $element['id_producto'])->pluck('url_producto_imagen');
+            // $imagen_base_64 = [];
+            // foreach ($imagenes as $key => $value) {
+            //     //TRAER EL PROTOCOLO Y DOMINiO AL FINAL UNIRLO(NO FUNCIONA PUBLIC PATH solo laravel)
+            //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+            //     $domain = $_SERVER['HTTP_HOST'];
+            //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$value";
+            //     array_push($imagen_base_64, $imagens);
+            // }
 
 
             $producto_color = ProductoColor::where("id_producto", $element['id_producto'])->get()->toArray();
@@ -290,7 +290,7 @@ class ProductoController
             inner join categoria on categoria.id_categoria = categoria_producto.id_categoria
             where id_producto=producto.id_producto) 
             as categorias,
-            (SELECT GROUP_CONCAT(producto_imagen.path_producto_imagen SEPARATOR '~') 
+            (SELECT GROUP_CONCAT(producto_imagen.url_producto_imagen SEPARATOR '~') 
             from producto_imagen where id_producto=producto.id_producto
             ) as producto_imagen,
             (select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
@@ -452,15 +452,15 @@ class ProductoController
                     }
                 }
                 if ($ConsultRelacionado->producto_imagen) {
-                    $imagen = explode("~", $ConsultRelacionado->producto_imagen);
-                    foreach ($imagen as $key => $value) {
+                    $imagenes_relacion_relacion = explode("~", $ConsultRelacionado->producto_imagen);
+                    // foreach ($imagen as $key => $value) {
 
-                        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                        $domain = $_SERVER['HTTP_HOST'];
-                        $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
+                    //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+                    //     $domain = $_SERVER['HTTP_HOST'];
+                    //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
 
-                        array_push($imagenes_relacion_relacion, $imagens);
-                    }
+                    //     array_push($imagenes_relacion_relacion, $imagens);
+                    // }
                 } else {
                     $imagenes_relacion_relacion = [
                         "assets/images/products/product-1-1.jpg",
@@ -658,19 +658,19 @@ class ProductoController
             }
         }
         if ($element->producto_imagen) {
-            $imagen = explode("~", $element->producto_imagen);
-            foreach ($imagen as $key => $value) {
-                // $path_producto_imagen = __DIR__ . "/../../archivo/imagen_producto/{$value}";
-                // $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
-                // $elementos = [
-                //     'data:image/png;base64,' . $path_producto_imagen,
-                // ];
+            $imagenes = explode("~", $element->producto_imagen);
+            // foreach ($imagen as $key => $value) {
+            //     // $path_producto_imagen = __DIR__ . "/../../archivo/imagen_producto/{$value}";
+            //     // $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
+            //     // $elementos = [
+            //     //     'data:image/png;base64,' . $path_producto_imagen,
+            //     // ];
 
-                $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                $domain = $_SERVER['HTTP_HOST'];
-                $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
-                array_push($imagenes, $imagens);
-            }
+            //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+            //     $domain = $_SERVER['HTTP_HOST'];
+            //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
+            //     array_push($imagenes, $imagens);
+            // }
         } else {
             $imagenes = [
                 "assets/images/products/product-1-1.jpg",
@@ -1070,11 +1070,11 @@ class ProductoController
                 break;
             case 5:
                 $size = "xl";
-                $sizeCol = "1of5";
+                $sizeCol = "3";
                 break;
             default:
                 $size = "xl";
-                $sizeCol = "1of5";
+                $sizeCol = "3";
                 break;
         }
         return [

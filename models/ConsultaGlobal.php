@@ -18,7 +18,7 @@ class ConsultaGlobal
         inner join categoria on categoria.id_categoria = categoria_producto.id_categoria
         where id_producto=producto.id_producto) 
         as categorias,
-        (SELECT GROUP_CONCAT(producto_imagen.path_producto_imagen SEPARATOR '~') 
+        (SELECT GROUP_CONCAT(producto_imagen.url_producto_imagen SEPARATOR '~') 
         from producto_imagen where id_producto=producto.id_producto
         ) as producto_imagen,
 		(select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
@@ -44,7 +44,7 @@ class ConsultaGlobal
     public function ListarCategoriaProductoApi($condicion)
     {
         $sql = "SELECT categoria.glosa_categoria,categoria.urlamigable_categoria,producto.*,null as producto_relacionado,null as categorias,
-        (SELECT GROUP_CONCAT(producto_imagen.path_producto_imagen SEPARATOR '~') 
+        (SELECT GROUP_CONCAT(producto_imagen.url_producto_imagen SEPARATOR '~') 
         from producto_imagen where id_producto=producto.id_producto
         ) as producto_imagen,
 		(select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
