@@ -1,6 +1,13 @@
 <?php
 
 use Dompdf\Dompdf;
+use Greenter\Model\Client\Client;
+use Greenter\Model\Company\Address;
+use Greenter\Model\Company\Company;
+use Greenter\Model\Sale\FormaPagos\FormaPagoContado;
+use Greenter\Model\Sale\Invoice;
+use Greenter\Model\Sale\Legend;
+use Greenter\Model\Sale\SaleDetail;
 use Milon\Barcode\DNS2D;
 
 
@@ -17,6 +24,7 @@ require_once "models/Ingreso.php";
 require_once "models/Egreso.php";
 require_once "models/EmpresaVentaOnline.php";
 require_once "Helpers/helpers.php";
+require_once "config/Helper.php";
 
 class NegocioController
 {
@@ -36,12 +44,12 @@ class NegocioController
         $id_caja = $datos->id_caja;
         $tipo_documento = $informacionForm->tipo_documento;
         $jsonArray = [];
-        $EmpresaVentaOnline = EmpresaVentaOnline::leftjoin('certificado_digital_empresa','certificado_digital_empresa.id_empresa_venta_online','empresa_venta_online.id_empresa_venta_online')
-        ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
-        ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
-        ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
-        ->where('empresa_venta_online.id_empresa_venta_online', $informacionForm->id_empresa)
-        ->first();
+        $EmpresaVentaOnline = EmpresaVentaOnline::leftjoin('certificado_digital_empresa', 'certificado_digital_empresa.id_empresa_venta_online', 'empresa_venta_online.id_empresa_venta_online')
+            ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
+            ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
+            ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
+            ->where('empresa_venta_online.id_empresa_venta_online', $informacionForm->id_empresa)
+            ->first();
         if ($tipo_documento === 'FACTURA' || $tipo_documento === 'BOLETA') {
             if ($tipo_documento === 'FACTURA') {
                 $cliente = Cliente::leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
@@ -128,7 +136,7 @@ class NegocioController
             $precio_sin_igv_global = number_format($total_venta_global - $igv_global, 2);
             //------------------------------------------------
 
-            $clave_certificado=null;
+            $clave_certificado = null;
             if ($EmpresaVentaOnline->clavearchivo_certificado_digital) {
                 $mensaje_encriptado = base64_decode($EmpresaVentaOnline->clavearchivo_certificado_digital);
                 $partes = explode('::', $mensaje_encriptado);
@@ -136,16 +144,16 @@ class NegocioController
             }
 
 
-            $clave_sol_certificado=null;
+            $clave_sol_certificado = null;
             if ($EmpresaVentaOnline->clavesol_certificado_digital) {
                 $clave_sol = base64_decode($EmpresaVentaOnline->clavesol_certificado_digital);
                 $partes_clave = explode('::', $clave_sol);
                 $clave_sol_certificado = openssl_decrypt($partes_clave[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes_clave[1]);
-            }   
+            }
             $correlativo = $folio_documento->numero_folio;
-            $arregloJson = array(
+            $data = array(
                 //EMPRESA------------------------------------------------
-                "clave_certificado" =>$clave_certificado,
+                "clave_certificado" => $clave_certificado,
                 "usuario_sol" =>  $EmpresaVentaOnline->usuariosol_certificado_digital,
                 "clave_sol" => $clave_sol_certificado,
                 //-------------------------------------------------------
@@ -169,7 +177,7 @@ class NegocioController
                         "direccion" =>  $EmpresaVentaOnline->direccion_empresa_venta_online ?  $EmpresaVentaOnline->direccion_empresa_venta_online : 'Av. Villa Nueva 221',
                         "provincia" =>  $EmpresaVentaOnline->provincia ?  $EmpresaVentaOnline->provincia : 'LIMA',
                         "departamento" => $EmpresaVentaOnline->departamento ? $EmpresaVentaOnline->departamento : 'LIMA',
-                        "distrito" =>  $EmpresaVentaOnline->distrito ?  $EmpresaVentaOnline->distrito: 'LIMA',
+                        "distrito" =>  $EmpresaVentaOnline->distrito ?  $EmpresaVentaOnline->distrito : 'LIMA',
                         "ubigueo" => "150101"
                     ]
                 ],
@@ -188,36 +196,123 @@ class NegocioController
                 ]
             );
 
-            $payload = json_encode($arregloJson,JSON_UNESCAPED_UNICODE);
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => API_SUNAT.'/api/GenerarDocumentacion',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'GET',
-                CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_HTTPHEADER => array(
-                    'Authorization: Bearer FACTURACION_GREENTER_ELECTRONICO_2023_123456789',
-                    'Content-Type: application/json'
-                ),
-            ));
-            $response = curl_exec($curl);
-            curl_close($curl);
-            $jsonArray  = json_decode($response, true);
 
 
-            if (isset($jsonArray['Codigo Error']) || count($jsonArray['notes']) > 0) {
-                http_response_code(404);
-                echo $response;
-                exit();
+            $datosEmpresa = [
+                'ruc_empresa' => $data['company']['ruc'],
+                'usuario_sol' => $data['usuario_sol'],
+                'clave_sol' => $data['clave_sol'],
+                'clave_certificado' => $data['clave_certificado']
+            ];
+            $see = Helper::IdentificacionDocumentoPruebas();
+            // $see = Helper::IdentificacionDocumentoProduccion($datosEmpresa);
+            switch ($data['tipoDoc']) {
+                case '01':
+                    $documento = 'Factura';
+                    break;
+                case '03':
+                    $documento = 'Boleta';
+                    break;
+                default:
+                    $documento = '';
+                    break;
             }
 
-        
-            //-----------------------------------------------------------------------------
+            // Cliente
+            $client = (new Client())
+                ->setTipoDoc($data['client']['tipoDoc'])
+                ->setNumDoc($data['client']['numDoc'])
+                ->setRznSocial($data['client']['rznSocial']);
+
+            // Emisor
+            $address = (new Address())
+                ->setUbigueo($data['company']['address']['ubigueo'])
+                ->setDepartamento($data['company']['address']['departamento'])
+                ->setProvincia($data['company']['address']['provincia'])
+                ->setDistrito($data['company']['address']['distrito'])
+                ->setUrbanizacion('-')
+                ->setDireccion($data['company']['address']['direccion'])
+                ->setCodLocal('0000'); // Codigo de establecimiento asignado por SUNAT, 0000 por defecto.
+
+            $company = (new Company())
+                ->setRuc($data['company']['ruc'])
+                ->setRazonSocial($data['company']['razonSocial'])
+                ->setNombreComercial($data['company']['nombreComercial'])
+                ->setAddress($address);
+
+            // Venta
+            $invoice = (new Invoice())
+                ->setUblVersion($data['ublVersion'])
+                ->setTipoOperacion($data['tipoOperacion']) // Venta - Catalog. 51
+                ->setTipoDoc($data['tipoDoc']) // Factura - Catalog. 01 
+                ->setSerie($data['serie'])
+                ->setCorrelativo($data['correlativo'])
+                ->setFechaEmision(new DateTime($data['fechaEmision'])) // Zona horaria: Lima
+                ->setFormaPago(new FormaPagoContado()) // FormaPago: Contado
+                ->setTipoMoneda($data['formaPago']['moneda']) // Sol - Catalog. 02
+                ->setCompany($company)
+                ->setClient($client)
+                ->setMtoOperGravadas($data['mtoOperGravadas'])
+                ->setMtoIGV($data['mtoIGV'])
+                ->setTotalImpuestos($data['totalImpuestos'])
+                ->setValorVenta($data['valorVenta'])
+                ->setSubTotal($data['subTotal'])
+                ->setMtoImpVenta($data['mtoImpVenta']);
+            $Datos_ventas = [];
+            foreach ($data['details'] as $key => $element) {
+                $item = (new SaleDetail())
+                    ->setCodProducto($element['codProducto'])
+                    ->setUnidad($element['unidad']) // Unidad - Catalog. 03
+                    ->setCantidad($element['cantidad'])
+                    ->setMtoValorUnitario($element['mtoValorUnitario'])
+                    ->setDescripcion($element['descripcion'])
+                    ->setMtoBaseIgv($element['mtoBaseIgv'])
+                    ->setPorcentajeIgv($element['porcentajeIgv']) // 18%
+                    ->setIgv($element['igv'])
+                    ->setTipAfeIgv($element['tipAfeIgv']) // Gravado Op. Onerosa - Catalog. 07
+                    ->setTotalImpuestos($element['totalImpuestos']) // Suma de impuestos en el detalle
+                    ->setMtoValorVenta($element['mtoValorVenta'])
+                    ->setMtoPrecioUnitario($element['mtoPrecioUnitario']);
+                array_push($Datos_ventas, $item);
+            }
+            $legend = (new Legend())
+                ->setCode($data['legends'][0]['code']) // Monto en letras - Catalog. 52
+                ->setValue($data['legends'][0]['value']);
+
+            $invoice->setDetails($Datos_ventas)
+                ->setLegends([$legend]);
+
+            $result = $see->send($invoice);
+
+
+            // Verificamos que la conexión con SUNAT fue exitosa.
+            if (!$result->isSuccess()) {
+                // Mostrar error al conectarse a SUNAT.
+                $mensajeError = $result->getError()->getMessage();
+                $codigoError = $result->getError()->getCode();
+                echo "Error: " . $mensajeError . "\n Código:" . $codigoError . "";
+                exit(http_response_code(400));
+            }
+            $carpeta = __DIR__ . "/../archivo/$documento";
+            if (!file_exists($carpeta)) {
+                mkdir($carpeta, 0777, true);
+            }
+            chmod($carpeta, 0777);
+
+            file_put_contents($carpeta . '/' . $invoice->getName() . '.xml', $see->getFactory()->getLastXml());
+
+            $cdrResponse = $result->getCdrResponse();
+            $jsonArray = [
+                "id" => $cdrResponse->getId(),
+                "code" => $cdrResponse->getCode(),
+                "description" => $cdrResponse->getDescription(),
+                "notes" => $cdrResponse->getNotes(),
+                "ruta_xml" => $carpeta . '/' . $invoice->getName() . '.xml',
+                "ruta_zip" => $carpeta . '/' . 'R-' . $invoice->getName() . '.zip',
+            ];
+            // Guardamos el CDR
+            file_put_contents($carpeta . '/' . 'R-' . $invoice->getName() . '.zip', $result->getCdrZip());
+
 
         }
 
@@ -357,7 +452,7 @@ class NegocioController
                 $id_documento = $NotaVenta->id_nota_venta;
                 break;
         }
-        $pathNotaVenta = $this->EnviarNegocioVenta($Negocio->id_negocio, $tipo_documento,$EmpresaVentaOnline);
+        $pathNotaVenta = $this->EnviarNegocioVenta($Negocio->id_negocio, $tipo_documento, $EmpresaVentaOnline);
         if ($tipo_documento === 'BOLETA') {
             $Boletas = Boleta::where('id_boleta', $id_documento)->first();
             $Boletas->path_boleta = $pathNotaVenta['path'];
@@ -424,7 +519,7 @@ class NegocioController
         ];
         echo json_encode($rutaspdf);
     }
-    public function EnviarNegocioVenta($id_negocio, $tipo_documento,$EmpresaVentaOnline)
+    public function EnviarNegocioVenta($id_negocio, $tipo_documento, $EmpresaVentaOnline)
     {
         if ($tipo_documento === 'BOLETA') {
             $Boleta = Boleta::where('id_negocio', $id_negocio)

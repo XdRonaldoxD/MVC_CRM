@@ -1,4 +1,8 @@
 <?php
+
+use Greenter\See;
+use Greenter\Ws\Services\SunatEndpoints;
+
 class Helper
 {
 
@@ -28,5 +32,13 @@ class Helper
         }
 
         return NULL;
+    }
+    public static function IdentificacionDocumentoPruebas()
+    {
+        $see = new See();
+        $see->setCertificate(file_get_contents(__DIR__ .'/../archivo/certificados/certificate_prueba.pem'));
+        $see->setService(SunatEndpoints::FE_BETA);
+        $see->setClaveSOL('20000000001', 'MODDATOS', 'moddatos');
+        return $see;
     }
 }
