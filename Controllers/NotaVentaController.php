@@ -209,7 +209,6 @@ class NotaVentaController
             $correo = $DatosPost->Correo_pdf;
             $url = $DatosPost->url_pdf;
         }
-
         $mail = new PHPMailer(true);
         try {
             //Server settings
