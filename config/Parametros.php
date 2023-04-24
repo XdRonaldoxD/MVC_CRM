@@ -23,10 +23,11 @@ switch (true) {
 }
 //
 //CORREO ELECTRONICO
-define('Host', 'smtp-relay.sendinblue.com');
-define('Username', 'smithxd108@gmail.com');
-define('Password', 'nPmB32Gcyw45Dbfg');
+define('Host', 'smtp.sendgrid.net');
+define('Username', 'apikey');
+define('Password', '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');
 define('Port', '587');
+define('Email', 'smithxd108@gmail.com');
 //Cloudinary
 define('cloud_name', 'do7dzakiw');
 define('api_key', '588565748574254');

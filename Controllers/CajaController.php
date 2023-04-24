@@ -326,7 +326,7 @@ class CajaController
             // id=dbecf254af
             //Recipients
             //DESDE DONDE
-            $mail->setFrom(Username, 'Ronaldo');
+            $mail->setFrom(Email, 'Venta Electronica');
             //PARA QUIEN
             $mail->addAddress($correo);
             // $mail->addAddress('rdurand@wilsoft.cl');  
@@ -345,7 +345,7 @@ class CajaController
         } catch (Exception $e) {
             echo "Ubo un error al Enviar {$e->getMessage()})";
             http_response_code(403);
-            die;
+            exit();
         }
 
         echo json_encode($respuesta);
@@ -357,7 +357,7 @@ class CajaController
         ->where('estado_caja',1)
         ->first();
        if (isset($caja)) {
-            die(http_response_code(404));
+            exit(http_response_code(404));
        } else{
             echo json_encode(false);
        }

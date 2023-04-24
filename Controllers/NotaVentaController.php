@@ -229,8 +229,7 @@ class NotaVentaController
             // id=dbecf254af
             //Recipients
             //DESDE DONDE
-
-            $mail->setFrom(Username, " $setFrom ELECTRONICA ");
+            $mail->setFrom(Email, " $setFrom ELECTRONICA ");
             //PARA QUIEN
             // $mail->addAddress('smithxd108@gmail.com');
             $mail->addAddress($correo);
