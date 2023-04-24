@@ -25,7 +25,7 @@ switch (true) {
 //CORREO ELECTRONICO
 define('Host', 'smtp.sendgrid.net');
 define('Username', 'apikey');
-define('Password', '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');
+define('Password', '');
 define('Port', '587');
 define('Email', 'smithxd108@gmail.com');
 //Cloudinary
