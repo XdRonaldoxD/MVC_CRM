@@ -1,4 +1,4 @@
 /archivo/
 .cpanel.yml
 .htaccess
-config/Parametros.php
+config/Parametro.php
