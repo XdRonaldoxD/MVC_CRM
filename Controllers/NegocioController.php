@@ -207,14 +207,14 @@ class NegocioController
                 'clave_certificado' => $data['clave_certificado']
             ];
 
-            if ($EmpresaVentaOnline->id_certificado_digital) {
-                $datosEmpresa += [
-                    'path_certificado_digital' => $EmpresaVentaOnline->path_certificado_digital,
-                ];
-                $see = Helper::identificacionDocumentoProduccion($datosEmpresa);
-            } else {
+            // if ($EmpresaVentaOnline->id_certificado_digital) {
+            //     $datosEmpresa += [
+            //         'path_certificado_digital' => $EmpresaVentaOnline->path_certificado_digital,
+            //     ];
+            //     $see = Helper::identificacionDocumentoProduccion($datosEmpresa);
+            // } else {
                 $see = Helper::identificacionDocumentoPruebas();
-            }
+            // }
 
             switch ($data['tipoDoc']) {
                 case '01':
