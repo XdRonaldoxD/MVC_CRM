@@ -155,28 +155,28 @@ class SliderController
 
     public function ListarSlider()
     {
-        $DatosPost = file_get_contents("php://input");
-        $DatosPost = json_decode($DatosPost);
-        if ($DatosPost->length < 1) {
+        $datosPost = file_get_contents("php://input");
+        $datosPost = json_decode($datosPost);
+        if ($datosPost->length < 1) {
             $longitud = 10;
         } else {
-            $longitud = $DatosPost->length;
+            $longitud = $datosPost->length;
         }
-        $buscar = $DatosPost->search->value;
+        $buscar = $datosPost->search->value;
         $consulta = " and (nombre_slider LIKE '%$buscar%') ";
-        $query = "SELECT * FROM slider  
+        $query = "SELECT * FROM slider
         left join categoria using (id_categoria)
-        WHERE  vigente_slider=$DatosPost->vigente_slider
-         $consulta 
+        WHERE  vigente_slider=$datosPost->vigente_slider
+         $consulta
         order by fechacreacion_slider desc";
-        $ConsultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
-        $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
+        $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
-            "draw" => $DatosPost->draw,
-            "recordsTotal" => count($ConsultaGlobalLimit),
-            "recordsFiltered" => count($ConsultaGlobalLimit),
-            "data" => $ConsultaGlobal
+            "draw" => $datosPost->draw,
+            "recordsTotal" => count($consultaGlobalLimit),
+            "recordsFiltered" => count($consultaGlobalLimit),
+            "data" => $consultaGlobal
         );
         echo json_encode($datos);
     }

@@ -1,7 +1,7 @@
 <?php
 class EvitarDDos
 {
-    function limitarSolicitudes($limite, $tiempo)
+    public function limitarSolicitudes($limite, $tiempo)
     {
         $ip = $_SERVER['REMOTE_ADDR'];
         $archivo = "archivo/registrosDDos/"  . md5($_SERVER['REQUEST_URI']) . '.txt';

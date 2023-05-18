@@ -6,7 +6,7 @@ class JwtAuth
 {
 
     public $key;
-    function __construct()
+    public function __construct()
     {
         $this->key = "ESTE-ES-MI-LLAVE-BOTICA3354335467547";
     }
@@ -93,7 +93,7 @@ class JwtAuth
         }
     }
 
-    static function generarCodigo($longitud)
+    public static function generarCodigo($longitud)
     {
         $pattern = '1234567890abcdefghijklmnopqrstuvwxyz';
         $max = strlen($pattern) - 1;

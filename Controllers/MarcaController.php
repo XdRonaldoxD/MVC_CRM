@@ -16,21 +16,21 @@ class MarcaController
         }
         $buscar = $DatosPost->search->value;
         $consulta = " and (glosa_marca LIKE '%$buscar%') ";
-        $query = "SELECT * FROM marca  
-        WHERE  vigente_marca=1 $consulta 
+        $query = "SELECT * FROM marca
+        WHERE  vigente_marca=1 $consulta
         order by marca.id_marca desc";
-        $ConsultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
         $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
         $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $DatosPost->draw,
-            "recordsTotal" => count($ConsultaGlobalLimit),
-            "recordsFiltered" => count($ConsultaGlobalLimit),
+            "recordsTotal" => count($consultaGlobalLimit),
+            "recordsFiltered" => count($consultaGlobalLimit),
             "data" => $ConsultaGlobal
         );
         echo json_encode($datos);
     }
-    public function ListarMarcaDesactivados()
+    public function listarMarcaDesactivados()
     {
         $DatosPost = file_get_contents("php://input");
         $DatosPost = json_decode($DatosPost);
@@ -41,22 +41,22 @@ class MarcaController
         }
         $buscar = $DatosPost->search->value;
         $consulta = " and (glosa_marca LIKE '%$buscar%') ";
-        $query = "SELECT * FROM marca  
+        $query = "SELECT * FROM marca
         WHERE  vigente_marca=0 $consulta 
         order by marca.id_marca desc";
-        $ConsultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
         $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
         $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $DatosPost->draw,
-            "recordsTotal" => count($ConsultaGlobalLimit),
-            "recordsFiltered" => count($ConsultaGlobalLimit),
+            "recordsTotal" => count($consultaGlobalLimit),
+            "recordsFiltered" => count($consultaGlobalLimit),
             "data" => $ConsultaGlobal
         );
         echo json_encode($datos);
     }
 
-    public function GestionarMarca()
+    public function gestionarMarca()
     {
         $datos = [
             'glosa_marca' => $_POST['glosa_marca'],
@@ -72,7 +72,7 @@ class MarcaController
         }
         echo json_encode($respuesta);
     }
-    public function ActualizarMarca()
+    public function actualizarMarca()
     {
         if ($_POST['accion'] == "activado") {
             $datos = ['vigente_marca' => 1];
@@ -82,7 +82,7 @@ class MarcaController
         Marca::where("id_marca", $_POST['id_marca'])->update($datos);
     }
 
-    public function TraerMarca()
+    public function traerMarca()
     {
         $marca = Marca::where('id_marca', $_POST['id_marca'])->get();
         echo $marca;

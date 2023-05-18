@@ -31,20 +31,23 @@ class AtributoController
                 $query->where('glosa_atributo', 'LIKE', "%$buscar%");
             });
         }
-        $listaProducto = $listaProducto->orderBy('id_atributo', 'desc')->skip($DatosPost->start)->take($longitud)->get();
+        $listaProducto = $listaProducto->orderBy('id_atributo', 'desc')
+        ->skip($DatosPost->start)
+        ->take($longitud)
+        ->get();
         $data = array();
         foreach ($listaProducto as $item) {
-            $cat_padre = "";
+            $catpadre = "";
             if ($item['id_padre_atributo'] == 0) {
-                $cat_padre = "";
+                $catpadre = "";
             } else {
                 $atributo_padre = Atributo::where('id_atributo', $item['id_padre_atributo'])->first();
-                $cat_padre =   $atributo_padre['glosa_atributo'];
+                $catpadre =   $atributo_padre['glosa_atributo'];
             }
             $element = [
                 'id_atributo' => $item['id_atributo'],
                 'glosa_atributo' => $item['glosa_atributo'],
-                'atributo_padre' => $cat_padre
+                'atributo_padre' => $catpadre
             ];
             array_push($data, $element);
         }
@@ -88,17 +91,17 @@ class AtributoController
         $listaProducto = $listaProducto->orderBy('id_atributo', 'desc')->skip($DatosPost->start)->take($longitud)->get();
         $data = array();
         foreach ($listaProducto as $item) {
-            $cat_padre = "";
+            $catpadre = "";
             if ($item['id_padre_atributo'] == 0) {
-                $cat_padre = "";
+                $catpadre = "";
             } else {
                 $atributo_padre = Atributo::where('id_atributo', $item['id_padre_atributo'])->first();
-                $cat_padre =   $atributo_padre['glosa_atributo'];
+                $catpadre =   $atributo_padre['glosa_atributo'];
             }
             $element = [
                 'id_atributo' => $item['id_atributo'],
                 'glosa_atributo' => $item['glosa_atributo'],
-                'atributo_padre' => $cat_padre
+                'atributo_padre' => $catpadre
             ];
             array_push($data, $element);
         }

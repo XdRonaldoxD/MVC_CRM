@@ -2,6 +2,8 @@
 
 use Greenter\See;
 use Greenter\Ws\Services\SunatEndpoints;
+use Greenter\XMLSecLibs\Certificate\X509Certificate;
+use Greenter\XMLSecLibs\Certificate\X509ContentType;
 
 class Helper
 {
@@ -31,14 +33,25 @@ class Helper
                 return $mime;
         }
 
-        return NULL;
+        return null;
     }
-    public static function IdentificacionDocumentoPruebas()
+    public static function identificacionDocumentoPruebas()
     {
         $see = new See();
         $see->setCertificate(file_get_contents(__DIR__ .'/../archivo/certificados/certificate_prueba.pem'));
         $see->setService(SunatEndpoints::FE_BETA);
         $see->setClaveSOL('20000000001', 'MODDATOS', 'moddatos');
+        return $see;
+    }
+    public static function identificacionDocumentoProduccion($datosEmpresa=[])
+    {
+        $pfx = file_get_contents(__DIR__ ."/../archivo/certificado_digital/{$datosEmpresa['path_certificado_digital']}");
+        $password = $datosEmpresa['clave_certificado'];
+        $certificate = new X509Certificate($pfx, $password);
+        $see = new See();
+        $see->setCertificate($certificate->export(X509ContentType::PEM));
+        $see->setService(SunatEndpoints::FE_PRODUCCION);
+        $see->setClaveSOL($datosEmpresa['ruc_empresa'],$datosEmpresa['usuario_sol'],$datosEmpresa['clave_sol']);//'10157622680' / 'CALEL019'  /  'Durand019'
         return $see;
     }
 }

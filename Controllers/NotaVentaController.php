@@ -25,35 +25,37 @@ class NotaVentaController
 {
     public function ListaProductos()
     {
-        $DatosPost = file_get_contents("php://input");
-        $DatosPost = json_decode($DatosPost);
-        if ($DatosPost->length < 1) {
+        $datosPost = file_get_contents("php://input");
+        $datosPost = json_decode($datosPost);
+        if ($datosPost->length < 1) {
             $longitud = 10;
         } else {
-            $longitud = $DatosPost->length;
+            $longitud = $datosPost->length;
         }
-        if (isset($DatosPost->filtro_buscar)) {
-            $buscar = $DatosPost->filtro_buscar;
+        if (isset($datosPost->filtro_buscar)) {
+            $buscar = $datosPost->filtro_buscar;
         } else {
             $buscar = '';
         }
 
-        $consulta = " and (p.codigo_barra_producto = '$buscar' or p.codigooriginal_producto LIKE '%$buscar%' or p.codigo_producto LIKE '%$buscar%' or p.glosa_producto LIKE '%$buscar%'
+        $consulta = " and (p.codigo_barra_producto = '$buscar' or
+        p.codigooriginal_producto LIKE '%$buscar%' or
+        p.codigo_producto LIKE '%$buscar%' or p.glosa_producto LIKE '%$buscar%'
             or p.precioventa_producto LIKE '%$buscar%' or ti.glosa_tipo_inventario LIKE '%$buscar%') ";
-        $query = "SELECT * FROM producto as p 
-        INNER JOIN tipo_producto as tp on tp.id_tipo_producto = p.id_tipo_producto 
+        $query = "SELECT * FROM producto as p
+        INNER JOIN tipo_producto as tp on tp.id_tipo_producto = p.id_tipo_producto
         LEFT JOIN tipo_inventario as ti on p.id_tipo_inventario=ti.id_tipo_inventario
-        WHERE  p.vigente_producto=1 
+        WHERE  p.vigente_producto=1
         and p.stock_producto>0
         $consulta ";
-        $ConsultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
-        $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
+        $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
-            "draw" => $DatosPost->draw,
-            "recordsTotal" => count($ConsultaGlobalLimit),
-            "recordsFiltered" => count($ConsultaGlobalLimit),
-            "data" => $ConsultaGlobal
+            "draw" => $datosPost->draw,
+            "recordsTotal" => count($consultaGlobalLimit),
+            "recordsFiltered" => count($consultaGlobalLimit),
+            "data" => $consultaGlobal
         );
         echo json_encode($datos);
     }
@@ -204,7 +206,7 @@ class NotaVentaController
         if ($DatosPost->formato === "TICKET") {
             $setFrom = 'TICKET';
             $correo = $DatosPost->Correo_ticket;
-            $url=$DatosPost->url_ticket;
+            $url = $DatosPost->url_ticket;
         } else {
             $correo = $DatosPost->Correo_pdf;
             $url = $DatosPost->url_pdf;

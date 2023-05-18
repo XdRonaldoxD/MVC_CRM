@@ -1,6 +1,6 @@
-projectKey=CRM_MVC
+projectKey=MVC_CRM
 serverUrl=http://localhost:9000
-serverVersion=7.9.6.41879
-dashboardUrl=http://localhost:9000/dashboard?id=CRM_MVC
-ceTaskId=AYdKoESIFUg6b0fknV8m
-ceTaskUrl=http://localhost:9000/api/ce/task?id=AYdKoESIFUg6b0fknV8m
+serverVersion=9.9.1.69595
+dashboardUrl=http://localhost:9000/dashboard?id=MVC_CRM
+ceTaskId=AYf08P0GqTtTxx2W-JyV
+ceTaskUrl=http://localhost:9000/api/ce/task?id=AYf08P0GqTtTxx2W-JyV

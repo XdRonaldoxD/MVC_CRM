@@ -16,7 +16,7 @@ class PusherController
     protected $pusher;
     protected $correo_usuario;
     protected $nombre_usuario;
-    function __construct()
+    public function __construct()
     {
         $this->cliente_identificado = isset($_POST['cliente_identificado']) ? $_POST['cliente_identificado'] : null;
         $this->mensaje_texto = isset($_POST['mensaje_texto']) ? $_POST['mensaje_texto'] : null;
@@ -82,7 +82,7 @@ class PusherController
     }
 
     //  API DEL CLIENTE WOOCOMMERCE
-    function ChatBoxApi()
+    public function ChatBoxApi()
     {
         $log_chat = Logchat::where("identificadorcliente_log_chat", $this->cliente_identificado)->first();
         $log_chat->conversacion_log_chat = json_decode($this->conversacion);
@@ -96,7 +96,7 @@ class PusherController
         $this->pusher->trigger('ChatboxWoocommerce', 'ChatboxEvent', $datos);
         echo json_encode("ok enviado");
     }
-    function ChatBoxDatoClienteApi()
+    public function ChatBoxDatoClienteApi()
     {
         $datos_cliente = [
             'nombre_log_chat' => $this->nombre_usuario,
@@ -113,7 +113,7 @@ class PusherController
         $this->pusher->trigger('ChatboxWoocommerce', 'ChatboxOkaDatoClienteEvent', $datos_cliente);
         echo json_encode(true);
     }
-    function ChatBoxDatoClienteDesconectadoApi()
+    public function ChatBoxDatoClienteDesconectadoApi()
     {
         $log_chat = Logchat::where("identificadorcliente_log_chat", $this->cliente_identificado)->first();
         $log_chat->estado_linea_log_chat = 0;

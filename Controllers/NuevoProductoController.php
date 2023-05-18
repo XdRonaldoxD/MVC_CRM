@@ -149,7 +149,7 @@ class NuevoProductoController
                     ProductoImagen::create($ProductoImagen);
                 }
             }
-            //ELIMINAMOS LAS IMAGENES 
+            //ELIMINAMOS LAS IMAGENES
             foreach ($ProductoImagen_existe as $key => $value) {
                 $ProductoImagen = ProductoImagen::where('id_producto_imagen', $value)->first();
                 $respuesta = \Cloudinary\Uploader::destroy($ProductoImagen->public_id_producto_imagen, [

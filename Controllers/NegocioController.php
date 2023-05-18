@@ -29,8 +29,10 @@ require_once "config/Helper.php";
 class NegocioController
 {
 
+    private $fechaactual;
     public function __construct()
     {
+        $this->fechaactual=date('Y-m-d H:i:s');
     }
     public function GenerarNegocio()
     {
@@ -99,11 +101,11 @@ class NegocioController
             }
 
             $details = [];
-            foreach ($ProductoSeleccionados as $key => $elemento) {
+            foreach ($ProductoSeleccionados as $elemento) {
                 $cantidad = $elemento->cantidad_seleccionado;
                 $precio = number_format($elemento->precioventa_producto, 2);
-                $mtoBaseIgv_precio = number_format($precio / (1 + 0.18), 2);
-                $igv = number_format($precio - $mtoBaseIgv_precio, 2);
+                $mtoBaseIgvprecio = number_format($precio / (1 + 0.18), 2);
+                $igv = number_format($precio - $mtoBaseIgvprecio, 2);
                 $precio_sin_igv = number_format($precio - $igv, 2);
                 $mtoValorVenta = number_format($precio_sin_igv * $cantidad, 2);
                 $mtoBaseIgv = $mtoValorVenta;
@@ -162,7 +164,7 @@ class NegocioController
                 "tipoDoc" => $tipoDoc,
                 "serie" => $serie,
                 "correlativo" => $correlativo,
-                "fechaEmision" => date('Y-m-d H:i:s') . "-05:00",
+                "fechaEmision" => $this->fechaactual . "-05:00",
                 "formaPago" => [
                     "moneda" => "PEN",
                     "tipo" => "Contado"
@@ -204,8 +206,16 @@ class NegocioController
                 'clave_sol' => $data['clave_sol'],
                 'clave_certificado' => $data['clave_certificado']
             ];
-            $see = Helper::IdentificacionDocumentoPruebas();
-            // $see = Helper::IdentificacionDocumentoProduccion($datosEmpresa);
+
+            if ($EmpresaVentaOnline->id_certificado_digital) {
+                $datosEmpresa += [
+                    'path_certificado_digital' => $EmpresaVentaOnline->path_certificado_digital,
+                ];
+                $see = Helper::identificacionDocumentoProduccion($datosEmpresa);
+            } else {
+                $see = Helper::identificacionDocumentoPruebas();
+            }
+
             switch ($data['tipoDoc']) {
                 case '01':
                     $documento = 'Factura';
@@ -244,7 +254,7 @@ class NegocioController
             $invoice = (new Invoice())
                 ->setUblVersion($data['ublVersion'])
                 ->setTipoOperacion($data['tipoOperacion']) // Venta - Catalog. 51
-                ->setTipoDoc($data['tipoDoc']) // Factura - Catalog. 01 
+                ->setTipoDoc($data['tipoDoc']) // Factura - Catalog. 01
                 ->setSerie($data['serie'])
                 ->setCorrelativo($data['correlativo'])
                 ->setFechaEmision(new DateTime($data['fechaEmision'])) // Zona horaria: Lima
@@ -312,8 +322,6 @@ class NegocioController
             ];
             // Guardamos el CDR
             file_put_contents($carpeta . '/' . 'R-' . $invoice->getName() . '.zip', $result->getCdrZip());
-
-
         }
 
         $Folio = Folio::where('id_folio', 2)->first();
@@ -321,7 +329,7 @@ class NegocioController
             'id_usuario' => $informacionForm->vendedor,
             'id_folio' => $Folio->id_folio,
             'id_cliente' => $informacionForm->cliente,
-            'fechacreacion_negocio' => date('Y-m-d H:i:s'),
+            'fechacreacion_negocio' => $this->fechaactual,
             'numero_negocio' => $Folio->numero_folio,
             'valor_negocio' => $Totales_pagados->total_pagar,
             'vigente_negocio' => 1,
@@ -350,7 +358,7 @@ class NegocioController
                 'id_tipo_movimiento' => 2,
                 'id_producto' => $elemento->id_producto,
                 'cantidadmovimiento_producto_historial' => $cantidad,
-                'fecha_producto_historial' => date('Y-m-d H:i:s'),
+                'fecha_producto_historial' => $this->fechaactual,
                 'comentario_producto_historial' => "$tipo_documento DE VENTA ELECTRONICA"
             ];
             ProductoHistorial::create($producto_historial);
@@ -368,7 +376,7 @@ class NegocioController
                 'valorneto_negocio_detalle' => $mtoBaseIgv,
                 'iva_negocio_detalle' => $igv,
                 'total_negocio_detalle' => $precio,
-                'fechacreacion_negocio_detalle' => date('Y-m-d H:i:s'),
+                'fechacreacion_negocio_detalle' => $this->fechaactual,
                 'cantidad_negocio_detalle' => $cantidad,
                 'preciounitario_negocio_detalle' => $precio_unitario
                 // 'preciounitario_negocio_detalle',
@@ -391,7 +399,7 @@ class NegocioController
                     'numero_boleta' => $correlativo,
                     'serie_boleta' => $serie,
                     'valor_boleta' => $precio_sin_igv_global,
-                    'fechacreacion_boleta' => date('Y-m-d H:i:s'),
+                    'fechacreacion_boleta' => $this->fechaactual,
                     'iva_boleta' => $igv_global,
                     'total_boleta' => $total_venta_global,
                     'xml_boleta' => $jsonArray['ruta_xml'],
@@ -414,7 +422,7 @@ class NegocioController
                     'id_folio' => 9,
                     'numero_factura' => $correlativo,
                     'serie_factura' => $serie,
-                    'fechacreacion_factura' => date('Y-m-d H:i:s'),
+                    'fechacreacion_factura' => $this->fechaactual,
                     'valorafecto_factura' => $precio_sin_igv_global,
                     'iva_factura' => $igv_global,
                     'total_factura' => $total_venta_global,
@@ -439,7 +447,7 @@ class NegocioController
                     'id_negocio' => $Negocio->id_negocio,
                     'id_cliente' => $informacionForm->cliente,
                     'numero_nota_venta' => $Folio->numero_folio,
-                    'fechacreacion_nota_venta' => date('Y-m-d H:i:s'),
+                    'fechacreacion_nota_venta' => $this->fechaactual,
                     'valor_nota_venta' => number_format($Totales->subtotal, 2),
                     'iva_nota_venta' => number_format($Totales->igv, 2),
                     'total_nota_venta' => number_format($Totales->total, 2),
@@ -490,7 +498,7 @@ class NegocioController
                 'numero_ingreso' => $Folio_ingreso->numero_folio,
                 'comentario_ingreso' => "$tipo_documento ELECTRONICA",
                 'estado_ingreso' => 1,
-                'fechacreacion_ingreso' => date('Y-m-d H:i:s'),
+                'fechacreacion_ingreso' => $this->fechaactual,
             ];
             $Folio_ingreso->numero_folio += 1;
             $Folio_ingreso->save();
@@ -505,7 +513,7 @@ class NegocioController
                 'id_negocio' => $Negocio->id_negocio,
                 'id_tipo_egreso' => 6,
                 'numero_egreso' => $Folio_egreso->numero_folio,
-                'fechacreacion_egreso' => date('Y-m-d H:i:s'),
+                'fechacreacion_egreso' => $this->fechaactual,
                 'valor_egreso' => $Totales_pagados->vuelto
             ];
             $Folio_egreso->numero_folio += 1;

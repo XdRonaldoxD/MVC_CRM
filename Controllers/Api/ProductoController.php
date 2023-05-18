@@ -1082,4 +1082,32 @@ class ProductoController
             'sizeCol' => $sizeCol,
         ];
     }
+
+    public function CategoriaPopulares()
+    {
+        $Consulta = "SELECT categoria.*, COUNT(id_producto) AS total_productos
+        FROM categoria_producto
+        INNER JOIN categoria using (id_categoria)
+        GROUP BY id_categoria
+        ORDER BY total_productos DESC
+        LIMIT 6";
+        $objeto = [];
+        $Categorias = (new ConsultaGlobal())->ConsultaGlobal($Consulta);
+        foreach ($Categorias as $value) {
+            $datos = [
+                "id" => $value->id_categoria,
+                "type" => "shop",
+                "name" =>  $value->glosa_categoria,
+                "slug" => $value->urlamigable_categoria,
+                "path" => "shop/catalog",
+                "image" => "assets/images/categories/category-1.jpg",
+                "items" => $value->total_productos,
+                "customFields" => [],
+                "parents" => null,
+                "children" => []
+            ];
+            array_push($objeto,$datos);
+        }
+        echo json_encode($objeto);
+    }
 }
