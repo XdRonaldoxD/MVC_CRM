@@ -266,7 +266,7 @@
             </tr>
         </thead>
         <tbody class="percent-100">
-            <?php foreach ($negocios as $key => $elemento) {
+            <?php foreach ($data['details'] as $key => $elemento) {
                 $borde = "border-top:1px solid white; ";
                 if ($key == 0) {
                     $borde = "";
@@ -274,30 +274,30 @@
             ?>
                 <tr class="percent-100" style="padding: 0px;margin: 0px">
                     <td class="percent-5 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
-                        <p style="font-size: 12px;padding: 0px;margin: 0px;"><?= $elemento['codigo_producto'] ?></p>
+                        <p style="font-size: 12px;padding: 0px;margin: 0px;"><?= $elemento['codigo'] ?></p>
                     </td>
                     <td class="percent-30 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
-                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;"><?= $elemento['glosa_producto'] ?></p>
+                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;"><?= $elemento['descripcion'] ?></p>
                     </td>
                     <td class="percent-10 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
-                        <p><?= $elemento['cantidad_negocio_detalle'] ?></p>
+                        <p><?= $elemento['cantidad'] ?></p>
                     </td>
                     <td class="percent-10 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
                         <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;"></p>
                     </td>
                     <td class="percent-10 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
-                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">S/<?= number_format($elemento['preciounitario_negocio_detalle'], 2) ?></p>
+                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">S/<?= number_format($elemento['precio_unitario'], 2) ?></p>
                     </td>
                     <td class="percent-10 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
-                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;"><?= $elemento['descuentogeneral_negocio_detalle'] ?> %</p>
+                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;"><?= $elemento['porcentaje_igv'] ?> %</p>
                     </td>
                     <td class="percent-10 center font-size-12" style="padding: 0px;margin: 0px; <?= $borde ?>">
-                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">S/<?= number_format($elemento['total_negocio_detalle'], 2) ?></p>
+                        <p style="font-size: 12px;padding: 0px;margin: 0px;font-family: sans-serif;">S/<?= number_format($elemento['valor_total'], 2) ?></p>
                     </td>
                 </tr>
-                <?php if ($key == count($negocios) - 1) {
-                    if (count($negocios) < 10) {
-                        for ($i = 0; $i < 10 - count($negocios); $i++) {
+                <?php if ($key == count($data['details']) - 1) {
+                    if (count($data['details']) < 10) {
+                        for ($i = 0; $i < 10 - count($data['details']); $i++) {
                             $borde = "border-top:1px solid white; "; ?>
                             <tr class="percent-100">
                                 <td class="percent-5 center font-size-12" style="<?= $borde ?>">
@@ -330,12 +330,11 @@
             ?>
         </tbody>
     </table>
-    <table class=" percent-100">
+    <table class="percent-100">
         <tr>
             <td class="percent-50">
 
             </td>
-
             <td class="percent-50">
                 <table class="miTabla percent-100">
                     <tr>

@@ -22,9 +22,13 @@ require_once "models/Producto.php";
 require_once "models/NotaVenta.php";
 require_once "models/Ingreso.php";
 require_once "models/Egreso.php";
+require_once "models/Usuario.php";
 require_once "models/EmpresaVentaOnline.php";
+require_once "models/TipoAfectacion.php";
 require_once "Helpers/helpers.php";
 require_once "config/Helper.php";
+require_once "cpe40/boleta_sunat.php";
+require_once "cpe40/factura_sunat.php";
 
 class NegocioController
 {
@@ -32,336 +36,267 @@ class NegocioController
     private $fechaactual;
     public function __construct()
     {
-        $this->fechaactual=date('Y-m-d H:i:s');
+        $this->fechaactual = date('Y-m-d H:i:s');
     }
     public function GenerarNegocio()
     {
         $DatosPost = file_get_contents("php://input");
         $datos = json_decode($DatosPost);
-        $ListaMetodosPago = $datos->ListaMetodosPago;
-        $ProductoSeleccionados = $datos->ProductoSeleccionados;
+        $listaMetodosPago = $datos->ListaMetodosPago;
         $Totales = $datos->Totales;
-        $Totales_pagados = $datos->Totales_pagados;
+        $totalespagados = $datos->Totales_pagados;
         $informacionForm = $datos->informacionForm;
         $id_caja = $datos->id_caja;
         $tipo_documento = $informacionForm->tipo_documento;
         $jsonArray = [];
+        //VERIFICANDO STOCK-----------------------------------
+        foreach ($datos->ProductoSeleccionados as $elemento) {
+            $producto = Producto::where('id_producto', $elemento->id_producto)->first();
+            if (!$producto || $producto->stock_producto <= 0) {
+                echo json_encode("Verificar stock producto");
+                exit(http_response_code(404));
+            }
+        }
+        //-----------------------------------------------------
         $EmpresaVentaOnline = EmpresaVentaOnline::leftjoin('certificado_digital_empresa', 'certificado_digital_empresa.id_empresa_venta_online', 'empresa_venta_online.id_empresa_venta_online')
             ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
             ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
             ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
             ->where('empresa_venta_online.id_empresa_venta_online', $informacionForm->id_empresa)
             ->first();
-        if ($tipo_documento === 'FACTURA' || $tipo_documento === 'BOLETA') {
-            if ($tipo_documento === 'FACTURA') {
-                $cliente = Cliente::leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
-                    ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
-                    ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
-                    ->where('id_cliente', $informacionForm->cliente)->first();
-                $folio_documento = Folio::where('id_folio', 9)->first();
-                $tipoDoc = "01";
-                $serie = $folio_documento->serie_folio;
-                $datos_cliente = [
-                    "tipoDoc" => "6",
-                    "numDoc" =>  $cliente->ruc_cliente,
-                    "rznSocial" =>  $cliente->nombre_cliente,
-                    "address" => [
-                        "direccion" =>  $cliente->direccion_cliente,
-                        "provincia" => $cliente->provincia,
-                        "departamento" => $cliente->departamento,
-                        "distrito" => $cliente->distrito,
-                        "ubigueo" => $cliente->ubigeo_cliente
-                    ]
-                ];
-            } elseif ($tipo_documento === 'BOLETA') {
-                $cliente = Cliente::leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
-                    ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
-                    ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
-                    ->where('id_cliente', $informacionForm->cliente)->first();
-                $folio_documento = Folio::where('id_folio', 6)->first();
-                if ($cliente->dni_cliente == '00000000') {
-                    $tipoDoc_cliente = '0';
-                } else {
-                    $tipoDoc_cliente = '1';
-                }
-                $tipoDoc = "03";
-                $serie = $folio_documento->serie_folio;
-                $datos_cliente = [
-                    "tipoDoc" => $tipoDoc_cliente,
-                    "numDoc" =>  $cliente->dni_cliente,
-                    "rznSocial" => $cliente->nombre_cliente . ' ' . $cliente->apellidopaterno_cliente . ' ' . $cliente->apellidomaterno_cliente,
-                    "address" => [
-                        "direccion" => $cliente->direccion_cliente,
-                        "provincia" => $cliente->provincia,
-                        "departamento" => $cliente->departamento,
-                        "distrito" => $cliente->distrito,
-                        "ubigueo" => $cliente->ubigeo_cliente
-                    ]
-                ];
-            }
 
-            $details = [];
-            foreach ($ProductoSeleccionados as $elemento) {
-                $cantidad = $elemento->cantidad_seleccionado;
-                $precio = number_format($elemento->precioventa_producto, 2);
-                $mtoBaseIgvprecio = number_format($precio / (1 + 0.18), 2);
-                $igv = number_format($precio - $mtoBaseIgvprecio, 2);
-                $precio_sin_igv = number_format($precio - $igv, 2);
-                $mtoValorVenta = number_format($precio_sin_igv * $cantidad, 2);
-                $mtoBaseIgv = $mtoValorVenta;
-
-                $total_venta = number_format($elemento->precio_venta_producto, 2);
-                $total_venta_mtoBaseIgv = number_format($total_venta / (1 + 0.18), 2);
-                $total_venta_igv = number_format($total_venta - $total_venta_mtoBaseIgv, 2);
-
-                $elementos = [
-                    "codProducto" => $elemento->codigo_producto,
-                    "unidad" => "NIU",
-                    "descripcion" => $elemento->glosa_producto,
-                    "cantidad" => $cantidad,
-                    "mtoValorUnitario" => $precio_sin_igv,
-                    "mtoValorVenta" => $mtoValorVenta,
-                    "mtoBaseIgv" => $mtoBaseIgv,
-                    "porcentajeIgv" => 18,
-                    "igv" => $total_venta_igv,
-                    "tipAfeIgv" => 10,
-                    "totalImpuestos" => $total_venta_igv,
-                    "mtoPrecioUnitario" => $precio
-                ];
-                array_push($details, $elementos);
-            }
-
-            //CALCULOS PARA LA VENTA GLOBAL
-            $total_venta_global = number_format($Totales->total, 2);
-            $mtoBaseIgv_global = number_format($total_venta_global / (1 + 0.18), 2);
-            $igv_global = number_format($total_venta_global - $mtoBaseIgv_global, 2);
-            $precio_sin_igv_global = number_format($total_venta_global - $igv_global, 2);
-            //------------------------------------------------
-
-            $clave_certificado = null;
-            if ($EmpresaVentaOnline->clavearchivo_certificado_digital) {
-                $mensaje_encriptado = base64_decode($EmpresaVentaOnline->clavearchivo_certificado_digital);
-                $partes = explode('::', $mensaje_encriptado);
-                $clave_certificado = openssl_decrypt($partes[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes[1]);
-            }
-
-
-            $clave_sol_certificado = null;
-            if ($EmpresaVentaOnline->clavesol_certificado_digital) {
-                $clave_sol = base64_decode($EmpresaVentaOnline->clavesol_certificado_digital);
-                $partes_clave = explode('::', $clave_sol);
-                $clave_sol_certificado = openssl_decrypt($partes_clave[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes_clave[1]);
-            }
-            $correlativo = $folio_documento->numero_folio;
-            $data = array(
-                //EMPRESA------------------------------------------------
-                "clave_certificado" => $clave_certificado,
-                "usuario_sol" =>  $EmpresaVentaOnline->usuariosol_certificado_digital,
-                "clave_sol" => $clave_sol_certificado,
-                //-------------------------------------------------------
-                "ublVersion" => "2.1",
-                "tipoOperacion" => "0101",
-                "tipoDoc" => $tipoDoc,
-                "serie" => $serie,
-                "correlativo" => $correlativo,
-                "fechaEmision" => $this->fechaactual . "-05:00",
-                "formaPago" => [
-                    "moneda" => "PEN",
-                    "tipo" => "Contado"
-                ],
-                "tipoMoneda" => "PEN",
-                "client" => $datos_cliente,
-                "company" => [
-                    "ruc" => $EmpresaVentaOnline->ruc_empresa_venta_online,
-                    "razonSocial" => $EmpresaVentaOnline->razon_social_empresa_venta_online,
-                    "nombreComercial" => "",
-                    "address" => [
-                        "direccion" =>  $EmpresaVentaOnline->direccion_empresa_venta_online ?  $EmpresaVentaOnline->direccion_empresa_venta_online : 'Av. Villa Nueva 221',
-                        "provincia" =>  $EmpresaVentaOnline->provincia ?  $EmpresaVentaOnline->provincia : 'LIMA',
-                        "departamento" => $EmpresaVentaOnline->departamento ? $EmpresaVentaOnline->departamento : 'LIMA',
-                        "distrito" =>  $EmpresaVentaOnline->distrito ?  $EmpresaVentaOnline->distrito : 'LIMA',
-                        "ubigueo" => "150101"
-                    ]
-                ],
-                "mtoOperGravadas" => $mtoBaseIgv_global,
-                "mtoIGV" => $igv_global,
-                "valorVenta" => $mtoBaseIgv_global,
-                "totalImpuestos" => $igv_global,
-                "subTotal" => $total_venta_global,
-                "mtoImpVenta" => $total_venta_global,
-                "details" => $details,
-                "legends" => [
-                    [
-                        "code" => "1000",
-                        "value" => "SON DOS CON 00/100 SOLES"
-                    ]
+        $cliente = Cliente::leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
+            ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
+            ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
+            ->where('id_cliente', $informacionForm->cliente)->first();
+        if ($tipo_documento === 'FACTURA') {
+            $folio_documento = Folio::where('id_folio', 9)->first();
+            $tipoDoc = "01";
+            $serie = $folio_documento->serie_folio;
+            $datos_cliente = [
+                "tipoDoc" => "6",
+                "numDoc" =>  $cliente->ruc_cliente,
+                "rznSocial" =>  $cliente->nombre_cliente,
+                "address" => [
+                    "direccion" =>  $cliente->direccion_cliente,
+                    "provincia" => $cliente->provincia,
+                    "departamento" => $cliente->departamento,
+                    "distrito" => $cliente->distrito,
+                    "ubigueo" => $cliente->ubigeo_cliente
                 ]
-            );
-
-
-
-            $datosEmpresa = [
-                'ruc_empresa' => $data['company']['ruc'],
-                'usuario_sol' => $data['usuario_sol'],
-                'clave_sol' => $data['clave_sol'],
-                'clave_certificado' => $data['clave_certificado']
             ];
-
-            // if ($EmpresaVentaOnline->id_certificado_digital) {
-            //     $datosEmpresa += [
-            //         'path_certificado_digital' => $EmpresaVentaOnline->path_certificado_digital,
-            //     ];
-            //     $see = Helper::identificacionDocumentoProduccion($datosEmpresa);
-            // } else {
-                $see = Helper::identificacionDocumentoPruebas();
-            // }
-
-            switch ($data['tipoDoc']) {
-                case '01':
-                    $documento = 'Factura';
-                    break;
-                case '03':
-                    $documento = 'Boleta';
-                    break;
-                default:
-                    $documento = '';
-                    break;
+        } elseif ($tipo_documento === 'BOLETA') {
+            $folio_documento = Folio::where('id_folio', 6)->first();
+            if ($cliente->dni_cliente == '00000000') {
+                $tipoDoc_cliente = '0';
+            } else {
+                $tipoDoc_cliente = '1';
             }
-
-            // Cliente
-            $client = (new Client())
-                ->setTipoDoc($data['client']['tipoDoc'])
-                ->setNumDoc($data['client']['numDoc'])
-                ->setRznSocial($data['client']['rznSocial']);
-
-            // Emisor
-            $address = (new Address())
-                ->setUbigueo($data['company']['address']['ubigueo'])
-                ->setDepartamento($data['company']['address']['departamento'])
-                ->setProvincia($data['company']['address']['provincia'])
-                ->setDistrito($data['company']['address']['distrito'])
-                ->setUrbanizacion('-')
-                ->setDireccion($data['company']['address']['direccion'])
-                ->setCodLocal('0000'); // Codigo de establecimiento asignado por SUNAT, 0000 por defecto.
-
-            $company = (new Company())
-                ->setRuc($data['company']['ruc'])
-                ->setRazonSocial($data['company']['razonSocial'])
-                ->setNombreComercial($data['company']['nombreComercial'])
-                ->setAddress($address);
-
-            // Venta
-            $invoice = (new Invoice())
-                ->setUblVersion($data['ublVersion'])
-                ->setTipoOperacion($data['tipoOperacion']) // Venta - Catalog. 51
-                ->setTipoDoc($data['tipoDoc']) // Factura - Catalog. 01
-                ->setSerie($data['serie'])
-                ->setCorrelativo($data['correlativo'])
-                ->setFechaEmision(new DateTime($data['fechaEmision'])) // Zona horaria: Lima
-                ->setFormaPago(new FormaPagoContado()) // FormaPago: Contado
-                ->setTipoMoneda($data['formaPago']['moneda']) // Sol - Catalog. 02
-                ->setCompany($company)
-                ->setClient($client)
-                ->setMtoOperGravadas($data['mtoOperGravadas'])
-                ->setMtoIGV($data['mtoIGV'])
-                ->setTotalImpuestos($data['totalImpuestos'])
-                ->setValorVenta($data['valorVenta'])
-                ->setSubTotal($data['subTotal'])
-                ->setMtoImpVenta($data['mtoImpVenta']);
-            $Datos_ventas = [];
-            foreach ($data['details'] as $key => $element) {
-                $item = (new SaleDetail())
-                    ->setCodProducto($element['codProducto'])
-                    ->setUnidad($element['unidad']) // Unidad - Catalog. 03
-                    ->setCantidad($element['cantidad'])
-                    ->setMtoValorUnitario($element['mtoValorUnitario'])
-                    ->setDescripcion($element['descripcion'])
-                    ->setMtoBaseIgv($element['mtoBaseIgv'])
-                    ->setPorcentajeIgv($element['porcentajeIgv']) // 18%
-                    ->setIgv($element['igv'])
-                    ->setTipAfeIgv($element['tipAfeIgv']) // Gravado Op. Onerosa - Catalog. 07
-                    ->setTotalImpuestos($element['totalImpuestos']) // Suma de impuestos en el detalle
-                    ->setMtoValorVenta($element['mtoValorVenta'])
-                    ->setMtoPrecioUnitario($element['mtoPrecioUnitario']);
-                array_push($Datos_ventas, $item);
-            }
-            $legend = (new Legend())
-                ->setCode($data['legends'][0]['code']) // Monto en letras - Catalog. 52
-                ->setValue($data['legends'][0]['value']);
-
-            $invoice->setDetails($Datos_ventas)
-                ->setLegends([$legend]);
-
-            $result = $see->send($invoice);
-
-
-            // Verificamos que la conexión con SUNAT fue exitosa.
-            if (!$result->isSuccess()) {
-                // Mostrar error al conectarse a SUNAT.
-                $mensajeError = $result->getError()->getMessage();
-                $codigoError = $result->getError()->getCode();
-                echo "Error: " . $mensajeError . "\n Código:" . $codigoError . "";
-                exit(http_response_code(400));
-            }
-            $carpeta = __DIR__ . "/../archivo/$documento";
-            if (!file_exists($carpeta)) {
-                mkdir($carpeta, 0777, true);
-            }
-            chmod($carpeta, 0777);
-
-            file_put_contents($carpeta . '/' . $invoice->getName() . '.xml', $see->getFactory()->getLastXml());
-
-            $cdrResponse = $result->getCdrResponse();
-            $jsonArray = [
-                "id" => $cdrResponse->getId(),
-                "code" => $cdrResponse->getCode(),
-                "description" => $cdrResponse->getDescription(),
-                "notes" => $cdrResponse->getNotes(),
-                "ruta_xml" => $carpeta . '/' . $invoice->getName() . '.xml',
-                "ruta_zip" => $carpeta . '/' . 'R-' . $invoice->getName() . '.zip',
+            $tipoDoc = "03";
+            $serie = $folio_documento->serie_folio;
+            $datos_cliente = [
+                "tipoDoc" => $tipoDoc_cliente,
+                "numDoc" =>  $cliente->dni_cliente,
+                "rznSocial" => $cliente->nombre_cliente . ' ' . $cliente->apellidopaterno_cliente . ' ' . $cliente->apellidomaterno_cliente,
+                "address" => [
+                    "direccion" => $cliente->direccion_cliente,
+                    "provincia" => $cliente->provincia,
+                    "departamento" => $cliente->departamento,
+                    "distrito" => $cliente->distrito,
+                    "ubigueo" => $cliente->ubigeo_cliente
+                ]
             ];
-            // Guardamos el CDR
-            file_put_contents($carpeta . '/' . 'R-' . $invoice->getName() . '.zip', $result->getCdrZip());
+        } else {
+            $folio_documento = Folio::where('id_folio', 17)->first();
+            $tipoDoc = "";
+            $serie = '';
+            $datos_cliente = [
+                "tipoDoc" => '',
+                "numDoc" =>  $cliente->dni_cliente,
+                "rznSocial" => $cliente->nombre_cliente . ' ' . $cliente->apellidopaterno_cliente . ' ' . $cliente->apellidomaterno_cliente,
+                "address" => [
+                    "direccion" => $cliente->direccion_cliente,
+                    "provincia" => $cliente->provincia,
+                    "departamento" => $cliente->departamento,
+                    "distrito" => $cliente->distrito,
+                    "ubigueo" => $cliente->ubigeo_cliente
+                ]
+            ];
         }
 
-        $Folio = Folio::where('id_folio', 2)->first();
+        $details = [];
+        $igv_porcentaje = 0.18;
+        foreach ($datos->ProductoSeleccionados as $i => $element) {
+            $tipoAfectacion = Producto::join('tipo_afectacion', 'tipo_afectacion.id_tipo_afectacion', 'producto.id_tipo_afectacion')
+                ->where('id_producto', $element->id_producto)
+                ->first();
+            $cantidad = $element->cantidad_seleccionado;
+            $precio = round($tipoAfectacion->precioventa_producto, 2);
+            $igv_detalle = 0;
+            $factor_porcentaje = 1;
+
+            if ($tipoAfectacion->codigo == 10) {
+                $precio = round($precio / (1 + $igv_porcentaje),2);#Le sacamos el impuesto
+                $igv_detalle = $precio * $cantidad * $igv_porcentaje;
+                $factor_porcentaje = 1 + $igv_porcentaje;
+            }
+            $datositem = array(
+                'id_producto'               => $element->id_producto,
+                'item'                      =>  $i + 1,
+                'codigo'                    =>  $element->codigo_producto,
+                'descripcion'               =>  $element->glosa_producto,
+                'cantidad'                  =>  $cantidad,
+                'precio_unitario'           =>  round($precio * $factor_porcentaje,2), //incluido todos los impuestos
+                'valor_unitario'            =>  $precio, //no incluye impuestos
+                'igv'                       =>  round($igv_detalle,2), //cantidad*(precio unitario - valor unitario)
+                'tipo_precio'               => ($tipoAfectacion->codigo == 10) ? '01' : '02', //01: onerosos lucran, 02: no onerosos, no lucran
+                'porcentaje_igv'            =>  $igv_porcentaje * 100,
+                'valor_total'               =>  round($precio * $cantidad,2), //cantidad * precio unitario
+                'importe_total'             =>  round($precio * $factor_porcentaje,2) * $cantidad, //cantidad * valor unitario
+                'unidad'                    =>  'NIU',
+                'tipo_afectacion_igv'       =>  $tipoAfectacion->codigo,
+                'codigo_tipo_tributo'       =>  $tipoAfectacion->codigo_afectacion, // Catálogo No. 05: Códigos de tipos de tributos CATALOGO
+                'tipo_tributo'              =>  $tipoAfectacion->tipo_afectacion,
+                'nombre_tributo'            =>  $tipoAfectacion->nombre_afectacion,
+                'bolsa_plastica'            =>  'NO', //impuesto  ICBPER
+                'total_impuesto_bolsas'     =>  0.00,
+                'id_tipo_afectacion'          => $tipoAfectacion->id_tipo_afectacion
+            );
+            array_push($details, $datositem);
+        }
+
+        $clavecertificado = null;
+        if ($EmpresaVentaOnline->clavearchivo_certificado_digital) {
+            $mensaje_encriptado = base64_decode($EmpresaVentaOnline->clavearchivo_certificado_digital);
+            $partes = explode('::', $mensaje_encriptado);
+            $clavecertificado = openssl_decrypt($partes[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes[1]);
+        }
+
+
+        $clave_sol_certificado = null;
+        if ($EmpresaVentaOnline->clavesol_certificado_digital) {
+            $clave_sol = base64_decode($EmpresaVentaOnline->clavesol_certificado_digital);
+            $partes_clave = explode('::', $clave_sol);
+            $clave_sol_certificado = openssl_decrypt($partes_clave[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes_clave[1]);
+        }
+        $correlativo = $folio_documento->numero_folio;
+        $data = array(
+            //EMPRESA------------------------------------------------
+            "clavecertificado" => $clavecertificado,
+            "usuario_sol" =>  $EmpresaVentaOnline->usuariosol_certificado_digital,
+            "clave_sol" => $clave_sol_certificado,
+            //-------------------------------------------------------
+            "ublVersion" => "2.1",
+            "tipoOperacion" => "0101",
+            "tipoDoc" => $tipoDoc,
+            "serie" => $serie,
+            "correlativo" => $correlativo,
+            "fechaEmision" => $this->fechaactual,
+            "formaPago" => [
+                "moneda" => "PEN",
+                "tipo" => "Contado"
+            ],
+            "tipoMoneda" => "PEN",
+            "client" => $datos_cliente,
+            "company" => [
+                "ruc" => $EmpresaVentaOnline->ruc_empresa_venta_online,
+                "razonSocial" => $EmpresaVentaOnline->razon_social_empresa_venta_online,
+                "nombreComercial" => $EmpresaVentaOnline->nombre_empresa_venta_online,
+                "address" => [
+                    "direccion" =>  $EmpresaVentaOnline->direccion_empresa_venta_online ?  $EmpresaVentaOnline->direccion_empresa_venta_online : 'Av. Villa Nueva 221',
+                    "provincia" =>  $EmpresaVentaOnline->provincia ?  $EmpresaVentaOnline->provincia : 'LIMA',
+                    "departamento" => $EmpresaVentaOnline->departamento ? $EmpresaVentaOnline->departamento : 'LIMA',
+                    "distrito" =>  $EmpresaVentaOnline->distrito ?  $EmpresaVentaOnline->distrito : 'LIMA',
+                    "ubigueo" => "150101"
+                ]
+            ],
+            "mtoOperGravadas" => $Totales->subtotal,
+            "totalImpuestos" => $Totales->igv,
+            "mtoImpVenta" => $Totales->total,
+            "details" => $details,
+            'listaMetodosPago' => $listaMetodosPago
+        );
+
+        $respuesta = [];
+        if ($tipo_documento === 'BOLETA') {
+            $boleta = new BoletaSunat($data);
+            $respuesta = $boleta->enviarboleta();
+        } elseif ($tipo_documento === 'FACTURA') {
+            $factura = new FacturaSunat($data);
+            $respuesta = $factura->enviarfactura();
+        }
+        if (isset($respuesta) && isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && ($tipo_documento === 'BOLETA' || $tipo_documento === 'FACTURA') && $respuesta['estado'] != 8) {
+            echo json_encode($respuesta);
+            exit(http_response_code(404));
+        }
+ 
+        $staff = Usuario::select("staff.*")->where('id_usuario', $informacionForm->vendedor)
+            ->join('staff', 'staff.id_staff', 'usuario.id_staff')
+            ->first();
+        $data += [
+            'apellidopaterno_staff' => $staff->apellidopaterno_staff,
+            'apellidomaterno_staff' => $staff->apellidomaterno_staff,
+            'nombre_staff' => $staff->nombre_staff,
+            'efectivo_negocio' => $totalespagados->total_pagado,
+            'vuelto_negocio' => $totalespagados->vuelto
+        ];
+        $pathNotaVenta = $this->enviarNegocioVenta($data, $tipo_documento, $EmpresaVentaOnline);
+        $folio = Folio::where('id_folio', 2)->first();
         $negocio_crear = [
             'id_usuario' => $informacionForm->vendedor,
-            'id_folio' => $Folio->id_folio,
+            'id_folio' => $folio->id_folio,
             'id_cliente' => $informacionForm->cliente,
             'fechacreacion_negocio' => $this->fechaactual,
-            'numero_negocio' => $Folio->numero_folio,
-            'valor_negocio' => $Totales_pagados->total_pagar,
+            'numero_negocio' => $folio->numero_folio,
+            'valor_negocio' => $Totales->total,
+            'valorafecto_negocio' => $Totales->subtotal,
+            'porcentajeiva_negocio' => $Totales->igv,
             'vigente_negocio' => 1,
-            // 'id_apertura_caja' => $this->request->id_aperturar_caja,
-            'efectivo_negocio' =>  $Totales_pagados->total_pagar,
-            'vuelto_negocio' => $Totales_pagados->vuelto,
+            'efectivo_negocio' =>  $totalespagados->total_pagado,
+            'vuelto_negocio' => $totalespagados->vuelto,
         ];
-        $Folio->numero_folio += 1;
-        $Folio->save();
+        $folio->numero_folio += 1;
+        $folio->save();
         $Negocio = Negocio::create($negocio_crear);
         $notificar_stock = array();
-        foreach ($ProductoSeleccionados as $key => $elemento) {
-            $cantidad = $elemento->cantidad_seleccionado;
-            $precio = number_format($elemento->precio_venta_producto, 2);
-            $precio_unitario = number_format($elemento->precioventa_producto, 2);
-            $mtoBaseIgv = round($precio / (1 + 0.18), 2);
-            $igv = $precio - $mtoBaseIgv;
-
+        foreach ($details as $elemento) {
             // RESTANDO STOCK DEL PRODUCTOS
-            $producto_encontrado = producto::where('id_producto', $elemento->id_producto)->first();
-            $stockActual = $producto_encontrado->stock_producto - $cantidad;
+            $producto_encontrado = producto::where('id_producto', $elemento['id_producto'])->first();
+            $stockActual = $producto_encontrado->stock_producto - $elemento['cantidad'];
             $producto_encontrado->stock_producto = $stockActual;
             $producto_encontrado->save();
             $producto_historial = [
                 'id_usuario' => $informacionForm->vendedor,
                 'id_tipo_movimiento' => 2,
-                'id_producto' => $elemento->id_producto,
-                'cantidadmovimiento_producto_historial' => $cantidad,
+                'id_producto' => $elemento['id_producto'],
+                'cantidadmovimiento_producto_historial' => $elemento['cantidad'],
                 'fecha_producto_historial' => $this->fechaactual,
                 'comentario_producto_historial' => "$tipo_documento DE VENTA ELECTRONICA"
             ];
             ProductoHistorial::create($producto_historial);
+
+            $negocio_detalle = [
+                'id_negocio' => $Negocio->id_negocio,
+                'id_producto' =>  $elemento['id_producto'],
+                'valorneto_negocio_detalle' => $elemento['precio_unitario'],
+                'iva_negocio_detalle' => $elemento['igv'],
+                'total_negocio_detalle' => $elemento['valor_total'],
+                'fechacreacion_negocio_detalle' => $this->fechaactual,
+                'cantidad_negocio_detalle' => $elemento['cantidad'],
+                'preciounitario_negocio_detalle' => $elemento['valor_unitario'],
+                'id_tipo_afectacion'=>$elemento['id_tipo_afectacion']
+            ];
+            if ($elemento['tipo_precio'] == 01) {
+                $negocio_detalle += [
+                    'valorafecto_negocio_detalle' => $elemento['precio_unitario']
+                ];
+            } else {
+                $negocio_detalle += [
+                    'valorexento_negocio_detalle' => $elemento['precio_unitario']
+                ];
+            }
+            NegocioDetalle::create($negocio_detalle);
+
             //-----------------------------------
             //para el pusher Notificar
             // $elementos_pusher = [
@@ -370,18 +305,6 @@ class NegocioController
             // ];
             // array_push($notificar_stock, $elementos_pusher);
             //
-            $negocio_detalle = [
-                'id_negocio' => $Negocio->id_negocio,
-                'id_producto' =>  $elemento->id_producto,
-                'valorneto_negocio_detalle' => $mtoBaseIgv,
-                'iva_negocio_detalle' => $igv,
-                'total_negocio_detalle' => $precio,
-                'fechacreacion_negocio_detalle' => $this->fechaactual,
-                'cantidad_negocio_detalle' => $cantidad,
-                'preciounitario_negocio_detalle' => $precio_unitario
-                // 'preciounitario_negocio_detalle',
-            ];
-            NegocioDetalle::create($negocio_detalle);
         }
         // $pusher = Eventopusher::conectar();
         // $elementos = [
@@ -389,97 +312,84 @@ class NegocioController
         //     "notificar_stock" => $notificar_stock
         // ];
         // $pusher->trigger('Stock', 'ActualizarStockEvent', $elementos);
-
         switch ($tipo_documento) {
             case 'BOLETA':
                 //CREAMOS LA BOLETA-----------------------------------------------------------------------------------------
-                $Datos_Boleta = [
+                $datosBoleta = [
                     'id_usuario' =>  $informacionForm->vendedor,
                     'id_folio' => 6,
-                    'numero_boleta' => $correlativo,
-                    'serie_boleta' => $serie,
-                    'valor_boleta' => $precio_sin_igv_global,
+                    'numero_boleta' => $data['correlativo'],
+                    'serie_boleta' => $data['serie'],
+                    'valor_boleta' => $data['mtoOperGravadas'],
                     'fechacreacion_boleta' => $this->fechaactual,
-                    'iva_boleta' => $igv_global,
-                    'total_boleta' => $total_venta_global,
-                    'xml_boleta' => $jsonArray['ruta_xml'],
-                    'cdrzip_boleta' => $jsonArray['ruta_zip'],
+                    'iva_boleta' => $data['totalImpuestos'],
+                    'total_boleta' => $data['mtoImpVenta'],
+                    'xml_boleta' => $respuesta['ruta_xml'],
+                    'cdrzip_boleta' => $respuesta['ruta_zip'],
                     'estado_boleta' => 1,
                     'id_negocio' => $Negocio->id_negocio,
                     'id_cliente' => $informacionForm->cliente,
-                    'comentario_boleta' => $jsonArray['description'],
+                    'comentario_boleta' => $respuesta['Descripcion'],
+                    'path_boleta' => $pathNotaVenta['path'],
+                    'path_ticket_boleta' => $pathNotaVenta['path_ticket']
                 ];
                 $folio_documento->numero_folio += 1;
                 $folio_documento->save();
-                $boleta_creado = Boleta::create($Datos_Boleta);
-                $id_documento = $boleta_creado->id_boleta;
-                //-
+                $boletacreado = Boleta::create($datosBoleta);
+                $id_documento = $boletacreado->id_boleta;
                 break;
             case 'FACTURA':
                 //CREAMOS LA FACTURA------------------------------------------------------------------------------------------
-                $Datos_Factura = [
+                $datosFactura = [
                     'id_usuario' => $informacionForm->vendedor,
                     'id_folio' => 9,
-                    'numero_factura' => $correlativo,
-                    'serie_factura' => $serie,
+                    'numero_factura' => $data['correlativo'],
+                    'serie_factura' => $data['serie'],
                     'fechacreacion_factura' => $this->fechaactual,
-                    'valorafecto_factura' => $precio_sin_igv_global,
-                    'iva_factura' => $igv_global,
-                    'total_factura' => $total_venta_global,
-                    'xml_factura' => $jsonArray['ruta_xml'],
-                    'cdrzip_factura' => $jsonArray['ruta_zip'],
+                    'valorafecto_factura' => $data['mtoOperGravadas'],
+                    'iva_factura' => $data['totalImpuestos'],
+                    'total_factura' => $data['mtoImpVenta'],
+                    'xml_factura' => $respuesta['ruta_xml'],
+                    'cdrzip_factura' => $respuesta['ruta_zip'],
                     'estado_factura' => 1,
                     'id_negocio' => $Negocio->id_negocio,
                     'id_cliente' => $informacionForm->cliente,
-                    'comentario_factura' => $jsonArray['description'],
+                    'comentario_factura' => $respuesta['Descripcion'],
+                    'path_documento' => $pathNotaVenta['path'],
+                    'path_ticket_factura' =>  $pathNotaVenta['path_ticket']
                 ];
                 $folio_documento->numero_folio += 1;
                 $folio_documento->save();
-                $factura_creado = Factura::create($Datos_Factura);
-                $id_documento = $factura_creado->id_factura;
+                $facturacreado = Factura::create($datosFactura);
+                $id_documento = $facturacreado->id_factura;
                 break;
             default:
-                $Folio = Folio::where('id_folio', 17)->first();
+                $folio = Folio::where('id_folio', 17)->first();
                 //CREAMOS LA NOTA VENTA------------------------------------------------------------------------------------------
-                $Datos_Factura = [
+                $datos = [
                     'id_usuario' => $informacionForm->vendedor,
                     'id_folio' => 17,
                     'id_negocio' => $Negocio->id_negocio,
                     'id_cliente' => $informacionForm->cliente,
-                    'numero_nota_venta' => $Folio->numero_folio,
+                    'numero_nota_venta' => $folio->numero_folio,
                     'fechacreacion_nota_venta' => $this->fechaactual,
                     'valor_nota_venta' => number_format($Totales->subtotal, 2),
                     'iva_nota_venta' => number_format($Totales->igv, 2),
                     'total_nota_venta' => number_format($Totales->total, 2),
                     'estado_nota_venta' => 1,
                     'saldo_nota_venta' => number_format($Totales->total, 2),
+                    'urlpdf_nota_venta' => $pathNotaVenta['path'],
+                    'urlticket_nota_venta' =>  $pathNotaVenta['path_ticket']
                 ];
-                $Folio->numero_folio += 1;
-                $Folio->save();
-                $NotaVenta = NotaVenta::create($Datos_Factura);
-                $id_documento = $NotaVenta->id_nota_venta;
+                $folio->numero_folio += 1;
+                $folio->save();
+                $notaVenta = NotaVenta::create($datos);
+                $id_documento = $notaVenta->id_nota_venta;
                 break;
         }
-        $pathNotaVenta = $this->EnviarNegocioVenta($Negocio->id_negocio, $tipo_documento, $EmpresaVentaOnline);
-        if ($tipo_documento === 'BOLETA') {
-            $Boletas = Boleta::where('id_boleta', $id_documento)->first();
-            $Boletas->path_boleta = $pathNotaVenta['path'];
-            $Boletas->path_ticket_boleta = $pathNotaVenta['path_ticket'];
-            $Boletas->save();
-        } else if ($tipo_documento === 'FACTURA') {
-            $Facturas = Factura::where('id_factura', $id_documento)->first();
-            $Facturas->path_documento = $pathNotaVenta['path'];
-            $Facturas->path_ticket_factura =  $pathNotaVenta['path_ticket'];
-            $Facturas->save();
-        } else {
-            $NotaVenta = NotaVenta::where('id_nota_venta', $id_documento)->first();
-            $NotaVenta->urlpdf_nota_venta = $pathNotaVenta['path'];
-            $NotaVenta->urlticket_nota_venta =  $pathNotaVenta['path_ticket'];
-            $NotaVenta->save();
-        }
 
-        foreach ($ListaMetodosPago as $key => $element) {
-            $Folio_ingreso = Folio::where('id_folio', 4)->first();
+        foreach ($listaMetodosPago as $element) {
+            $folioingreso = Folio::where('id_folio', 4)->first();
             $id_tipo_ingreso = 1;
             if ($element->id_medio_pago === "3") {
                 $id_tipo_ingreso = 9;
@@ -489,101 +399,72 @@ class NegocioController
             }
             $data_ingreso = [
                 'id_negocio' => $Negocio->id_negocio,
-                'id_folio' => $Folio_ingreso->id_folio,
-                // 'id_comprobante_ingreso',
+                'id_folio' => $folioingreso->id_folio,
                 'id_medio_pago' => $element->id_medio_pago,
                 'id_caja' => $id_caja,
                 'id_tipo_ingreso' => $id_tipo_ingreso,
                 'valor_ingreso' => $element->monto,
-                'numero_ingreso' => $Folio_ingreso->numero_folio,
+                'numero_ingreso' => $folioingreso->numero_folio,
                 'comentario_ingreso' => "$tipo_documento ELECTRONICA",
                 'estado_ingreso' => 1,
                 'fechacreacion_ingreso' => $this->fechaactual,
             ];
-            $Folio_ingreso->numero_folio += 1;
-            $Folio_ingreso->save();
+            $folioingreso->numero_folio += 1;
+            $folioingreso->save();
             Ingreso::create($data_ingreso);
         }
-        if ($Totales_pagados->vuelto > 0) {
-            $Folio_egreso = Folio::where('id_folio', 18)->first();
+        if ($totalespagados->vuelto > 0) {
+            $folioegreso = Folio::where('id_folio', 18)->first();
             $data = [
                 'id_caja' => $id_caja,
-                'id_folio' => $Folio_egreso->id_folio,
+                'id_folio' => $folioegreso->id_folio,
                 'id_usuario' => $informacionForm->vendedor,
                 'id_negocio' => $Negocio->id_negocio,
                 'id_tipo_egreso' => 6,
-                'numero_egreso' => $Folio_egreso->numero_folio,
+                'numero_egreso' => $folioegreso->numero_folio,
                 'fechacreacion_egreso' => $this->fechaactual,
-                'valor_egreso' => $Totales_pagados->vuelto
+                'valor_egreso' => $totalespagados->vuelto
             ];
-            $Folio_egreso->numero_folio += 1;
-            $Folio_egreso->save();
+            $folioegreso->numero_folio += 1;
+            $folioegreso->save();
             Egreso::create($data);
         }
 
         $rutaspdf = [
-            "ticket" => RUTA_ARCHIVO . "/archivo/{$tipo_documento}Venta/{$pathNotaVenta['path_ticket']}",
-            "pdf" => RUTA_ARCHIVO . "/archivo/{$tipo_documento}Venta/{$pathNotaVenta['path']}"
+            "ticket" => RUTA_ARCHIVO . "/archivo/$tipo_documento/{$pathNotaVenta['path_ticket']}",
+            "pdf" => RUTA_ARCHIVO . "/archivo/$tipo_documento/{$pathNotaVenta['path']}"
         ];
         echo json_encode($rutaspdf);
     }
-    public function EnviarNegocioVenta($id_negocio, $tipo_documento, $EmpresaVentaOnline)
+    public function enviarNegocioVenta($data, $tipo_documento, $EmpresaVentaOnline)
     {
-        if ($tipo_documento === 'BOLETA') {
-            $Boleta = Boleta::where('id_negocio', $id_negocio)
-                ->join('usuario', 'usuario.id_usuario', 'boleta.id_usuario')
-                ->join("staff", 'staff.id_staff', 'usuario.id_staff')
-                ->first();
-            $serie = $Boleta->serie_boleta;
-            $correlativo = $Boleta->numero_boleta;
-            $total_afecto = $Boleta->valor_boleta;
-            $igv_total = $Boleta->iva_boleta;
-            $importe_total = $Boleta->total_boleta;
-            $vendedor_documento = $Boleta->apellidopaterno_staff . ' ' . $Boleta->apellidomaterno_staff . ' ' . $Boleta->nombre_staff;
-        } else if ($tipo_documento === 'FACTURA') {
-            $Factura = Factura::where('id_negocio', $id_negocio)
-                ->join('usuario', 'usuario.id_usuario', 'factura.id_usuario')
-                ->join("staff", 'staff.id_staff', 'usuario.id_staff')
-                ->first();
-            $serie = $Factura->serie_factura;
-            $correlativo = $Factura->numero_factura;
-            $total_afecto = $Factura->valorafecto_factura;
-            $igv_total = $Factura->iva_factura;
-            $importe_total = $Factura->total_factura;
-            $vendedor_documento = $Factura->apellidopaterno_staff . ' ' . $Factura->apellidomaterno_staff . ' ' . $Factura->nombre_staff;
-        } else {
-            $NotaVenta = NotaVenta::where('id_negocio', $id_negocio)
-                ->join('usuario', 'usuario.id_usuario', 'nota_venta.id_usuario')
-                ->join("staff", 'staff.id_staff', 'usuario.id_staff')
-                ->first();
-            $serie = null;
-            $correlativo = $NotaVenta->numero_nota_venta;
-            $total_afecto = $NotaVenta->valor_nota_venta;
-            $igv_total = $NotaVenta->iva_nota_venta;
-            $importe_total = $NotaVenta->total_nota_venta;
-            $vendedor_documento = $NotaVenta->apellidopaterno_staff . ' ' . $NotaVenta->apellidomaterno_staff . ' ' . $NotaVenta->nombre_staff;
-        }
+
+        $serie = $data['serie'];
+        $correlativo = $data['correlativo'];
+        $total_afecto = $data['mtoOperGravadas'];
+        $igv_total = $data['totalImpuestos'];
+        $importe_total = $data['mtoImpVenta'];
+        $vendedor_documento = $data['apellidopaterno_staff'] . ' ' . $data['apellidomaterno_staff'] . ' ' . $data['nombre_staff'];
+
+
+
         $fecha = date("Y-m-d H:i:s");
         $separaFecha = explode(" ", $fecha);
         $Fecha = explode("-", $separaFecha[0]);
         $filename = "Ticket_" . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . ".pdf";
         $filename_documento = "Documento_" . $tipo_documento . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . ".pdf";
-        $path = 'archivo/' . $tipo_documento . 'Venta';
+        $path = 'archivo/' . $tipo_documento;
         if (!file_exists($path)) {
             mkdir($path, 0777, true);
         }
         $path_imagen = __DIR__ . '/../archivo/imagenes/ahorro_farma.jpg';
         $imagen = base64_encode(file_get_contents($path_imagen));
-        $negocios = Negocio::join('negocio_detalle', 'negocio_detalle.id_negocio', 'negocio.id_negocio')
-            ->join('producto', 'producto.id_producto', 'negocio_detalle.id_producto')
-            ->join('cliente', 'cliente.id_cliente', 'negocio.id_cliente')
-            ->where('negocio.id_negocio', $id_negocio)
-            ->get();
-        $valorventa = $negocios[0]['valor_negocio'];
-        $fecha_creacion_venta = $negocios[0]['fechacreacion_negocio'];
-        $pagocliente_venta = $negocios[0]['efectivo_negocio'];
-        $vuelto_negocio = $negocios[0]['vuelto_negocio'];
-        $fecha_emision_dte = date('Y-m-d', strtotime($negocios[0]['fechacreacion_negocio_detalle']));
+
+        $valorventa = $data['mtoImpVenta'];
+        $fecha_creacion_venta = $data['fechaEmision'];
+        $pagocliente_venta = $data['efectivo_negocio'];
+        $vuelto_negocio = $data['vuelto_negocio'];
+        $fecha_emision_dte = date('Y-m-d', strtotime($data['fechaEmision']));
         $codigoBarra = base64_encode(file_get_contents((new \chillerlan\QRCode\QRCode())->render($valorventa)));
         $informacion_empresa = [
             "nombre_empresa" => $EmpresaVentaOnline->nombre_empresa_venta_online,
@@ -596,11 +477,10 @@ class NegocioController
             'tipo_documento' => $tipo_documento
         ];
         $informacion_cliente = [
-            "dni_cliente" => $negocios[0]['dni_cliente'],
-            "ruc_cliente" => $negocios[0]['ruc_cliente'],
-            'nombre_cliente_completo' => $negocios[0]['nombre_cliente'] . ' ' . $negocios[0]['apellidopaterno_cliente'] . ' ' . $negocios[0]['apellidomaterno_cliente'],
-            "direccion_cliente" => $negocios[0]['direccion_cliente'],
-
+            "dni_cliente" => $data['client']['numDoc'],
+            "ruc_cliente" => $data['client']['numDoc'],
+            'nombre_cliente_completo' => $data['client']['rznSocial'],
+            "direccion_cliente" => $data['client']['address']['direccion'],
         ];
         $informacion_documento = [
             'serie' => $serie,
@@ -635,11 +515,11 @@ class NegocioController
         $output2 = $dompdf2->output();
         file_put_contents($path . '/' . $filename_documento, $output2);
         // --------------------------------
-        $respuesta_documento = [
+        $respuestadocumento = [
             "path_ticket" => $filename,
             "path" => $filename_documento,
         ];
-        return $respuesta_documento;
+        return $respuestadocumento;
     }
 
 

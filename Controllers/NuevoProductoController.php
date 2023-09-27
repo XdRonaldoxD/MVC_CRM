@@ -75,7 +75,8 @@ class NuevoProductoController
                 'urlamigable_producto' => $urlAmigable,
                 'fechacreacion_producto' => date('Y-m-d H:i:s'),
                 'vigente_producto' => 1,
-                'visibleonline_producto' => ($informacionForm->visible_tienda == true) ?  1 : 0
+                'visibleonline_producto' => ($informacionForm->visible_tienda) ?  1 : 0,
+                'id_tipo_afectacion'=>$informacionForm->id_tipo_afectacion
             ];
 
             if (isset($informacionForm->id_producto)) {

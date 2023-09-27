@@ -37,7 +37,7 @@ if (isset($_GET['Apicontroller'])) {
     include "Controllers/Api/" . $classname . '.php';
 }
 //
-//REQUES VEO SI ESTAN LAS PETICIONES ENVIANDO EL CONTROLADOR Y SU ACCION SI NO ENVIA NO ENTRARA 
+//REQUES VEO SI ESTAN LAS PETICIONES ENVIANDO EL CONTROLADOR Y SU ACCION SI NO ENVIA NO ENTRARA
 if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET") {
     $Authorization = null;
     $headers = apache_request_headers();
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
         }
         die();
     } else {
-        if (isset($_GET['controller']) && $_GET['controller'] == 'Usuario') {
+        if (isset($_GET['controller']) && ($_GET['controller'] == 'Usuario' || $_GET['controller'] == 'AnularDocumento') ) {
             $nombre_controlador = $_GET['controller'] . "Controller";
         } else {
             echo "No exite la Pagina";

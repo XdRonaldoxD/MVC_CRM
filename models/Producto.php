@@ -13,6 +13,7 @@ class Producto extends Model
         'id_unidad',
         'id_marca',
         'id_proveedor',
+        'id_tipo_afectacion',
         'codigo_producto',
         'glosa_producto',
         'detalle_producto',

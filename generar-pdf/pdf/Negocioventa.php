@@ -167,7 +167,7 @@
     <div style="text-align: center;margin: 0px;padding: 0px;">
         <img style="width:120px; height:auto; margin:0px 0px 0px 70px" src="data:image/png;base64,<?= $imagen ?>" alt="" />
     </div>
-    
+
     <div style="text-align: center;margin-top: 2.3rem">
         <strong style="font-size: 15px;margin: 0px;"><?= $informacion_empresa['nombre_empresa'] ?></strong>
     </div>
@@ -189,7 +189,7 @@
                                                                     if ($informacion_empresa['tipo_documento'] == "NOTA_VENTA") {
                                                                         echo "NOTA VENTA";
                                                                     } else {
-                                                                        echo $informacion_empresa['tipo_documento'] . '  DE VENTA ELECTRONICA';
+                                                                        echo $informacion_empresa['tipo_documento'] . ' ELECTRONICA';
                                                                     }
                                                                     ?>
         </strong>
@@ -215,7 +215,7 @@
         ?>
             <p style="font-size: 9px;margin: 0px;">DNI:<?= $informacion_cliente['dni_cliente'] ?></p>
         <?php
-        } else if ($informacion_empresa['tipo_documento'] === "FACTURA") {
+        } elseif ($informacion_empresa['tipo_documento'] === "FACTURA") {
         ?>
             <p style="font-size: 9px;margin: 0px;">RUC:<?= $informacion_cliente['ruc_cliente'] ?></p>
         <?php
@@ -250,22 +250,21 @@
             </tr>
         </thead>
         <tbody>
-            <?php $total = 0;
-            foreach ($negocios as $ventas) {
+            <?php
+            foreach ($data['details'] as $ventas) {
             ?>
                 <tr>
                     <td style="padding: 0px;">
-                        <p><?= $ventas['codigo_producto'] ?></p>
+                        <p><?= $ventas['codigo'] ?></p>
                     </td>
                     <td style="padding: 0px;">
-                        <p><?= $ventas['glosa_producto'] ?> </p>
+                        <p><?= $ventas['descripcion'] ?> </p>
                     </td>
                     <td style="padding: 0px;">
-                        <p><?= $ventas['cantidad_negocio_detalle'] ?></p>
+                        <p><?= $ventas['cantidad'] ?></p>
                     </td>
                     <td style="padding: 0px;">
-                        <p>S/.<?= number_format($ventas['total_negocio_detalle'], 2) ?></p>
-                        <?php $total += $ventas['total_negocio_detalle'] ?>
+                        <p>S/.<?= round($ventas['valor_total'], 2) ?></p>
                     </td>
                 </tr>
             <?php
@@ -274,7 +273,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" style="font-size: 9px;padding:0px"> <strong>TOTAL</strong> S/<?= number_format($total, 2) ?> </td>
+                <td colspan="4" style="font-size: 9px;padding:0px"> <strong>TOTAL</strong> S/<?= round($data['mtoImpVenta'], 2) ?> </td>
             </tr>
         </tfoot>
 
@@ -282,27 +281,13 @@
 
     <br>
     <table class="w-100 fs-small">
-        <?php if (!empty($venta['descuento_negocio_venta'])) {
-        ?>
-            <tr>
-                <td class="w-50">
-                    <p> <strong>DESCUENTO</strong></p>
-
-                </td>
-                <td class="w-50">
-                    <p> S/<?= number_format($venta['descuento_negocio_venta'], 2) ?></p>
-                </td>
-            </tr>
-        <?php
-        } ?>
-
         <tr>
             <td class="w-50">
-                <p> <strong> TOTAL </strong></p>
+                <p><strong> TOTAL </strong></p>
 
             </td>
             <td class="w-50">
-                <p> S/<?= number_format($valorventa, 2) ?></p>
+                <p> S/<?= round($valorventa, 2) ?></p>
             </td>
         </tr>
         <tr>
@@ -311,7 +296,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= number_format($pagocliente_venta, 2) ?></p>
+                <p> S/<?= round($pagocliente_venta, 2) ?></p>
             </td>
         </tr>
         <tr>
@@ -320,7 +305,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= number_format($vuelto_negocio, 2) ?></p>
+                <p> S/<?= round($vuelto_negocio, 2) ?></p>
             </td>
         </tr>
     </table>
@@ -341,7 +326,7 @@
     <table class="w-100 fs-small">
         <tr>
             <td class="w-100">
-                <p style="font-size: 9px;padding:0px">Total Num. Items:<?= count($negocios) ?></p>
+                <p style="font-size: 9px;padding:0px">Total Num. Items:<?= count($data['details']) ?></p>
             </td>
         </tr>
     </table>
@@ -353,7 +338,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= number_format($total_afecto, 2) ?></p>
+                <p> S/<?= round($total_afecto, 2) ?></p>
             </td>
         </tr>
         <tr>
@@ -362,7 +347,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= number_format($igv_total, 2) ?></p>
+                <p> S/<?= round($igv_total, 2) ?></p>
             </td>
         </tr>
         <tr>
@@ -371,7 +356,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= number_format($importe_total, 2) ?></p>
+                <p> S/<?= round($importe_total, 2) ?></p>
             </td>
         </tr>
     </table>
@@ -380,10 +365,6 @@
     </div>
     <div style="width: 100%">
         <img style="margin-left: 80px;" src="data:image/png;base64,<?= $codigoBarra ?>" alt="" />
-
     </div>
-
-
 </body>
-
 </html>

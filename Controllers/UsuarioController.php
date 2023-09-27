@@ -33,21 +33,20 @@ class UsuarioController
     }
 
     public function RegistrarUsuario()
-    { 
-
+    {
         //Cifrar las contraseña - Cifrando 4 veces
         $pwd = hash('sha256', $_POST['password_usuario']);
-        $staff=[
-            'nombre_staff'=>$_POST['nombre_usuario'],
-            "apellidopaterno_staff"=>$_POST['apellido_p_usuario'],
-            "apellidomaterno_staff"=>$_POST['apellido_m_usuario'],
-            'e_mail_staff'=>$_POST['email_usuario']
+        $staff = [
+            'nombre_staff' => $_POST['nombre_usuario'],
+            "apellidopaterno_staff" => $_POST['apellido_p_usuario'],
+            "apellidomaterno_staff" => $_POST['apellido_m_usuario'],
+            'e_mail_staff' => $_POST['email_usuario']
         ];
-        $staff=Staff::create($staff);
-        $usuario=[
-            "password_usuario"=>$pwd,
-            "id_staff"=>$staff->id_staff,
-            'vigente_usuario'=>1
+        $staff = Staff::create($staff);
+        $usuario = [
+            "password_usuario" => $pwd,
+            "id_staff" => $staff->id_staff,
+            'vigente_usuario' => 1
         ];
         Usuario::create($usuario);
         $data = array(
@@ -60,15 +59,15 @@ class UsuarioController
     }
     public function EliminarSesion()
     {
-        $usuario =Usuario::where("id_usuario",$_POST['id_usuario'])->first();
-        $usuario->session_id=null;
+        $usuario = Usuario::where("id_usuario", $_POST['id_usuario'])->first();
+        $usuario->session_id = null;
         $usuario->save();
         echo json_encode('Sessión destruida con exito');
     }
 
     public function ConsultaUsuario()
     {
-        $usuario = Usuario::where('id_usuario',$_POST['user_id'])
+        $usuario = Usuario::where('id_usuario', $_POST['user_id'])
             ->where("session_id", str_replace('"', '', $_POST['session_id']))
             ->first();
         $repuesta = false;
@@ -109,13 +108,14 @@ class UsuarioController
         echo "Generado Correctamente";
     }
 
-    public function ConsultarDominio(){
-        $EmpresaVentaOnline=EmpresaVentaOnline::where('dominio_empresa_venta_online',$_POST['dominio'])->first();
+    public function ConsultarDominio()
+    {
+        $EmpresaVentaOnline = EmpresaVentaOnline::where('dominio_empresa_venta_online', $_POST['dominio'])->first();
         if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->urlicono_empresa_venta_online) {
             echo json_encode($EmpresaVentaOnline->urlicono_empresa_venta_online);
-        }else{
+        } else {
             die(http_response_code(404));
         }
-       
     }
+
 }

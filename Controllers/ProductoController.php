@@ -2,6 +2,8 @@
 require_once "models/Producto.php";
 require_once "models/ProductoHistorial.php";
 require_once "models/ConsultaGlobal.php";
+require_once "models/TipoAfectacion.php";
+
 class ProductoController
 {
     public function ListaProducto()
@@ -182,8 +184,6 @@ class ProductoController
 
         $consulta = " WHERE id_producto= {$_GET['id_producto']}";
         $ConsultaGlobal = (new ConsultaGlobal())->TraerDatosProductos($consulta);
-
-
         //SACAMOS LOS PRODUCTO RELACIONADOS
         $arreglo_relacionado = [];
         if ($ConsultaGlobal->producto_relacionado) {
@@ -338,7 +338,7 @@ class ProductoController
             }
         }
         //
-
+        $tipoAfectacion=TipoAfectacion::where('vigente_afectacion',1)->get();
         $fillable = [
             'id_producto' => $ConsultaGlobal->id_producto,
             'id_tipo_producto' => $ConsultaGlobal->id_tipo_producto,
@@ -346,8 +346,10 @@ class ProductoController
             'id_tipo_inventario' => $ConsultaGlobal->id_tipo_inventario,
             'id_unidad' => $ConsultaGlobal->id_unidad,
             'id_marca' => $ConsultaGlobal->id_marca,
+            "id_tipo_afectacion" => $ConsultaGlobal->id_tipo_afectacion,
             'codigo_producto' => $ConsultaGlobal->codigo_producto,
             'glosa_producto' => $ConsultaGlobal->glosa_producto,
+            'codigo_barra_producto' => $ConsultaGlobal->codigo_barra_producto,
             'detalle_producto' => $ConsultaGlobal->detalle_producto,
             'detallelargo_producto' => $ConsultaGlobal->detallelargo_producto,
             'multidosis_producto' => $ConsultaGlobal->multidosis_producto,
@@ -369,7 +371,8 @@ class ProductoController
             "arreglo_especificacion" => $arreglo_especificacion,
             "arreglo_categoria_producto" => $arreglo_categoria_producto,
             "arreglo_atributo_producto" => $arreglo_atributo_producto,
-            "producto_relacionado" => $ConsultaGlobal->producto_relacionado
+            "producto_relacionado" => $ConsultaGlobal->producto_relacionado,
+            "tipoAfectacion"=>$tipoAfectacion
         ];
 
         echo json_encode($fillable);
@@ -389,5 +392,9 @@ class ProductoController
         } else {
             echo json_encode(true);
         }
+    }
+
+    public function traerAfectacion(){
+        echo TipoAfectacion::where('vigente_afectacion',1)->get();
     }
 }

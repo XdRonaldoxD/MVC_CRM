@@ -12,6 +12,7 @@ class NegocioDetalle extends Model
         'id_negocio',
         'id_descuento',
         'id_lista_precio',
+        'id_tipo_afectacion',
         'id_presupuesto_asignado',
         'valorneto_negocio_detalle',
         'descuento_negocio_detalle',
@@ -35,6 +36,7 @@ class NegocioDetalle extends Model
         'eshotel_hospital_negocio_detalle',
         'asignadotratamiento_negocio_detalle',
         'comentariofacturacion_negocio_detalle',
+
     ];
     public $timestamps = false;
 }

@@ -37,16 +37,16 @@ class NotaVentaController
         } else {
             $buscar = '';
         }
-
-        $consulta = " and (p.codigo_barra_producto = '$buscar' or
-        p.codigooriginal_producto LIKE '%$buscar%' or
-        p.codigo_producto LIKE '%$buscar%' or p.glosa_producto LIKE '%$buscar%'
-            or p.precioventa_producto LIKE '%$buscar%' or ti.glosa_tipo_inventario LIKE '%$buscar%') ";
-        $query = "SELECT * FROM producto as p
-        INNER JOIN tipo_producto as tp on tp.id_tipo_producto = p.id_tipo_producto
-        LEFT JOIN tipo_inventario as ti on p.id_tipo_inventario=ti.id_tipo_inventario
-        WHERE  p.vigente_producto=1
-        and p.stock_producto>0
+        $consulta = " and (codigo_barra_producto = '$buscar' or
+        codigooriginal_producto LIKE '%$buscar%' or
+        codigo_producto LIKE '%$buscar%' or glosa_producto LIKE '%$buscar%'
+            or precioventa_producto LIKE '%$buscar%' or glosa_tipo_inventario LIKE '%$buscar%') ";
+        $query = "SELECT * FROM producto
+        INNER JOIN tipo_producto using (id_tipo_producto)
+        INNER JOIN tipo_afectacion using (id_tipo_afectacion)
+        LEFT JOIN tipo_inventario using (id_tipo_inventario)
+        WHERE  vigente_producto=1
+        and stock_producto>0
         $consulta ";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
         $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
