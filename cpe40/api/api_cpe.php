@@ -37,7 +37,7 @@ class api_cpe
         $filename_zip = $nombreXML . '.ZIP';
 
         //1. URL DE CONSUMO
-        $ws_url = "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService";
+        $ws_url = URL_SUNAT_PRUEBA;
 
         //2. SOAP PARA CONSUMIR EL SERVICIO
         $xml_envelope = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -191,7 +191,7 @@ class api_cpe
         $filename_zip = $nombreXML . '.ZIP';
 
         //1. URL DE CONSUMO
-        $ws_url = "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService";
+        $ws_url = URL_SUNAT_PRUEBA;
 
         //2. SOAP PARA CONSUMIR EL SERVICIO
         $xml_envelope = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -279,7 +279,7 @@ class api_cpe
 
     function consultar_ticket($emisor, $cabecera, $ticket, $ruta_archivo_cdr = 'cdr/') {
         //1. URL DE CONSUMO
-        $ws_url = "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService";
+        $ws_url = URL_SUNAT_PRUEBA;
 
         //2. SOAP PARA CONSUMIR EL SERVICIO
         $xml_envelope = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -395,5 +395,65 @@ class api_cpe
         );
 
         return $estado_envio;
+    }
+    function consultarComprobante($emisor, $comprobante)
+    {
+		try{
+            $ws = URL_SUNAT_PRUEBA;
+            $soapUser = "";  
+            $soapPassword = "";
+
+            $xml_post_string = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+            xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.sunat.gob.pe" 
+            xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+                <soapenv:Header>
+                    <wsse:Security>
+                        <wsse:UsernameToken>
+                            <wsse:Username>'.$emisor['ruc'].$emisor['usuariosol'].'</wsse:Username>
+                            <wsse:Password>'.$emisor['clavesol'].'</wsse:Password>
+                        </wsse:UsernameToken>
+                    </wsse:Security>
+                </soapenv:Header>
+                <soapenv:Body>
+                    <ser:getStatus>
+                        <rucComprobante>'.$emisor['ruc'].'</rucComprobante>
+                        <tipoComprobante>'.$comprobante['tipodoc'].'</tipoComprobante>
+                        <serieComprobante>'.$comprobante['serie'].'</serieComprobante>
+                        <numeroComprobante>'.$comprobante['correlativo'].'</numeroComprobante>
+                    </ser:getStatus>
+                </soapenv:Body>
+            </soapenv:Envelope>';
+        
+            $headers = array(
+                "Content-type: text/xml;charset=\"utf-8\"",
+                "Accept: text/xml",
+                "Cache-Control: no-cache",
+                "Pragma: no-cache",
+                "SOAPAction: ",
+                "Content-length: " . strlen($xml_post_string),
+            );
+        
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+            curl_setopt($ch, CURLOPT_URL, $ws);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_post_string); // the SOAP request
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        
+            //para ejecutar los procesos de forma local en windows
+            //enlace de descarga del cacert.pem https://curl.haxx.se/docs/caextract.html
+            curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__)."/cacert.pem");
+
+            $response = curl_exec($ch);
+            $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            echo var_dump($response);
+            
+        } catch (Exception $e) {
+            echo "SUNAT ESTA FUERA SERVICIO: ".$e->getMessage();
+        }
     }
 }

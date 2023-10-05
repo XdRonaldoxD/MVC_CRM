@@ -51,6 +51,7 @@ class AnularDocumentoController
         LEFT JOIN cliente as cliente_boleta on cliente_boleta.id_cliente=boleta.id_cliente
         LEFT JOIN cliente as cliente_factura on cliente_factura.id_cliente=factura.id_cliente
         WHERE negocio.vigente_negocio=1
+        and (boleta.estado_boleta=1 or factura.estado_factura=1)
         and (boleta.id_boleta is not null or factura.id_factura is not null)
         $consulta
         order by fechacreacion_negocio desc ";
@@ -121,7 +122,7 @@ class AnularDocumentoController
             ];
         } else {
             $factura = Factura::where('id_factura', $_POST['id_documento'])
-                ->join('cliente', 'cliente.id_cliente', 'boleta.id_cliente')
+                ->join('cliente', 'cliente.id_cliente', 'factura.id_cliente')
                 ->first();
             $serie = $factura->serie_factura;
             $correlativo = $factura->numero_factura;
@@ -253,8 +254,12 @@ class AnularDocumentoController
         ];
         if ($_POST['tipo_documento'] === "BOLETA") {
             $datos['id_boleta'] = $_POST['id_documento'];
+            $boleta->estado_boleta = 0;
+            $boleta->save();
         } else {
             $datos['id_factura'] = $_POST['id_documento'];
+            $factura->estado_factura = 0;
+            $factura->save();
         }
         NotaCredito::create($datos);
         $folioNotaCredito->numero_folio += 1;
