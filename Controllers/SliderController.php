@@ -14,56 +14,33 @@ class SliderController
     {
         try {
             $Formulario = json_decode($_POST['formulario']);
-            $slider = [
+            $sliderdata = [
                 'nombre_slider' => $Formulario->titulo_slider,
-                'id_categoria' => $Formulario->id_categoria
-
+                'id_categoria' => $Formulario->id_categoria,
+                'texto_slider'=>$Formulario->texto_slider
             ];
+            $rutacarpeta="/../archivo/imagen_slider";
+            if ($Formulario->id_slider) {
+                $slider = Slider::where('id_slider', $Formulario->id_slider)->first();
+            }
             if (isset($_FILES['imagen_escritorio']) && !empty($_FILES['imagen_escritorio'])) {
                 $imagen = $_FILES['imagen_escritorio']['name'];
                 $ext = pathinfo($imagen, PATHINFO_EXTENSION);
                 $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
                 $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
-                // $temp = $_FILES['imagen']['tmp_name'];
+                $temp = $_FILES['imagen_escritorio']['tmp_name'];
                 //crear el directorio
-                if (!file_exists(__DIR__ . "/../archivo/imagen_slider")) {
-                    mkdir(__DIR__ . "/../archivo/imagen_slider", 0777, true);
+                if (!file_exists(__DIR__ . $rutacarpeta)) {
+                    mkdir(__DIR__ . $rutacarpeta, 0777, true);
                 }
-                $Slider = Slider::where('id_slider', $Formulario->id_slider)->first();
-                if (isset($Slider) && $Slider->pathescritorio_slider) {
-                    if (file_exists(__DIR__ . "/../archivo/imagen_slider/$Slider->pathescritorio_slider")) {
-                        unlink(__DIR__ . "/../archivo/imagen_slider/$Slider->pathescritorio_slider");
-                    }
+                if (isset($slider) && $slider->pathescritorio_slider && file_exists(__DIR__ . "$rutacarpeta/$slider->pathescritorio_slider")) {
+                        unlink(__DIR__ . "$rutacarpeta/$slider->pathescritorio_slider");
                 }
                 // GUARDA LA IMAGEN
-                $fechacreacion = date('Y-m-d H:i:s');
-                $separaFecha = explode(" ", $fechacreacion);
-                $Fecha = explode("-", $separaFecha[0]);
-                $path =  $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . $nombre_imagen;
-                // move_uploaded_file($temp, __DIR__ . "/../archivo/imagen_categoria/$path.'.'.$ext"); //
-
-                //SEGUNDA LIBRERIA
-                $foo = new Upload($_FILES['imagen_escritorio']);
-                if (!$foo) {
-                    echo json_encode("Error");
-                    die;
-                }
-                $foo->file_new_name_body = $path;
-                $foo->image_resize          = true;
-                //SI DESEAMOS PONER EL MISMO TAMAÑO Y  DARLE LA MISMA ANCHO Y ALTO COMENTAR EL IMAGE RATIO
-                // $foo->image_ratio           = true;
-                //
-                $foo->image_x               = 1110;
-                $foo->image_y               = 440;
-                $foo->process(__DIR__ . "/../archivo/imagen_slider/");
-                if ($foo->processed) {
-                    $foo->clean();
-                } else {
-                    echo 'error : ' . $foo->error;
-                    die();
-                }
+                $path = time() . $nombre_imagen;
                 $pathescritorio_slider =  $path . '.' . $ext;
-                $slider += [
+                move_uploaded_file($temp, __DIR__ . "$rutacarpeta/$pathescritorio_slider");
+                $sliderdata += [
                     'pathescritorio_slider' => $pathescritorio_slider,
                 ];
             }
@@ -72,68 +49,39 @@ class SliderController
                 $ext = pathinfo($imagen, PATHINFO_EXTENSION);
                 $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
                 $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
-                // $temp = $_FILES['imagen']['tmp_name'];
+                $temp = $_FILES['imagen_mobile']['tmp_name'];
                 //crear el directorio
-                if (!file_exists(__DIR__ . "/../archivo/imagen_slider")) {
-                    mkdir(__DIR__ . "/../archivo/imagen_slider", 0777, true);
+                if (!file_exists(__DIR__ . $rutacarpeta)) {
+                    mkdir(__DIR__ . $rutacarpeta, 0777, true);
                 }
-                $Slider = Slider::where('id_slider', $Formulario->id_slider)->first();
-                if (isset($Slider) && $Slider->pathescritorio_slider) {
-                    if (file_exists(__DIR__ . "/../archivo/imagen_slider/$Slider->pathescritorio_slider")) {
-                        unlink(__DIR__ . "/../archivo/imagen_slider/$Slider->pathescritorio_slider");
-                    }
+                if (isset($slider) && $slider->pathmobile_slider && file_exists(__DIR__ . "$rutacarpeta/$slider->pathmobile_slider")) {
+                        unlink(__DIR__ . "$rutacarpeta/$slider->pathmobile_slider");
                 }
-
-
                 // GUARDA LA IMAGEN
-                $fechacreacion = date('Y-m-d H:i:s');
-                $separaFecha = explode(" ", $fechacreacion);
-                $Fecha = explode("-", $separaFecha[0]);
-                $path =  $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . $nombre_imagen;
-                // move_uploaded_file($temp, __DIR__ . "/../archivo/imagen_categoria/$path.'.'.$ext"); //
-
-                //SEGUNDA LIBRERIA
-                $foo = new Upload($_FILES['imagen_mobile']);
-                if (!$foo) {
-                    echo json_encode("Error");
-                    die;
-                }
-                $foo->file_new_name_body = $path;
-                $foo->image_resize          = true;
-                //SI DESEAMOS PONER EL MISMO TAMAÑO Y  DARLE LA MISMA ANCHO Y ALTO COMENTAR EL IMAGE RATIO
-                // $foo->image_ratio           = true;
-                //
-                $foo->image_x               = 510;
-                $foo->image_y               = 395;
-                $foo->process(__DIR__ . "/../archivo/imagen_slider/");
-                if ($foo->processed) {
-                    $foo->clean();
-                } else {
-                    echo 'error : ' . $foo->error;
-                    die();
-                }
+                $path = time() . $nombre_imagen;
                 $pathmobile_slider =  $path . '.' . $ext;
-                $slider += [
+                move_uploaded_file($temp, __DIR__ . "$rutacarpeta/$pathmobile_slider");
+                $pathmobile_slider =  $path . '.' . $ext;
+                $sliderdata += [
                     'pathmobile_slider' => $pathmobile_slider,
                 ];
             }
-
             if ($Formulario->accion === "ACTUALIZAR") {
-                Slider::where('id_slider', $Formulario->id_slider)->update($slider);
+                Slider::where('id_slider', $Formulario->id_slider)->update($sliderdata);
                 $respuesta = "Actualizado";
             } else {
-                $slider += [
+                $sliderdata += [
                     'fechacreacion_slider' => date('Y-m-d H:i:s'),
                     'vigente_slider' => 1,
                 ];
-                Slider::create($slider);
+                Slider::create($sliderdata);
                 $respuesta = "Creado";
             }
         } catch (\Exception $e) {
             var_dump($e->getMessage());
             die;
         }
-        echo json_encode("$respuesta");
+        echo json_encode($respuesta);
     }
 
     public function GestionActivoDesactivado()

@@ -13,7 +13,7 @@ require_once "models/NegocioDetalle.php";
 require_once "models/NotaCredito.php";
 require_once "models/Folio.php";
 require_once "cpe40/nota_credito_sunat.php";
-require_once "cpe40/nota_credito_sunat.php";
+require_once "cpe40/resumen_anulaciones.php";
 require_once "Controllers/NegocioController.php";
 
 class AnularDocumentoController
@@ -95,7 +95,7 @@ class AnularDocumentoController
         //     ];
         //     $see = Helper::identificacionDocumentoProduccion($datosEmpresa);
         // } else {
-        $see = Helper::identificacionDocumentoPruebas();
+        // $see = Helper::identificacionDocumentoPruebas();
         // }
         if ($_POST['tipo_documento'] === "BOLETA") {
             $boleta = Boleta::where('id_boleta', $_POST['id_documento'])
@@ -120,6 +120,7 @@ class AnularDocumentoController
                 "tipoDoc" => $tipoDoccliente,
                 "numDoc" =>  $numDoc
             ];
+            $id_folio = 8;
         } else {
             $factura = Factura::where('id_factura', $_POST['id_documento'])
                 ->join('cliente', 'cliente.id_cliente', 'factura.id_cliente')
@@ -139,6 +140,7 @@ class AnularDocumentoController
                 "tipoDoc" => $tipoDoccliente,
                 "numDoc" =>  $numDoc
             ];
+            $id_folio = 12;
         }
         $datos_cliente += [
             "rznSocial" => $cliente->nombre_cliente . ' ' . $cliente->apellidopaterno_cliente . ' ' . $cliente->apellidomaterno_cliente,
@@ -170,7 +172,7 @@ class AnularDocumentoController
                 'tipo_precio'               => ($element->codigo == 10) ? "01" : "02", //01: onerosos lucran, 02: no onerosos, no lucran
                 'porcentaje_igv'            =>  $igv_porcentaje * 100,
                 'valor_total'               =>  round($element->preciounitario_negocio_detalle * $element->cantidad_negocio_detalle, 2), //cantidad * precio unitario
-                'importe_total'             =>  $element->total_negocio_detalle, //cantidad * valor unitario
+                'importe_total'             =>  $element->valorneto_negocio_detalle, //cantidad * valor unitario
                 'unidad'                    =>  'NIU',
                 'tipo_afectacion_igv'       =>  $element->codigo,
                 'codigo_tipo_tributo'       =>  $element->codigo_afectacion, // Catálogo No. 05: Códigos de tipos de tributos CATALOGO
@@ -181,13 +183,28 @@ class AnularDocumentoController
             );
             array_push($details, $datositem);
         }
-        $folioNotaCredito = Folio::where('id_folio', 8)->first();
+        $tipodoc_anulado='';
+        if ($datosanulacion->documento == "ANULAR") {
+            $tipodoc_anulado="RA";
+            $folioAnular = Folio::where('id_folio', 16)->first();
+            $seriefolio = date('Ymd');
+            $numero_folio = 1;
+            if ($folioAnular->seriefolio == $seriefolio) {
+                $numero_folio = $folioAnular->numero_folio;
+            }
+        } else {
+            $folioAnular = Folio::where('id_folio', $id_folio)->first();
+            $seriefolio = $folioAnular->serie_folio;
+            $numero_folio = $folioAnular->numero_folio;
+        }
+
         $data = array(
             "ublVersion" => "2.1",
             "tipoOperacion" => "0101",
             "tipoDoc" => $tipoDoc,
-            "serie" => $folioNotaCredito->serie_folio,
-            "correlativo" => $folioNotaCredito->numero_folio,
+            "tipodoc_anulado" => $tipodoc_anulado,
+            "serie" => $seriefolio,
+            "correlativo" => $numero_folio,
             "serie_ref" => $serie,
             "correlativo_ref" => $correlativo,
             "fechaEmision" => $fechaEmision,
@@ -210,65 +227,98 @@ class AnularDocumentoController
             "valorVenta" => $totalventa,
             'codmotivo' => $motivodevolucion->codigo_devolucion,
             'descripcion' => $motivodevolucion->glosa_motivo_devolucion,
-
             "totalImpuestos" => $mtoigv,
-            "mtoImpVenta" => $mtoBaseIgv,
+            "mtoImpVenta" => $totalventa,
         );
-
-
-        $notaCreditoSunat = new NotaCreditoSunat($data);
-        $respuesta = $notaCreditoSunat->enviarnotacredito();
-        if (isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && $respuesta['estado'] != 8) {
+  
+        if ($datosanulacion->documento == "ANULAR") {
+            $notaCreditoSunat = new ResumenAnulacion($data);
+            $respuesta = $notaCreditoSunat->anulardocumento();
+            if (isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && $respuesta['estado'] != 8 && empty($respuesta['Nota'])) {
+                echo json_encode($respuesta);
+                exit(http_response_code(404));
+            }
             echo json_encode($respuesta);
-            exit(http_response_code(404));
-        }
-        $staff = Usuario::select("staff.*")->where('id_usuario', $datosanulacion->id_usuario)
-            ->join('staff', 'staff.id_staff', 'usuario.id_staff')
-            ->first();
-        $data += [
-            'apellidopaterno_staff' => $staff->apellidopaterno_staff,
-            'apellidomaterno_staff' => $staff->apellidomaterno_staff,
-            'nombre_staff' => $staff->nombre_staff,
-            'efectivo_negocio' => 0,
-            'vuelto_negocio' => 0
-        ];
-        $negociocontroller = new NegocioController();
-        $pathNotaCredito = $negociocontroller->enviarNegocioVenta($data, 'NOTA CREDITO', $empresaVentaOnline);
-        $datos = [
-            'id_folio' => 8,
-            'id_usuario' => $datosanulacion->id_usuario,
-            'numero_nota_credito' => $data['correlativo'],
-            'serie_nota_credito' => $data['serie'],
-            'fechacreacion_nota_credito' => date('Y-m-d H:i:s'),
-            'valorafecto_nota_credito' => $data['mtoOperGravadas'],
-            // 'valorexento_nota_credito',
-            'iva_nota_credito' => $data['mtoIGV'],
-            'total_nota_credito' => $data['valorVenta'],
-            'estado_nota_credito' => $respuesta['Estado'],
-            'zip_nota_credito' => $respuesta['ruta_zip'],
-            'xml_nota_credito' => $respuesta['ruta_xml'],
-            'path_nota_credito' => $pathNotaCredito['path'],
-            'path_ticket_nota_credito' => $pathNotaCredito['path_ticket'],
-            'id_motivo_devolucion' => $datosanulacion->tipo_anulacion,
-            'respuesta_sunat_nota_credito' => json_encode($respuesta)
-        ];
-        if ($_POST['tipo_documento'] === "BOLETA") {
-            $datos['id_boleta'] = $_POST['id_documento'];
-            $boleta->estado_boleta = 0;
-            $boleta->save();
         } else {
-            $datos['id_factura'] = $_POST['id_documento'];
-            $factura->estado_factura = 0;
-            $factura->save();
+            $notaCreditoSunat = new NotaCreditoSunat($data);
+            $respuesta = $notaCreditoSunat->enviarnotacredito();
+            if (isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && $respuesta['estado'] != 8 && empty($respuesta['Nota'])) {
+                echo json_encode($respuesta);
+                exit(http_response_code(404));
+            }
+            $staff = Usuario::select("staff.*")->where('id_usuario', $datosanulacion->id_usuario)
+                ->join('staff', 'staff.id_staff', 'usuario.id_staff')
+                ->first();
+            $data += [
+                'apellidopaterno_staff' => $staff->apellidopaterno_staff,
+                'apellidomaterno_staff' => $staff->apellidomaterno_staff,
+                'nombre_staff' => $staff->nombre_staff,
+                'efectivo_negocio' => 0,
+                'vuelto_negocio' => 0
+            ];
+            $negociocontroller = new NegocioController();
+            $pathNotaCredito = $negociocontroller->enviarNegocioVenta($data, 'NOTA CREDITO', $empresaVentaOnline);
+            $datos = [
+                'id_folio' => 8,
+                'id_usuario' => $datosanulacion->id_usuario,
+                'numero_nota_credito' => $data['correlativo'],
+                'serie_nota_credito' => $data['serie'],
+                'fechacreacion_nota_credito' => date('Y-m-d H:i:s'),
+                'valorafecto_nota_credito' => $data['mtoOperGravadas'],
+                // 'valorexento_nota_credito',
+                'iva_nota_credito' => $data['mtoIGV'],
+                'total_nota_credito' => $data['valorVenta'],
+                'estado_nota_credito' => $respuesta['Estado'],
+                'zip_nota_credito' => $respuesta['ruta_zip'],
+                'xml_nota_credito' => $respuesta['ruta_xml'],
+                'path_nota_credito' => $pathNotaCredito['path'],
+                'path_ticket_nota_credito' => $pathNotaCredito['path_ticket'],
+                'id_motivo_devolucion' => $datosanulacion->tipo_anulacion,
+                'respuesta_sunat_nota_credito' => json_encode($respuesta)
+            ];
+            if ($_POST['tipo_documento'] === "BOLETA") {
+                $datos['id_boleta'] = $_POST['id_documento'];
+                $boleta->estado_boleta = 0;
+                $boleta->save();
+            } else {
+                $datos['id_factura'] = $_POST['id_documento'];
+                $factura->estado_factura = 0;
+                $factura->save();
+            }
+            NotaCredito::create($datos);
+            $folioAnular->numero_folio += 1;
+            $folioAnular->save();
+
+            //AGREGAMOS LOS STOCK REDUCIDO + HISTORIAL
+            foreach ($detallenegocio as $i => $element) {
+  
+                $stockproductobodega=StockProductoBodega::where('id_producto',$element->id_producto)
+                ->where('id_bodega',$element->id_bodega)->first();
+                $stockproductobodega->total_stock_producto_bodega+=$element->cantidad_negocio_detalle;
+                $stockproductobodega->save();
+
+                $datoshistorial=[
+                    'id_usuario'=>$datosanulacion->id_usuario,
+                    'id_tipo_movimiento'=>1,
+                    'id_producto'=>$element->id_producto,
+                    'id_bodega'=>$element->id_bodega,
+                    'cantidadmovimiento_producto_historial'=>$element->cantidad_negocio_detalle,
+                    'fecha_producto_historial'=>date('Y-m-d H:i:s'),
+                    'comentario_producto_historial'=>"NOTA CREDITO N° $numero_folio",
+                    'id_tipo_documento'=>6,
+                ];
+                ProductoHistorial::create($datoshistorial);
+            }
+          
+            //------------------------------------------
+            $rutaspdf = [
+                "ticket" => RUTA_ARCHIVO . "/archivo/NOTA CREDITO/{$pathNotaCredito['path_ticket']}",
+                "pdf" => RUTA_ARCHIVO . "/archivo/NOTA CREDITO/{$pathNotaCredito['path']}"
+            ];
+
+
+            echo json_encode($rutaspdf);
         }
-        NotaCredito::create($datos);
-        $folioNotaCredito->numero_folio += 1;
-        $folioNotaCredito->save();
-        $rutaspdf = [
-            "ticket" => RUTA_ARCHIVO . "/archivo/NOTA CREDITO/{$pathNotaCredito['path_ticket']}",
-            "pdf" => RUTA_ARCHIVO . "/archivo/NOTA CREDITO/{$pathNotaCredito['path']}"
-        ];
-        echo json_encode($rutaspdf);
     }
 
     public function traerDocumento()
@@ -316,5 +366,58 @@ class AnularDocumentoController
     public function traerMotivoDevolucion()
     {
         echo MotivoDevolucion::where('vigente_motivo_devolucion', 1)->get();
+    }
+
+
+    public function visualizarPdfDocumento()
+    {
+        switch ($_POST['tipo_documento']) {
+            case 'BOLETA':
+                $boleta = Boleta::where('id_boleta', $_POST['id_documento'])->first();
+                $path = $boleta->path_boleta;
+                $path_ticket = $boleta->path_ticket_boleta;
+                $tipo_documento = "BOLETA";
+                break;
+            case 'FACTURA':
+                $factura = Factura::where('id_factura', $_POST['id_documento'])->first();
+                $path = $factura->path_documento;
+                $path_ticket = $factura->path_ticket_factura;
+                $tipo_documento = "FACTURA";
+                break;
+            default:
+                $factura = Factura::where('id_factura', $_POST['id_documento'])->first();
+                $path = $factura->urlpdf_nota_venta;
+                $path_ticket = $factura->urlticket_nota_venta;
+                $tipo_documento = "NOTA_VENTA";
+                break;
+        }
+
+        $ticket = RUTA_ARCHIVO . "/archivo/$tipo_documento/$path";
+        $pdf = RUTA_ARCHIVO . "/archivo/$tipo_documento/$path_ticket";
+
+        $ticketpdf = file_get_contents($ticket);
+        $pdfContent = file_get_contents($pdf);
+
+        // Iniciar el almacenamiento en búfer de salida
+        ob_start();
+
+        // Establece las cabeceras para indicar que se enviará un archivo PDF
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . basename($pdf) . '"');
+        header('Content-Length: ' . strlen($pdfContent));
+
+        // Envía el contenido del PDF al navegador
+        echo $pdfContent;
+
+        // // Fin del almacenamiento en búfer, ahora iniciamos el siguiente
+        // ob_end_clean();
+
+        // // Establecer las cabeceras para el segundo archivo (ticketpdf)
+        // header('Content-Type: application/pdf');
+        // header('Content-Disposition: inline; filename="' . basename($ticket) . '"');
+        // header('Content-Length: ' . strlen($ticketpdf));
+
+        // // Envía el contenido del ticketpdf al navegador
+        // echo $ticketpdf;
     }
 }

@@ -30,12 +30,12 @@ $detalle = array();
 
 $cant_comp = 500;
 
-for ($i=1; $i <= $cant_comp ; $i++) { 
+for ($i = 1; $i <= $cant_comp; $i++) {
     $item_total = rand(100, 900);
-    $item_valor = number_format($item_total/1.18, 2, '.', 1);
+    $item_valor = number_format($item_total / 1.18, 2, '.', 1);
     $item_igv = $item_total - $item_valor;
 
-     $detalle[] = array(
+    $detalle[] = array(
         'item'                  =>  $i,
         'tipodoc'               =>  '03',
         'serie'                 =>  'B001',
@@ -51,7 +51,7 @@ for ($i=1; $i <= $cant_comp ; $i++) {
         'codigo_afectacion'     =>  '1000',
         'nombre_afectacion'     =>  'IGV',
         'tipo_afectacion'       =>  'VAT'
-     );
+    );
 }
 
 //CREAR EL XML DE RESUMEN DE COMPROBANTES/DIARIO
@@ -79,15 +79,15 @@ if ($estado_envio['ticket'] > 0) {
     $estado_envio = $obj_cpe->consultar_ticket($emisor, $cabecera, $estado_envio['ticket']);
 }
 
-echo '</br> PARTE 2: ENVIO CPE-SUNAT';
-echo '</br> Estado de envío: ' . $estado_envio['estado'];
-echo '</br> Mensake: ' . $estado_envio['estado_mensaje'];
-echo '</br> HASH_CPE: ' . $hash_cpe;
-echo '</br> Descripción: ' . $estado_envio['descripcion'];
-echo '</br> Nota: ' . $estado_envio['nota'];
-echo '</br> Código de error: ' . $estado_envio['codigo_error'];
-echo '</br> Mensaje de error: ' . $estado_envio['mensaje_error'];
-echo '</br> HTTP CODE: ' . $estado_envio['http_code'];
-echo '</br> OUTPUT: ' . $estado_envio['output']; 
-
-?>
+$respuesta = [
+    "Estado" => $estado_envio['estado'],
+    "Mensaje" => $estado_envio['estado_mensaje'],
+    "HASH_CPE" => $hash_cpe,
+    "Descripcion" => $estado_envio['descripcion'],
+    "Nota" => $estado_envio['nota'],
+    "Error_codigo" => $estado_envio['codigo_error'],
+    "Mensaje_error" => $estado_envio['mensaje_error'],
+    "HTTP_CODE" => $estado_envio['http_code'],
+    "OUTPUT" => $estado_envio['output']
+];
+return $respuesta;

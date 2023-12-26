@@ -9,26 +9,98 @@ require_once "models/PedidoDetalle.php";
 require_once "models/ProductoImagen.php";
 require_once "models/Categorias.php";
 require_once "models/AtributoProducto.php";
-
-// } else {
+require_once "models/EmpresaVentaOnline.php";
 require_once "models/ConsultaGlobal.php";
-// }
 class ProductoController
 {
 
-    // protected $ConsultaApi;
-    // public function __construct()
-    // {
-    //     $this->ConsultaApi = new ConsultaGlobal();
-
-    // }
+    protected $id_bodega;
+    public function __construct()
+    {
+        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+        $domain = $_SERVER['HTTP_HOST'];
+        $dominio_empresa = $protocol . $domain;
+        if ($protocol == 'http://') {
+            $dominio_empresa .= "/MVC_CRM";
+        }
+        $empresaonline = EmpresaVentaOnline::where('dominio_empresa_venta_online', $dominio_empresa)->first()->toArray();
+        $this->id_bodega = $empresaonline['id_bodega'];
+    }
+    public function traerDatosInicialProducto()
+    {
+        // PRODUCTOS DESCTACADOS-----------------------------------------------------------------------------------
+        $condicion = "SELECT producto.*,
+        (SELECT GROUP_CONCAT(id_producto SEPARATOR '~') from producto_relacionado where idproductopadre_producto_relacionado=producto.id_producto) as producto_relacionado,
+        (SELECT GROUP_CONCAT(categoria.id_categoria,'@',categoria.glosa_categoria SEPARATOR '~')
+        from categoria_producto
+        inner join categoria on categoria.id_categoria = categoria_producto.id_categoria
+        where id_producto=producto.id_producto)
+        as categorias,
+        (SELECT GROUP_CONCAT(producto_imagen.url_producto_imagen SEPARATOR '~')
+        from producto_imagen where id_producto=producto.id_producto
+        ) as producto_imagen,
+        (select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
+        FROM producto_color where id_producto=producto.id_producto
+        ) as color_producto,
+        (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~')
+        from especificaciones_producto where id_producto=producto.id_producto
+        ) as especificacion_producto,
+        (SELECT GROUP_CONCAT(atributo.glosa_atributo,',',atributo_producto.id_atributo_producto SEPARATOR '~')
+        from atributo_producto
+        inner join atributo using (id_atributo)
+        where id_producto=producto.id_producto
+        ) as atributo_producto,
+        total_stock_producto_bodega
+        from stock_producto_bodega
+        inner join producto using (id_producto)
+        where vigente_producto=1 and visibleonline_producto=1 and total_stock_producto_bodega>0
+        limit 10";
+        $consultaApi = new ConsultaGlobal();
+        $productos = $consultaApi->ConsultaGlobal($condicion);
+        $data = [];
+        foreach ($productos as $value) {
+            $fecha_actual = date("Y-m-d");
+            $fecha_producto = date('Y-m-d', strtotime($value->fechacreacion_producto . "+ 5 months"));
+            if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
+                $arreglos = $this->ConstruirProducto($value);
+                array_push($data, $arreglos[0]);
+            }
+        }
+        //SLIDER----------------------------------------------------------------------------
+        $query = "SELECT
+        UPPER(nombre_slider) as title,
+        concat('" . RUTA_ARCHIVO . "/archivo/imagen_slider/',pathescritorio_slider)  as image_classic,
+        concat('" . RUTA_ARCHIVO . "/archivo/imagen_slider/',pathescritorio_slider)  as image_full,
+        concat('" . RUTA_ARCHIVO . "/archivo/imagen_slider/',pathmobile_slider)  as image_mobile,
+        texto_slider,urlamigable_categoria
+        FROM slider
+        inner join categoria using (id_categoria)
+        where vigente_slider=1
+        ";
+        $consultaGlobalslider = (new ConsultaGlobal())->ConsultaGlobal($query);
+        //-----------------------------------------------------------------------------------
+        //PROMOCIONES-------------------------------------------------------------------------
+        $query_promocion = "SELECT * FROM promocion
+        where fecha_promocion > CURDATE()";
+        $promociones = (new ConsultaGlobal())->ConsultaGlobal($query_promocion);
+        //-------------------------------------------------------------------------------------
+        $arreglo = [
+            "producto" => $data,
+            'slider' => $consultaGlobalslider,
+            "promociones" => $promociones
+        ];
+        echo json_encode($arreglo);
+    }
     public function ProductosVendidoOferta()
     {
         $arreglos = [];
         //PRODUCTOS MAS VENDIDOS
+
         $productos = PedidoDetalle::join("producto", "producto.id_producto", "pedido_detalle.id_producto")
-            ->select("producto.*")
-            ->groupby('pedido_detalle.id_producto')
+            ->join('stock_producto_bodega', 'stock_producto_bodega.id_producto', 'producto.id_producto')
+            ->select("producto.*", 'stock_producto_bodega.total_stock_producto_bodega')
+            ->where('stock_producto_bodega.id_bodega', $this->id_bodega)
+            ->groupBy('pedido_detalle.id_producto')
             ->orderby('pedido_detalle.id_producto', 'desc')
             ->take($_GET['limit'])
             ->get()
@@ -40,9 +112,10 @@ class ProductoController
             foreach ($productos as $key => $value) {
                 array_push($id_producto, $value['id_producto']);
             }
-            $productos_sobrantes = Producto::select("*")
+            $productos_sobrantes = Producto::join('stock_producto_bodega', 'stock_producto_bodega.id_producto', 'producto.id_producto')
+                ->where('stock_producto_bodega.id_bodega', $this->id_bodega)
                 ->wherenotin("id_producto", $id_producto)
-                ->where('stock_producto', '>', 0)
+                ->where('stock_producto_bodega.total_stock_producto_bodega', '>', 0)
                 ->take($cantidad_sobra)
                 ->get()
                 ->toarray();
@@ -60,8 +133,6 @@ class ProductoController
             //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$value";
             //     array_push($imagen_base_64, $imagens);
             // }
-
-
             $producto_color = ProductoColor::where("id_producto", $element['id_producto'])->get()->toArray();
             $categorias = CategoriaProducto::join("categoria", "categoria.id_categoria", "categoria_producto.id_categoria")
                 ->where("id_producto", $element['id_producto'])->get()->toArray();
@@ -118,7 +189,7 @@ class ProductoController
                 "sku" => $element['codigo_producto'],
                 "slug" => $element['urlamigable_producto'],
                 "price" => $element['precioventa_producto'],
-                "stock" => $element['stock_producto'],
+                "stock" => $element['total_stock_producto_bodega'],
                 "descripcion" => $element['detallelargo_producto'],
                 "compareAtPrice" => null,
                 "images" => $imagen_base_64,
@@ -303,14 +374,16 @@ class ProductoController
             from atributo_producto
             inner join atributo using (id_atributo)
             where id_producto=producto.id_producto
-            ) as atributo_producto
-            from producto
-            where vigente_producto=1 and visibleonline_producto=1 and stock_producto>0
-            limit 100";
+            ) as atributo_producto,
+            total_stock_producto_bodega
+            from stock_producto_bodega
+            inner join producto using (id_producto)
+            where vigente_producto=1 and visibleonline_producto=1 and total_stock_producto_bodega>0
+            limit 10";
         $ConsultaApi = new ConsultaGlobal();
         $Productos = $ConsultaApi->ConsultaGlobal($condicion);
         $data = [];
-        foreach ($Productos as $key => $value) {
+        foreach ($Productos as $value) {
             $fecha_actual = date("Y-m-d");
             $fecha_producto = date('Y-m-d', strtotime($value->fechacreacion_producto . "+ 5 months"));
             if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
@@ -323,24 +396,23 @@ class ProductoController
 
     public function ListarCategoriaProductoApi()
     {
-        $ConsultaApi = new ConsultaGlobal();
-        $ConsultaApi->LiberarGroupConcat();
+        $consultaApi = new ConsultaGlobal();
+        $consultaApi->LiberarGroupConcat();
         //TRAEMOS TODAS LA CATEGORIAS SI ES PADRE EN CASO DE QUE NO TENGA SERA LAS ULTIMAS
         //CATEGORIAS HIJAS (EMBASE A ESTAS CATEGORIAS SE TRAE TODOS LOS PRODUCTOS RELACIONADOS)
         $recorrer = true;
         $categoria_select = Categorias::where('urlamigable_categoria', $_GET['urlamigable_categoria'])->first();
 
         $id_categoria = $categoria_select->id_categoria;
+  
         $hijos = [];
-
         while ($recorrer) {
             $categorias = Categorias::where('id_categoria_padre', $id_categoria)->get();
-
             if (count($categorias) > 1) {
-                foreach ($categorias as $key => $elements) {
+                foreach ($categorias as $elements) {
                     $categorias_sub_hijo = Categorias::where('id_categoria_padre', $elements->id_categoria)->get();
                     if (count($categorias_sub_hijo) > 0) {
-                        foreach ($categorias_sub_hijo as $key => $elementos) {
+                        foreach ($categorias_sub_hijo as $elementos) {
                             array_push($hijos, $elementos->id_categoria);
                         }
                     } else {
@@ -348,7 +420,7 @@ class ProductoController
                     }
                 }
                 $recorrer = false;
-            } else if (count($categorias) == 1) {
+            } elseif (count($categorias) == 1) {
                 $id_categoria = $categorias[0]->id_categoria;
             } else {
                 $categoria = Categorias::where('id_categoria', $id_categoria)->first();
@@ -359,14 +431,16 @@ class ProductoController
 
         $hijos_ = array_unique($hijos);
         $hijos = implode(',', $hijos_);
-
         // ------------------------------------------
-        $condicion_filter = "where categoria_producto.id_categoria in ($hijos)";
+        $condicion_filter = "where categoria_producto.id_categoria in ($hijos)
+        and vigente_producto=1 and visibleonline_producto=1 and total_stock_producto_bodega>0
+        and id_bodega=$this->id_bodega GROUP BY producto.id_producto ";
 
-        $consulta_filter = $ConsultaApi->EstructuraFilterApi($condicion_filter);
-        $Producto = $ConsultaApi->ListarCategoriaProductoApi($condicion_filter);
+        $consulta_filter = $consultaApi->EstructuraFilterApi($condicion_filter);
+      
+        $producto = $consultaApi->ListarCategoriaProductoApi($condicion_filter);
         $arreglo_check = [];
-        foreach ($hijos_ as $key => $value) {
+        foreach ($hijos_ as $value) {
             $categoria_producto = CategoriaProducto::join('categoria', 'categoria.id_categoria', 'categoria_producto.id_categoria')
                 ->where('categoria_producto.id_categoria', $value)->get();
             if (count($categoria_producto) > 0) {
@@ -378,7 +452,14 @@ class ProductoController
                 array_push($arreglo_check, $dato);
             }
         }
-
+        $precioinicial=0;
+        if ($consulta_filter) {
+            $precioinicial=$consulta_filter->precio_mayor;
+        }
+        $precio_mayor=0;
+        if ($consulta_filter) {
+            $precio_mayor=$consulta_filter->precio_mayor + 1;
+        }
         $estructura_filtar = [
             [
                 "type" => "range",
@@ -386,10 +467,10 @@ class ProductoController
                 "name" => "Price",
                 "value" => [
                     0,
-                    $consulta_filter->precio_mayor + 1,
+                    $precioinicial,
                 ],
                 "min" =>  0,
-                "max" => $consulta_filter->precio_mayor + 1,
+                "max" => $precio_mayor,
             ],
             [
                 "type" => "check",
@@ -401,7 +482,7 @@ class ProductoController
 
         ];
         $datos = [];
-        foreach ($Producto as $key => $element) {
+        foreach ($producto as $key => $element) {
             $arreglo = $this->ConstruirProducto($element);
             array_push($datos, $arreglo[0]);
         }
@@ -416,7 +497,7 @@ class ProductoController
     {
         $ConsultaApi = new ConsultaGlobal();
         $ConsultaApi->LiberarGroupConcat();
-        $condicion = "where urlamigable_producto='{$_POST['urlamigable_producto']}' ";
+        $condicion = " where urlamigable_producto='{$_POST['urlamigable_producto']}' and id_bodega={$this->id_bodega} ";
         $Producto = $ConsultaApi->ListarProductoApi($condicion);
         $arreglos = $this->ConstruirProducto($Producto);
         echo json_encode($arreglos[0]);
@@ -424,13 +505,14 @@ class ProductoController
 
     public function ConstruirProducto($element)
     {
+  
         $producto_relacionado_arreglo = [];
         //TRAEMOS PRIMEROS LOS DATOS DE LOS PRODUCTOS RELACIOANDO CON LA MISTRA ESTRUCTURA DEL TRAER PRODUCTO POR US URL
         if ($element->producto_relacionado) {
             $producto_relacionado = $element->producto_relacionado;
             $producto_relacionado = explode('~', $producto_relacionado);
-            foreach ($producto_relacionado as $key => $id_producto) {
-                $consulta = " WHERE id_producto= {$id_producto}  ";
+            foreach ($producto_relacionado as  $id_producto) {
+                $consulta = " WHERE id_producto={$id_producto}  and id_bodega={$this->id_bodega} ";
                 $ConsultRelacionado = (new ConsultaGlobal())->ListarProductoApi($consulta);
                 $imagenes_relacion_relacion = [];
                 $categorias_arreglo_relacion = [];
@@ -442,7 +524,7 @@ class ProductoController
                 $atributo_producto_relacion = [];
                 if ($ConsultRelacionado->atributo_producto) {
                     $atributo_pro = explode("~", $ConsultRelacionado->atributo_producto);
-                    foreach ($atributo_pro as $key => $value) {
+                    foreach ($atributo_pro as  $value) {
                         $separador = explode(",", $value);
                         $elementos = [
                             "id_atributo_producto" => $separador[1],
@@ -453,14 +535,6 @@ class ProductoController
                 }
                 if ($ConsultRelacionado->producto_imagen) {
                     $imagenes_relacion_relacion = explode("~", $ConsultRelacionado->producto_imagen);
-                    // foreach ($imagen as $key => $value) {
-
-                    //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                    //     $domain = $_SERVER['HTTP_HOST'];
-                    //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
-
-                    //     array_push($imagenes_relacion_relacion, $imagens);
-                    // }
                 } else {
                     $imagenes_relacion_relacion = [
                         "assets/images/products/product-1-1.jpg",
@@ -532,7 +606,7 @@ class ProductoController
                     "sku" => $ConsultRelacionado->codigo_producto,
                     "slug" => $ConsultRelacionado->urlamigable_producto,
                     "price" => $ConsultRelacionado->precioventa_producto,
-                    "stock" => $ConsultRelacionado->stock_producto,
+                    "stock" => $ConsultRelacionado->total_stock_producto_bodega,
                     "descripcion" => $ConsultRelacionado->detalle_producto,
                     "detallelargo_producto" => $ConsultRelacionado->detallelargo_producto,
                     "compareAtPrice" => null,
@@ -743,7 +817,7 @@ class ProductoController
             "sku" => $element->codigo_producto,
             "slug" => $element->urlamigable_producto,
             "price" => $element->precioventa_producto,
-            "stock" => $element->stock_producto,
+            "stock" => $element->total_stock_producto_bodega,
             "descripcion" => $element->detalle_producto,
             "detallelargo_producto" => $element->detallelargo_producto,
             "compareAtPrice" => null,
@@ -862,18 +936,10 @@ class ProductoController
                 ->orWhere('producto.codigo_barra_producto', 'LIKE', "%$buscar%");
         })->take(50)->get();
         $array = [];
-        foreach ($productos as $key => $value) {
-
+        foreach ($productos as $value) {
             $producto_imagen = ProductoImagen::where('portada_producto_imagen', 1)->where('id_producto', $value->id_producto)->first();
             if (isset($producto_imagen)) {
-                $path_producto_imagen = __DIR__ . "/../../archivo/imagen_producto/{$producto_imagen->path_producto_imagen}";
-                if (is_file($path_producto_imagen)) {
-                    $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                    $domain = $_SERVER['HTTP_HOST'];
-                    $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$producto_imagen->path_producto_imagen";
-                } else {
-                    $imagens = 'assets/images/products/product-1.jpg';
-                }
+                $imagens = $producto_imagen->url_producto_imagen;
             } else {
                 $imagens = 'assets/images/products/product-1.jpg';
             }
@@ -1106,7 +1172,7 @@ class ProductoController
                 "parents" => null,
                 "children" => []
             ];
-            array_push($objeto,$datos);
+            array_push($objeto, $datos);
         }
         echo json_encode($objeto);
     }

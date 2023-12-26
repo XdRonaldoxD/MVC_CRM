@@ -19,5 +19,6 @@ class Slider extends Model
         'urlimagen_slider',
         'orden_slider',
         'vigente_slider',
+        'texto_slider'
     ];
 }

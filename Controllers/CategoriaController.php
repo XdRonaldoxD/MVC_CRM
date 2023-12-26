@@ -46,7 +46,7 @@ class CategoriaController
                 $cat_padre = "";
             } else {
                 $atributo_padre = Categorias::where('id_categoria', $item['id_categoria_padre'])->first();
-                $cat_padre =   $atributo_padre['glosa_categoria'];
+                $cat_padre =   $atributo_padre['glosa_categoria'] ?? '' ;
             }
             $element = [
                 'id_categoria' => $item['id_categoria'],
@@ -100,7 +100,7 @@ class CategoriaController
                 $cat_padre = "";
             } else {
                 $atributo_padre = Categorias::where('id_categoria', $item['id_categoria_padre'])->first();
-                $cat_padre =   $atributo_padre['glosa_categoria'];
+                $cat_padre =   $atributo_padre['glosa_categoria'] ?? '';
             }
             $element = [
                 'id_categoria' => $item['id_categoria'],
@@ -158,24 +158,26 @@ class CategoriaController
 
     public function GestionarCategoria()
     {
+        $formulario=json_decode($_POST['formulario']);
         $urlAmigable = "";
-        $urlAmigable .= str_replace(" ", "-",  $_POST['glosa_categoria']);
+        $urlAmigable .= str_replace(" ", "-",  $formulario->glosa_categoria);
         $urlAmigable = str_replace("/", "-", $urlAmigable);
         $urlAmigable = str_replace("\\", "-", $urlAmigable);
         $urlAmigable = str_replace("+", "-", $urlAmigable);
         $datos = [
-            'id_tipo_inventario' => $_POST['id_tipo_inventario'],
-            'glosa_categoria' => $_POST['glosa_categoria'],
-            'descripcion_categoria' => $_POST['descripcion_categoria'],
-            'vigente_categoria' => 1,
-            'visibleonline_categoria' => ($_POST['visibleOnline'] == "true") ? 1 : 0,
-            'urlamigable_categoria' => $urlAmigable
+            'id_tipo_inventario' =>$formulario->id_tipo_inventario,
+            'glosa_categoria' =>$formulario->glosa_categoria,
+            'descripcion_categoria' =>$formulario->descripcion_categoria ?? null,
+            'visibleonline_categoria' => ($formulario->visibleOnline) ? 1 : 0,
+            'urlamigable_categoria' => $urlAmigable.'-'.$formulario->codigo_categoria,
+            'codigo_categoria' => $formulario->codigo_categoria,
         ];
 
         if (!empty($_FILES['imagen'])) {
             $imagen = $_FILES['imagen']['name'];
             $ext = pathinfo($imagen, PATHINFO_EXTENSION);
             $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
+            $nombre_imagen = str_replace(' ', '', $nombre_imagen);
             // $temp = $_FILES['imagen']['tmp_name'];
             //crear el directorio
             if (!file_exists(__DIR__ . "/../archivo/imagen_categoria")) {
@@ -183,11 +185,9 @@ class CategoriaController
             }
 
             if ($_POST['accion'] !== "CREAR") {
-                $Categorias = Categorias::where('id_categoria', $_POST['id_categoria'])->first();
-                if ($Categorias->pathimagen_categoria) {
-                    if (file_exists(__DIR__ . "/../archivo/imagen_categoria/$Categorias->pathimagen_categoria")) {
+                $Categorias = Categorias::where('id_categoria',$formulario->id_categoria)->first();
+                if ($Categorias->pathimagen_categoria && file_exists(__DIR__ . "/../archivo/imagen_categoria/$Categorias->pathimagen_categoria")) {
                         unlink(__DIR__ . "/../archivo/imagen_categoria/$Categorias->pathimagen_categoria");
-                    }
                 }
             }
 
@@ -195,7 +195,7 @@ class CategoriaController
             $fechacreacion = date('Y-m-d H:i:s');
             $separaFecha = explode(" ", $fechacreacion);
             $Fecha = explode("-", $separaFecha[0]);
-            $path =  $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . $nombre_imagen;
+            $path =  $Fecha[0] . $Fecha[1] . $Fecha[2] . time() ;
             // move_uploaded_file($temp, __DIR__ . "/../archivo/imagen_categoria/$path.'.'.$ext"); //
 
             //SEGUNDA LIBRERIA
@@ -227,12 +227,13 @@ class CategoriaController
             }
             $datos += ["pathimagen_categoria" => $path.'.'.$ext];
         }
-
-
         $categoria_padre = json_decode($_POST['categoria_padre']);
         if ($_POST['accion'] == "CREAR") {
+            $datos+=[
+                'vigente_categoria' => 1
+            ];
             if (count($categoria_padre) > 0) {
-                foreach ($categoria_padre as $key => $elementos) {
+                foreach ($categoria_padre as $elementos) {
                     $datos += ['id_categoria_padre' => $elementos];
                     Categorias::create($datos);
                 }
@@ -243,19 +244,13 @@ class CategoriaController
             $respuesta = "Creado";
         } else {
             if (count($categoria_padre) > 0) {
-                foreach ($categoria_padre as $key => $elementos) {
+                foreach ($categoria_padre as $elementos) {
                     $datos += ['id_categoria_padre' => $elementos];
-                    Categorias::where('id_categoria', $_POST['id_categoria'])->update($datos);
                 }
-            } else {
-                $datos += ['id_categoria_padre' => 0];
-                Categorias::where('id_categoria', $_POST['id_categoria'])->update($datos);
             }
+            Categorias::where('id_categoria',$formulario->id_categoria)->update($datos);
             $respuesta = "Actualizado";
         }
-
-
-
         echo json_encode($respuesta);
     }
 

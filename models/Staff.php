@@ -8,6 +8,8 @@ class Staff extends Model
     protected $fillable = [
         'id_staff',
         'id_tipo_agenda',
+        'id_sucursal',
+        'id_bodega',
         'rut_staff',
         'dv_staff',
         'nombre_staff',

@@ -3,6 +3,13 @@ require_once "models/Producto.php";
 require_once "models/ProductoHistorial.php";
 require_once "models/ConsultaGlobal.php";
 require_once "models/TipoAfectacion.php";
+require_once "models/ProductoImagen.php";
+require_once "models/TipoInventario.php";
+require_once "models/Bodega.php";
+require_once "models/Unidad.php";
+require_once "models/TipoConcentracion.php";
+require_once "models/StockProductoBodega.php";
+
 
 class ProductoController
 {
@@ -17,36 +24,48 @@ class ProductoController
             $longitud = $DatosPost->length;
         }
         $buscar = $DatosPost->search->value;
-        $recordsFilteredTotal = Producto::where("producto.vigente_producto", 1);
+        // Definir la consulta base
+        $query = "SELECT
+            *,
+            (SELECT GROUP_CONCAT(glosa_bodega,'@',total_stock_producto_bodega  SEPARATOR '|')
+            FROM stock_producto_bodega
+            INNER JOIN bodega using (id_bodega)
+            where id_producto=producto.id_producto
+            ) as total_stock_producto_bodega
+         FROM producto WHERE vigente_producto = 1";
+
+        // Aplicar filtros
         if (isset($DatosPost->categoria_padres)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->join('categoria_producto', 'categoria_producto.id_categoria_producto', "producto.id_producto")
-                ->whereIn("categoria_producto.id_categoria", $DatosPost->categoria_padres);
+            $query .= " JOIN categoria_producto ON categoria_producto.id_categoria_producto = producto.id_producto";
+            $query .= " WHERE categoria_producto.id_categoria IN (" . implode(",", $DatosPost->categoria_padres) . ")";
         }
+
         if (isset($DatosPost->glosa_producto)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->where('producto.glosa_producto', 'LIKE', "%$DatosPost->glosa_producto%");
+            $query .= " AND producto.glosa_producto LIKE '%" . $DatosPost->glosa_producto . "%'";
         }
+
         if (isset($DatosPost->sku_producto)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->where('producto.codigo_producto', 'LIKE', "%$DatosPost->sku_producto%");
+            $query .= " AND producto.codigo_producto LIKE '%" . $DatosPost->sku_producto . "%'";
         }
+
         if (isset($DatosPost->id_tipo_inventario)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->where('producto.id_tipo_inventario', $DatosPost->id_tipo_inventario);
+            $query .= " AND producto.id_tipo_inventario = " . $DatosPost->id_tipo_inventario;
         }
+
         if (!empty($buscar)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->Where(function ($query) use ($buscar) {
-                $query->where('producto.glosa_producto', 'LIKE', "%$buscar%")
-                    ->orWhere('producto.codigo_producto', 'LIKE', "%$buscar%")
-                    ->orWhere('producto.codigo_barra_producto', 'LIKE', "%$buscar%")
-                    ->orWhere('producto.precioventa_producto', 'LIKE', "%$buscar%");
-            });
+            $query .= " AND (producto.glosa_producto LIKE '%$buscar%' OR ";
+            $query .= "producto.codigo_producto LIKE '%$buscar%' OR ";
+            $query .= "producto.codigo_barra_producto LIKE '%$buscar%' OR ";
+            $query .= "producto.precioventa_producto LIKE '%$buscar%')";
         }
-        $listaProducto = $recordsFilteredTotal;
-        $recordsFilteredTotales = $recordsFilteredTotal->get()->count();
-        $listaProducto = $listaProducto->orderBy('producto.id_producto', 'desc')->skip($DatosPost->start)->take($longitud)->get();
+        $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
+        $query .= " ORDER BY producto.id_producto DESC  LIMIT {$longitud} OFFSET $DatosPost->start ";
+        $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $DatosPost->draw,
-            "recordsTotal" => $recordsFilteredTotales,
-            "recordsFiltered" => $recordsFilteredTotales,
-            "data" => $listaProducto
+            "recordsTotal" => count($consultaGlobalLimit),
+            "recordsFiltered" => count($consultaGlobalLimit),
+            "data" => $consultaGlobal
         );
         echo json_encode($datos);
     }
@@ -111,7 +130,8 @@ class ProductoController
         $buscar = $DatosPost->search->value;
 
         $recordsFilteredTotal = ProductoHistorial::join('usuario', 'usuario.id_usuario', 'producto_historial.id_usuario')
-            ->leftjoin("staff", 'staff.id_staff', 'usuario.id_staff')
+            ->join('bodega', 'bodega.id_bodega', 'producto_historial.id_bodega')
+            ->leftjoin("staff", 'staff.id_staff', 'usuario.id_staff', 'bodega.glosa_bodega')
             ->leftjoin("tipo_movimiento", 'tipo_movimiento.id_tipo_movimiento', 'producto_historial.id_tipo_movimiento')
             ->leftjoin("tipo_documento", 'tipo_documento.id_tipo_documento', 'producto_historial.id_tipo_documento')
             ->where("producto_historial.id_producto", $DatosPost->id_producto);
@@ -149,17 +169,21 @@ class ProductoController
             "preciocompra_producto_historial" => $GestionarStock->precio_compra,
             "cantidadmovimiento_producto_historial" => $GestionarStock->cantidad,
             "id_producto" => $GestionarStock->id_producto,
+            "id_bodega" => $GestionarStock->id_bodega,
             "fecha_producto_historial" => date('Y-m-d H:i:s')
         );
         ProductoHistorial::create($datos);
-        $producto=Producto::where('id_producto',$GestionarStock->id_producto)->first();
+        $producto = StockProductoBodega::where('id_producto', $GestionarStock->id_producto)->where('id_bodega', $GestionarStock->id_bodega)->first();
         switch ($GestionarStock->accion) {
             case '1':
-                $producto->stock_producto+=$GestionarStock->cantidad;
+                $producto->total_stock_producto_bodega += $GestionarStock->cantidad;
                 break;
             case '2':
-                $producto->stock_producto-=$GestionarStock->cantidad;
+                $producto->total_stock_producto_bodega -= $GestionarStock->cantidad;
                 break;
+        }
+        if ($GestionarStock->precio_compra) {
+            $producto->ultimopreciocompra_stock_producto_bodega = $GestionarStock->precio_compra;
         }
         $producto->save();
         echo json_encode('ok');
@@ -181,8 +205,39 @@ class ProductoController
 
     public function TraerDatosProductos()
     {
-
         $consulta = " WHERE id_producto= {$_GET['id_producto']}";
+        $datos = $this->ObtenerDatosProducto($consulta);
+        $unidad = Unidad::where('vigente_unidad', 1)->get();
+        $tipo_concentracion = TipoConcentracion::where('vigente_tipo_concentracion', 1)->get();
+        $respuesta = [
+            "producto" => $datos,
+            'unidad' => $unidad,
+            "tipo_concentracion" => $tipo_concentracion
+        ];
+        echo json_encode($respuesta);
+    }
+    public function TraerProductos()
+    {
+        $tipo_inventario = TipoInventario::where("vigente_tipo_inventario", 1)->get();
+        $tipo_afectacion = TipoAfectacion::where('vigente_afectacion', 1)->get();
+        $query_bodega = 'SELECT id_bodega,glosa_bodega, 0 AS total_stock_producto_bodega, 0 AS ultimopreciocompra_stock_producto_bodega
+        FROM bodega
+        WHERE vigente_bodega = 1';
+        $bodegas = (new ConsultaGlobal())->ConsultaGlobal($query_bodega);
+        $unidad = Unidad::where('vigente_unidad', 1)->get();
+        $tipo_concentracion = TipoConcentracion::where('vigente_tipo_concentracion', 1)->get();
+        $respuesta = [
+            'tipo_inventario' => $tipo_inventario,
+            'tipo_afectacion' => $tipo_afectacion,
+            'bodegas' => $bodegas,
+            'unidad' => $unidad,
+            "tipo_concentracion" => $tipo_concentracion
+        ];
+        echo json_encode($respuesta);
+    }
+
+    public function ObtenerDatosProducto($consulta)
+    {
         $ConsultaGlobal = (new ConsultaGlobal())->TraerDatosProductos($consulta);
         //SACAMOS LOS PRODUCTO RELACIONADOS
         $arreglo_relacionado = [];
@@ -191,8 +246,12 @@ class ProductoController
             $producto_relacionado = explode('~', $producto_relacionado);
             if (count($producto_relacionado) > 0) {
                 foreach ($producto_relacionado as $key => $element) {
-                    $consulta = " WHERE id_producto= {$element}  ";
-                    $ConsultRelacionado = (new ConsultaGlobal())->ConsultaProductosRelacionado($consulta);
+                    $producto = explode('|', $element);
+                    $id_producto = $producto[0];
+                    $glosa_producto = $producto[1];
+                    $codigo_producto = $producto[2];
+                    $id_producto_relacionado = $producto[3];
+                    $consultRelacionado = ProductoImagen::where('id_producto', $id_producto)->where('portada_producto_imagen', 1)->value('url_producto_imagen');
                     // $path_producto_imagen = __DIR__ . "/../archivo/imagen_producto/{$ConsultRelacionado->path_producto_imagen}";
                     // if (is_file($path_producto_imagen)) {
                     //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
@@ -201,15 +260,12 @@ class ProductoController
                     // } else {
                     //     $imagens = '';
                     // }
-                    $imagens = '';
-                    if ($ConsultRelacionado->url_producto_imagen) {
-                        $imagens = $ConsultRelacionado->url_producto_imagen;
-                    }
-
                     $element = [
-                        'path_producto_imagen' => $imagens,
-                        'glosa_producto' => $ConsultRelacionado->glosa_producto,
-                        'id_producto' => $ConsultRelacionado->id_producto,
+                        'id_producto_relacionado' => $id_producto_relacionado,
+                        'codigo_producto' => $codigo_producto,
+                        'path_producto_imagen' => $consultRelacionado,
+                        'glosa_producto' => $glosa_producto,
+                        'id_producto' => $id_producto,
                     ];
                     array_push($arreglo_relacionado, $element);
                 }
@@ -296,7 +352,6 @@ class ProductoController
 
         //SACAMOS ESPECIFICACIOENS DE LOS PRODUCTOS
         $arreglo_categoria_producto = [];
-
         if ($ConsultaGlobal->categoria_producto) {
             $categoria_producto = $ConsultaGlobal->categoria_producto;
             $categoria_producto = explode('~', $categoria_producto);
@@ -338,7 +393,29 @@ class ProductoController
             }
         }
         //
-        $tipoAfectacion=TipoAfectacion::where('vigente_afectacion',1)->get();
+
+        //TRAMOS LAS STOCK BODEGA
+        $stock_producto_bodega = [];
+        if ($ConsultaGlobal->stock_producto_bodega) {
+            $producto_bodega = $ConsultaGlobal->stock_producto_bodega;
+            $producto_bodega = explode('~', $producto_bodega);
+            if (count($producto_bodega) > 0) {
+                foreach ($producto_bodega as $key => $element) {
+                    $elementos = explode('|', $element);
+                    $glosa_bodega = $elementos[1];
+                    $total_stock_producto_bodega = $elementos[2];
+                    $ultimopreciocompra_stock_producto_bodega = $elementos[3];
+                    $datos = [
+                        'glosa_bodega' => $glosa_bodega,
+                        'total_stock_producto_bodega' => $total_stock_producto_bodega,
+                        'ultimopreciocompra_stock_producto_bodega' => $ultimopreciocompra_stock_producto_bodega
+                    ];
+                    array_push($stock_producto_bodega, $datos);
+                }
+            }
+        }
+        //
+        $tipoAfectacion = TipoAfectacion::where('vigente_afectacion', 1)->get();
         $fillable = [
             'id_producto' => $ConsultaGlobal->id_producto,
             'id_tipo_producto' => $ConsultaGlobal->id_tipo_producto,
@@ -346,6 +423,7 @@ class ProductoController
             'id_tipo_inventario' => $ConsultaGlobal->id_tipo_inventario,
             'id_unidad' => $ConsultaGlobal->id_unidad,
             'id_marca' => $ConsultaGlobal->id_marca,
+            'glosa_marca' => $ConsultaGlobal->glosa_marca,
             "id_tipo_afectacion" => $ConsultaGlobal->id_tipo_afectacion,
             'codigo_producto' => $ConsultaGlobal->codigo_producto,
             'glosa_producto' => $ConsultaGlobal->glosa_producto,
@@ -372,10 +450,10 @@ class ProductoController
             "arreglo_categoria_producto" => $arreglo_categoria_producto,
             "arreglo_atributo_producto" => $arreglo_atributo_producto,
             "producto_relacionado" => $ConsultaGlobal->producto_relacionado,
-            "tipoAfectacion"=>$tipoAfectacion
+            "tipoAfectacion" => $tipoAfectacion,
+            "stock_producto_bodega" => $stock_producto_bodega
         ];
-
-        echo json_encode($fillable);
+        return $fillable;
     }
 
     public function VerificarSku()
@@ -394,7 +472,60 @@ class ProductoController
         }
     }
 
-    public function traerAfectacion(){
-        echo TipoAfectacion::where('vigente_afectacion',1)->get();
+    public function traerAfectacion()
+    {
+        echo TipoAfectacion::where('vigente_afectacion', 1)->get();
+    }
+
+    public function traerBodegaStock()
+    {
+        $stockbodega = StockProductoBodega::join('bodega', 'bodega.id_bodega', 'stock_producto_bodega.id_bodega')
+            ->where('id_producto', $_POST['id_producto'])->get();
+        $imageproducto = ProductoImagen::where('id_producto', $_POST['id_producto'])->where('portada_producto_imagen', 1)
+            ->select('url_producto_imagen')
+            ->first();
+        $respuesta = [
+            "stock_producto_bodega" => $stockbodega,
+            'producto_imagen' => $imageproducto
+        ];
+        echo json_encode($respuesta);
+    }
+
+    public function filtrarProductoRelacionado()
+    {
+        $id_producto = json_decode($_GET['id_producto']);
+        $searchTerm = $_GET['search']; // Asegúrate de validar y limpiar esta entrada de usuario.
+        $marcas = Producto::Where(function ($query) use ($searchTerm) {
+            $query->where('glosa_producto', 'LIKE', "%$searchTerm%")
+                ->orWhere('codigo_producto', 'LIKE', "%$searchTerm%")
+                ->orWhere('codigo_barra_producto', 'LIKE', "%$searchTerm%");
+        })
+            ->where('vigente_producto', 1)
+            ->whereNotIn('id_producto', $id_producto)
+            ->get()
+            ->sortBy(function ($item) {
+                return [
+                    substr($item->glosa_producto, 0, 1),
+                    substr($item->glosa_producto, -1)
+                ];
+            })
+            ->values()
+            ->toArray();
+        echo json_encode($marcas);
+    }
+
+    public function traerProductoIdRelacionado()
+    {
+        $consulta = "SELECT null as id_producto_relacionado,id_producto,glosa_producto,codigo_producto,
+         (
+            select url_producto_imagen from producto_imagen
+            where id_producto=producto.id_producto and
+            portada_producto_imagen=1
+            limit 1
+         ) as path_producto_imagen
+         FROM producto
+         where id_producto={$_GET['id_producto']}";
+        $producto = (new ConsultaGlobal())->ConsultaSingular($consulta);
+        echo json_encode($producto);
     }
 }

@@ -13,6 +13,7 @@ class NegocioDetalle extends Model
         'id_descuento',
         'id_lista_precio',
         'id_tipo_afectacion',
+        'id_bodega',
         'id_presupuesto_asignado',
         'valorneto_negocio_detalle',
         'descuento_negocio_detalle',

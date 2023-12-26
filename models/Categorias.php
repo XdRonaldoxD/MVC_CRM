@@ -17,6 +17,7 @@ class Categorias extends Model
       'vigente_categoria',
       'pathimagen_categoria',
       'visibleonline_categoria',
-      'urlamigable_categoria'
+      'urlamigable_categoria',
+      'codigo_categoria'
    ];
 }

@@ -164,11 +164,7 @@
 </head>
 
 <body>
-    <div style="text-align: center;margin: 0px;padding: 0px;">
-        <img style="width:120px; height:auto; margin:0px 0px 0px 70px" src="data:image/png;base64,<?= $imagen ?>" alt="" />
-    </div>
-
-    <div style="text-align: center;margin-top: 2.3rem">
+    <div style="text-align: center">
         <strong style="font-size: 15px;margin: 0px;"><?= $informacion_empresa['nombre_empresa'] ?></strong>
     </div>
     <div style="text-align: center;">
@@ -273,7 +269,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" style="font-size: 9px;padding:0px"> <strong>TOTAL</strong> S/<?= round($data['mtoImpVenta'], 2) ?> </td>
+                <td colspan="4" style="font-size: 9px;padding:0px"> <strong>TOTAL</strong> S/<?= round($total_afecto, 2) ?> </td>
             </tr>
         </tfoot>
 
@@ -314,7 +310,7 @@
     <table class="w-100 fs-small">
         <tr>
             <td class="w-50">
-                <p style="font-size: 9px;padding:0px">Fecha y Hora de Venta:</p>
+                <p style="font-size: 9px;padding:0px">FECHA Y HORA DE VENTA:</p>
 
             </td>
             <td class="w-50">
@@ -326,7 +322,7 @@
     <table class="w-100 fs-small">
         <tr>
             <td class="w-100">
-                <p style="font-size: 9px;padding:0px">Total Num. Items:<?= count($data['details']) ?></p>
+                <p style="font-size: 9px;padding:0px">TOTAL NUM. ITEMS:<?= count($data['details']) ?></p>
             </td>
         </tr>
     </table>
@@ -361,7 +357,7 @@
         </tr>
     </table>
     <div style="text-align: center;">
-        <b style="font-family: 'Constantia', serif;">!Gracias por su Compra!</b>
+        <b style="font-family: 'Constantia', serif;">!GRACIAS POR SU COMPRA!</b>
     </div>
     <div style="width: 100%">
         <img style="margin-left: 80px;" src="data:image/png;base64,<?= $codigoBarra ?>" alt="" />

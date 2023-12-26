@@ -20,6 +20,5 @@ class ProductoHistorial extends Model
         'preciocompra_producto_historial',
         'id_tipo_documento',
         'numerotipodocumento_producto_historial'
-        
     ];
 }

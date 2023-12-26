@@ -35,11 +35,18 @@ class ClienteController
         echo $Departamento;
     }
 
-    public function ValidarDNICliente()
+    public function validarDNICliente()
     {
-        $Departamento = Provincia::where("idDepartamento", $_GET['id_departamento'])->get();
-        echo $Departamento;
+        $dni_cliente=$_GET['dni_cliente'];
+        echo Cliente::where("dni_cliente", $dni_cliente)->exists();
     }
+    public function correoUsuarioEnUso()
+    {
+        $e_mail_cliente=$_GET['e_mail_cliente'];
+        echo Cliente::where("e_mail_cliente", $e_mail_cliente)->exists();
+    }
+
+    
 
     public function ActualizarPasswordCliente()
     {
@@ -62,16 +69,13 @@ class ClienteController
     }
     public function GuardarCliente()
     {
-     
         $formulario = json_decode($_POST['formulario']);
         $existeCliente =  Cliente::join('usuario', "usuario.id_cliente", "cliente.id_cliente")
             ->where('dni_cliente', $formulario->dni_cliente)
-            ->where('dv_cliente', $formulario->dv_cliente)
             ->first();
         $apellidos_cliente = explode(" ", $formulario->apellidos_cliente);
         $datos = array(
             "dni_cliente" => $formulario->dni_cliente,
-            "dv_cliente" => $formulario->dv_cliente,
             "nombre_cliente" => $formulario->nombre_cliente,
             "apellidopaterno_cliente" => $apellidos_cliente[0],
             "apellidomaterno_cliente" => isset($apellidos_cliente[1]) ? $apellidos_cliente[1] : null,
@@ -87,7 +91,7 @@ class ClienteController
         );
         if (!isset($existeCliente)) {
             $nuevoCiente = Cliente::create($datos);
-            if ($formulario->crearcuenta == true) {
+            if ($formulario->crearcuenta) {
                 $contrasenia = hash('sha256', $formulario->password);
                 $dataPerfilCliente = Perfil::where('perfildefecto_cliente', 1)->first();
                 $datoNuevoUsuario = [
@@ -112,7 +116,7 @@ class ClienteController
                 "idDepartamento" => $formulario->idDepartamento
             ];
             $rpta = [
-                'dni_cliente' => $formulario->dni_cliente . '-' . $formulario->dv_cliente,
+                'dni_cliente' => $formulario->dni_cliente,
                 'success' => true,
             ];
         } else {
@@ -125,7 +129,6 @@ class ClienteController
             $rpta = [
                 'success' => true,
             ];
-         
         }
     
         $sitio_cliente = Provincia::join('departamentos', 'departamentos.idDepartamento', "provincia.idDepartamento")

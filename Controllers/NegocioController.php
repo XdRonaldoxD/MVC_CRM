@@ -23,6 +23,7 @@ require_once "models/NotaVenta.php";
 require_once "models/Ingreso.php";
 require_once "models/Egreso.php";
 require_once "models/Usuario.php";
+require_once "models/StockProductoBodega.php";
 require_once "models/EmpresaVentaOnline.php";
 require_once "models/TipoAfectacion.php";
 require_once "Helpers/helpers.php";
@@ -48,11 +49,13 @@ class NegocioController
         $informacionForm = $datos->informacionForm;
         $id_caja = $datos->id_caja;
         $tipo_documento = $informacionForm->tipo_documento;
-        $jsonArray = [];
+        $staff = Usuario::select("staff.*")->where('id_usuario', $informacionForm->vendedor)
+            ->join('staff', 'staff.id_staff', 'usuario.id_staff')
+            ->first();
         //VERIFICANDO STOCK-----------------------------------
         foreach ($datos->ProductoSeleccionados as $elemento) {
-            $producto = Producto::where('id_producto', $elemento->id_producto)->first();
-            if (!$producto || $producto->stock_producto <= 0) {
+            $producto = StockProductoBodega::where('id_producto', $elemento->id_producto)->where('id_bodega', $staff->id_bodega)->first();
+            if (!$producto || $producto->total_stock_producto_bodega <= 0) {
                 echo json_encode("Verificar stock producto");
                 exit(http_response_code(404));
             }
@@ -69,6 +72,7 @@ class NegocioController
             ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
             ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
             ->where('id_cliente', $informacionForm->cliente)->first();
+
         if ($tipo_documento === 'FACTURA') {
             $folio_documento = Folio::where('id_folio', 9)->first();
             $tipoDoc = "01";
@@ -85,6 +89,7 @@ class NegocioController
                     "ubigueo" => $cliente->ubigeo_cliente
                 ]
             ];
+            $id_tipo_documento = 1;
         } elseif ($tipo_documento === 'BOLETA') {
             $folio_documento = Folio::where('id_folio', 6)->first();
             if ($cliente->dni_cliente == '00000000') {
@@ -106,6 +111,7 @@ class NegocioController
                     "ubigueo" => $cliente->ubigeo_cliente
                 ]
             ];
+            $id_tipo_documento = 1;
         } else {
             $folio_documento = Folio::where('id_folio', 17)->first();
             $tipoDoc = "";
@@ -122,6 +128,7 @@ class NegocioController
                     "ubigueo" => $cliente->ubigeo_cliente
                 ]
             ];
+            $id_tipo_documento = 4;
         }
 
         $details = [];
@@ -136,7 +143,7 @@ class NegocioController
             $factor_porcentaje = 1;
 
             if ($tipoAfectacion->codigo == 10) {
-                $precio = round($precio / (1 + $igv_porcentaje),2);#Le sacamos el impuesto
+                $precio = round($precio / (1 + $igv_porcentaje), 2); #Le sacamos el impuesto
                 $igv_detalle = $precio * $cantidad * $igv_porcentaje;
                 $factor_porcentaje = 1 + $igv_porcentaje;
             }
@@ -146,13 +153,13 @@ class NegocioController
                 'codigo'                    =>  $element->codigo_producto,
                 'descripcion'               =>  $element->glosa_producto,
                 'cantidad'                  =>  $cantidad,
-                'precio_unitario'           =>  round($precio * $factor_porcentaje,2), //incluido todos los impuestos
+                'precio_unitario'           =>  round($precio * $factor_porcentaje, 2), //incluido todos los impuestos
                 'valor_unitario'            =>  $precio, //no incluye impuestos
-                'igv'                       =>  round($igv_detalle,2), //cantidad*(precio unitario - valor unitario)
+                'igv'                       =>  round($igv_detalle, 2), //cantidad*(precio unitario - valor unitario)
                 'tipo_precio'               => ($tipoAfectacion->codigo == 10) ? '01' : '02', //01: onerosos lucran, 02: no onerosos, no lucran
                 'porcentaje_igv'            =>  $igv_porcentaje * 100,
-                'valor_total'               =>  round($precio * $cantidad,2), //cantidad * precio unitario
-                'importe_total'             =>  round($precio * $factor_porcentaje,2) * $cantidad, //cantidad * valor unitario
+                'valor_total'               =>  round($precio * $cantidad, 2), //cantidad * precio unitario
+                'importe_total'             =>  round($precio * $factor_porcentaje, 2) * $cantidad, //cantidad * valor unitario
                 'unidad'                    =>  'NIU',
                 'tipo_afectacion_igv'       =>  $tipoAfectacion->codigo,
                 'codigo_tipo_tributo'       =>  $tipoAfectacion->codigo_afectacion, // Catálogo No. 05: Códigos de tipos de tributos CATALOGO
@@ -225,14 +232,12 @@ class NegocioController
             $factura = new FacturaSunat($data);
             $respuesta = $factura->enviarfactura();
         }
-        if (isset($respuesta) && isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && ($tipo_documento === 'BOLETA' || $tipo_documento === 'FACTURA') && $respuesta['estado'] != 8) {
+        if (isset($respuesta) && isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && ($tipo_documento === 'BOLETA' || $tipo_documento === 'FACTURA') && $respuesta['estado'] != 8 && empty($respuesta['Nota'])) {
             echo json_encode($respuesta);
             exit(http_response_code(404));
         }
- 
-        $staff = Usuario::select("staff.*")->where('id_usuario', $informacionForm->vendedor)
-            ->join('staff', 'staff.id_staff', 'usuario.id_staff')
-            ->first();
+
+
         $data += [
             'apellidopaterno_staff' => $staff->apellidopaterno_staff,
             'apellidomaterno_staff' => $staff->apellidomaterno_staff,
@@ -254,6 +259,7 @@ class NegocioController
             'vigente_negocio' => 1,
             'efectivo_negocio' =>  $totalespagados->total_pagado,
             'vuelto_negocio' => $totalespagados->vuelto,
+            'id_bodega' => $staff->id_bodega
         ];
         $folio->numero_folio += 1;
         $folio->save();
@@ -261,16 +267,19 @@ class NegocioController
         $notificar_stock = array();
         foreach ($details as $elemento) {
             // RESTANDO STOCK DEL PRODUCTOS
-            $producto_encontrado = producto::where('id_producto', $elemento['id_producto'])->first();
-            $stockActual = $producto_encontrado->stock_producto - $elemento['cantidad'];
-            $producto_encontrado->stock_producto = $stockActual;
-            $producto_encontrado->save();
+            $stockbodega = StockProductoBodega::where('id_producto', $elemento['id_producto'])->where('id_bodega', $staff->id_bodega)->first();
+            $stockActual = $stockbodega->total_stock_producto_bodega - $elemento['cantidad'];
+            $stockbodega->total_stock_producto_bodega = $stockActual;
+            $stockbodega->save();
+
             $producto_historial = [
                 'id_usuario' => $informacionForm->vendedor,
                 'id_tipo_movimiento' => 2,
+                'id_bodega' => $staff->id_bodega,
                 'id_producto' => $elemento['id_producto'],
                 'cantidadmovimiento_producto_historial' => $elemento['cantidad'],
                 'fecha_producto_historial' => $this->fechaactual,
+                'id_tipo_documento'=>$id_tipo_documento,
                 'comentario_producto_historial' => "$tipo_documento DE VENTA ELECTRONICA"
             ];
             ProductoHistorial::create($producto_historial);
@@ -284,7 +293,8 @@ class NegocioController
                 'fechacreacion_negocio_detalle' => $this->fechaactual,
                 'cantidad_negocio_detalle' => $elemento['cantidad'],
                 'preciounitario_negocio_detalle' => $elemento['valor_unitario'],
-                'id_tipo_afectacion'=>$elemento['id_tipo_afectacion']
+                'id_tipo_afectacion' => $elemento['id_tipo_afectacion'],
+                'id_bodega' => $staff->id_bodega
             ];
             if ($elemento['tipo_precio'] == 01) {
                 $negocio_detalle += [
@@ -438,16 +448,12 @@ class NegocioController
     }
     public function enviarNegocioVenta($data, $tipo_documento, $EmpresaVentaOnline)
     {
-
         $serie = $data['serie'];
         $correlativo = $data['correlativo'];
         $total_afecto = $data['mtoOperGravadas'];
         $igv_total = $data['totalImpuestos'];
         $importe_total = $data['mtoImpVenta'];
         $vendedor_documento = $data['apellidopaterno_staff'] . ' ' . $data['apellidomaterno_staff'] . ' ' . $data['nombre_staff'];
-
-
-
         $fecha = date("Y-m-d H:i:s");
         $separaFecha = explode(" ", $fecha);
         $Fecha = explode("-", $separaFecha[0]);
@@ -457,15 +463,17 @@ class NegocioController
         if (!file_exists($path)) {
             mkdir($path, 0777, true);
         }
-        $path_imagen = __DIR__ . '/../archivo/imagenes/ahorro_farma.jpg';
-        $imagen = base64_encode(file_get_contents($path_imagen));
-
+        $imagen = '';
+        if ($EmpresaVentaOnline->urllogovertical_empresa_venta_online) {
+            $imagen = base64_encode(file_get_contents($EmpresaVentaOnline->urllogovertical_empresa_venta_online));
+        }
         $valorventa = $data['mtoImpVenta'];
         $fecha_creacion_venta = $data['fechaEmision'];
         $pagocliente_venta = $data['efectivo_negocio'];
         $vuelto_negocio = $data['vuelto_negocio'];
         $fecha_emision_dte = date('Y-m-d', strtotime($data['fechaEmision']));
-        $codigoBarra = base64_encode(file_get_contents((new \chillerlan\QRCode\QRCode())->render($valorventa)));
+        $qr = "$EmpresaVentaOnline->ruc_empresa_venta_online|{$data['tipoDoc']}|$serie|$correlativo|$igv_total|$importe_total|$separaFecha[0]|{$data['tipoDoc']}|{$data['client']['numDoc']}";
+        $codigoBarra = base64_encode(file_get_contents((new \chillerlan\QRCode\QRCode())->render($qr)));
         $informacion_empresa = [
             "nombre_empresa" => $EmpresaVentaOnline->nombre_empresa_venta_online,
             "ruc" => $EmpresaVentaOnline->ruc_empresa_venta_online,
@@ -494,9 +502,9 @@ class NegocioController
         ////
         $dompdf = new Dompdf();
         $dompdf->loadHtml($html);
+        $alturaTotal = $this->calcularAlturaTotal(count($data['details']));
         // (Optional) Setup the paper size and orientation
-        $dompdf->setPaper(array(0, 0, 221, 544));
-        // Render the HTML as PDF
+        $dompdf->setPaper(array(0, 0, 200, $alturaTotal));
         //GUARDAMOS EL DPF
         $dompdf->render();
         $output = $dompdf->output();
@@ -522,20 +530,14 @@ class NegocioController
         return $respuestadocumento;
     }
 
-
-    // public function VisualizarVentaTicket()
-    // {
-    //     $pathticket = $this->request->pathticket;
-    //     $pathtoFile = RUTA_ARCHIVO . "/archivos/{$this->request->tipo_documento}Venta/$pathticket";
-    //     echo json_encode($pathtoFile);
-    // }
-
-    // public function VisualizarVentaPdf()
-    // {
-    //     $pathpdf = $this->request->pathpdf;
-    //     $pathtoFile = RUTA_ARCHIVO . "/archivos/{$this->request->tipo_documento}Venta/$pathpdf";
-    //     echo json_encode($pathtoFile);
-    // }
+    function calcularAlturaTotal($cantidadProductos)
+    {
+        $alturatotal = 390;
+        for ($i = 0; $i < $cantidadProductos; $i++) {
+            $alturatotal += 15;
+        }
+        return $alturatotal;
+    }
     public function VisualizarPdf()
     {
 

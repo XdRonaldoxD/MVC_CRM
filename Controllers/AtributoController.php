@@ -1,9 +1,5 @@
 <?php
-
-
-
 require_once "models/Atributo.php";
-
 class AtributoController
 {
 

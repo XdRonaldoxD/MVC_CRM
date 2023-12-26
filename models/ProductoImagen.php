@@ -16,7 +16,6 @@ class ProductoImagen extends Model
         'estado_producto_imagen',
         'keytemp_producto_imagen',
         'orden_producto_imagen',
-      
         'portada_producto_imagen',
         'public_id_producto_imagen',
         'url_producto_imagen'

@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
         }
         die();
     } else {
-        if (isset($_GET['controller']) && ($_GET['controller'] == 'Usuario' || $_GET['controller'] == 'AnularDocumento') ) {
+        if (isset($_GET['controller']) && ($_GET['controller'] == 'Usuario' || $_GET['controller'] == 'AnularDocumento' || $_GET['controller'] == 'Script') ) {
             $nombre_controlador = $_GET['controller'] . "Controller";
         } else {
             echo "No exite la Pagina";

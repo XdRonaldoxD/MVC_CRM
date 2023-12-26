@@ -25,27 +25,28 @@ class JwtAuth
                 'id_usuario' => $user->id_usuario,
             );
         }
-        // return response()->json($user);
         $signup = false;
         if ($user) {
             $signup = true;
         }
         if ($signup) {
-            $EmpresaVentaOnline=EmpresaVentaOnline::first();
+            $empresaVentaOnline=empresaVentaOnline::first();
             //Generar un toke y devolver
             $token = array(
-                'id_empresa'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->id_empresa_venta_online : null),
-                'ruc_empresa_venta_online'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->ruc_empresa_venta_online : null),
-                'telefono_empresa_venta_online'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->telefono_empresa_venta_online : null),
-                'celular_empresa_venta_online'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->celular_empresa_venta_online : null),
-                'nombre_empresa_venta_online'=>(isset($EmpresaVentaOnline) ? $EmpresaVentaOnline->nombre_empresa_venta_online : null),
+                'id_empresa'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->id_empresa_venta_online : null),
+                'ruc_empresa_venta_online'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->ruc_empresa_venta_online : null),
+                'telefono_empresa_venta_online'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->telefono_empresa_venta_online : null),
+                'celular_empresa_venta_online'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->celular_empresa_venta_online : null),
+                'nombre_empresa_venta_online'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->nombre_empresa_venta_online : null),
                 'sub' => $user->id_usuario,
                 'email' => $user->e_mail_staff,
                 'nombre' => $user->nombre_staff,
                 'apellido_paterno' => $user->apellidopaterno_staff,
                 'apellido_materno' => $user->apellidomaterno_staff,
-                // 'tipo_usuario' => $user->rol_usuario,
+                'tipo_usuario' => $user->rol_usuario,
                 'imagen' => $user->pathfoto_usuario,
+                'id_perfil' => $user->id_perfil,
+                'id_bodega' => $user->id_bodega,
                 //creacion del dato es el iat create_at
                 'iat' => time(),
                 //despues de una semana
@@ -55,8 +56,7 @@ class JwtAuth
             //el HS256 es para cifrar la llave
             $jwt = JWT::encode($token, $this->key, 'HS256');
             //decodificando el mismo token
-            $decode = JWT::decode($jwt, $this->key, array('HS256'));
-
+            JWT::decode($jwt, $this->key, array('HS256'));
             if (is_null($getToken)) {
                 return $jwt;
             } else {
@@ -65,24 +65,9 @@ class JwtAuth
                 // Guardar Session usuario
                 $user->session_id=$new_sessid;
                 $user->save();
-                //FIN
-                // $decode = array(
-                //     'sub' => $user->id_usuario,
-                //     'email' => $user->email_usuario,
-                //     'nombre' => $user->nombre_usuario,
-                //     'apellido' => $user->apellido_usuario,
-                //     'tipo_usuario' => $user->rol_usuario,
-                //     'session_id' => $new_sessid,
-                //     'imagen' => $user->path_usuario,
-                //     //creacion del dato es el iat create_at
-                //     'iat' => time(),
-                //     //despues de una semana
-                //     'expiracion' => time() + (1 * 24 * 60 * 60)
-                // );
                 $token+=[
                     'session_id' => $new_sessid,
                 ];
-
                 return  $token;
             }
         } else {

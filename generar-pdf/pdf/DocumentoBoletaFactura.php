@@ -1,4 +1,5 @@
 <html lang="en">
+
 <head>
     <title><?php
             echo $informacion_empresa['tipo_documento']
@@ -181,11 +182,18 @@
                                                                                                 if ($informacion_empresa['tipo_documento'] == "NOTA_VENTA") {
                                                                                                     echo "NOTA VENTA";
                                                                                                 } else {
-                                                                                                    echo $informacion_empresa['tipo_documento'] ." ELECTRONICA";
+                                                                                                    echo $informacion_empresa['tipo_documento'] . " ELECTRONICA";
                                                                                                 }
                                                                                                 ?> </b></span>
                     <br>
-                    <span class="text-danger font-size-16" style="font-family: sans-serif;"><b>N° <?= $correlativo ?></b></span>
+                    <span class="text-danger font-size-16" style="font-family: sans-serif;"><b>
+                            <?php
+                            if ($informacion_documento['serie']) {
+                                echo $informacion_documento['serie'] . '-';
+                            } else {
+                                echo 'N° ';
+                            }
+                           echo $correlativo ?></b></span>
                     <br>
                 </div>
             </td>
@@ -200,7 +208,7 @@
                                                                                                             echo  $fechas[2] . " de " . helpers::nombreMes($fecha_emision_dte) . " del " .  $fechas[0] ?></p>
             </td>
         </tr>
-        <tr>    
+        <tr>
             <td class="percent-100 border">
                 <table class=" percent-100">
                     <tr>
@@ -212,7 +220,7 @@
                                 <?php
                                 if ($informacion_empresa['tipo_documento'] == 'BOLETA') {
                                     echo  'DNI:' . $informacion_cliente['dni_cliente'];
-                                } else if ($informacion_empresa['tipo_documento'] == 'FACTURA') {
+                                } elseif ($informacion_empresa['tipo_documento'] == 'FACTURA') {
                                     echo  'R.U.C.:' . $informacion_cliente['ruc_cliente'];
                                 }
                                 ?>

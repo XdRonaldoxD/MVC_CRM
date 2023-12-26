@@ -178,12 +178,12 @@ class api_cpe
             $zip->addFile($ruta_xml, $nombreXML . '.XML');
             $zip->close();
         }
-        $estado_envio = 2; 
+        $estado_envio = 2;
         $estado_envio_mensaje = 'XML SE COMPRIMIÓ EN FORMATO ZIP ' . date('Y-m-d hh:mn');
 
         //CODIFICAR EN BASE64
         $zip_codificado = base64_encode(file_get_contents($ruta_zip));
-        $estado_envio = 3; 
+        $estado_envio = 3;
         $estado_envio_mensaje = 'ZIP DEL XML CODIFICADO EN BASE64 ' . date('Y-m-d hh:mn');
 
         //CONSUMO DE WEB SERVICES DE SUNAT - ARQUITECTUTA SOAP - XML
@@ -225,7 +225,7 @@ class api_cpe
         $output = curl_exec($ch); //ENVIAMOS EL XML A SUNAT Y RECIBIMOS RESPUESTA
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE); //OBTENEMOS EL CODIGO DE RESPUESTA HTTP
 
-        $estado_envio = 4; 
+        $estado_envio = 4;
         $estado_envio_mensaje = 'SOAP PARA CONSUMIR EL SERVICIO SENDBILL ' . date('Y-m-d hh:mn');
 
         //RESPUESTA DE SUNAT
@@ -271,7 +271,9 @@ class api_cpe
             'mensaje_error'         =>  $mensaje_error,
             'http_code'             =>  $http_code,
             'output'                =>  $output,
-            'ticket'                =>  $ticket
+            'ticket'                =>  $ticket,
+            'ruta_xml'              =>  $ruta_xml,
+            'ruta_zip'              =>  $ruta_zip
         );
 
         return $estado_envio;
@@ -363,12 +365,12 @@ class api_cpe
                 if (isset($doc_cdr->getElementsByTagName('Note')->item(0)->nodeValue)) {
                     $nota = $doc_cdr->getElementsByTagName('Note')->item(0)->nodeValue;
                 }
-                $estado_envio = 8; 
+                $estado_envio = 8;
                 $estado_envio_mensaje = 'PROCESO TERMINADO ' . date('Y-m-d hh:mn');
             }else{
                 $codigo_error = $doc->getElementsByTagName('faultcode')->item(0)->nodeValue;
                 $mensaje_error = $doc->getElementsByTagName('faultstring')->item(0)->nodeValue;
-                $estado_envio = 9; 
+                $estado_envio = 9;
                 $estado_envio_mensaje = 'ERROR/RECHAZO DE SUNAT ' . date('Y-m-d hh:mn');
             }
         }else{ //problemas de consumo
@@ -396,13 +398,11 @@ class api_cpe
 
         return $estado_envio;
     }
+    
     function consultarComprobante($emisor, $comprobante)
     {
 		try{
             $ws = URL_SUNAT_PRUEBA;
-            $soapUser = "";  
-            $soapPassword = "";
-
             $xml_post_string = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
             xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.sunat.gob.pe" 
             xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">

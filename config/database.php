@@ -16,4 +16,5 @@ $database = new Manager();
 $database->addConnection($conexion);
 // $database->setAsGlobal();
 $database->bootEloquent();
+$database->getConnection()->statement('SET sql_mode = ""');
 

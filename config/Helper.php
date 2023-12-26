@@ -16,7 +16,7 @@ class Helper
         return implode($bytes);
     }
 
-   public function getImageMimeType($imagedata)
+    public function getImageMimeType($imagedata)
     {
         $imagemimetypes = array(
             "jpeg" => "FFD8",
@@ -28,7 +28,7 @@ class Helper
         );
 
         foreach ($imagemimetypes as $mime => $hexbytes) {
-            $bytes =$this->getBytesFromHexString($hexbytes);
+            $bytes = $this->getBytesFromHexString($hexbytes);
             if (substr($imagedata, 0, strlen($bytes)) == $bytes)
                 return $mime;
         }
@@ -38,20 +38,32 @@ class Helper
     public static function identificacionDocumentoPruebas()
     {
         $see = new See();
-        $see->setCertificate(file_get_contents(__DIR__ .'/../archivo/certificados/certificate_prueba.pem'));
+        $see->setCertificate(file_get_contents(__DIR__ . '/../archivo/certificados/certificate_prueba.pem'));
         $see->setService(SunatEndpoints::FE_BETA);
         $see->setClaveSOL('20000000001', 'MODDATOS', 'moddatos');
         return $see;
     }
-    public static function identificacionDocumentoProduccion($datosEmpresa=[])
+    public static function identificacionDocumentoProduccion($datosEmpresa = [])
     {
-        $pfx = file_get_contents(__DIR__ ."/../archivo/certificado_digital/{$datosEmpresa['path_certificado_digital']}");
+        $pfx = file_get_contents(__DIR__ . "/../archivo/certificado_digital/{$datosEmpresa['path_certificado_digital']}");
         $password = $datosEmpresa['clave_certificado'];
         $certificate = new X509Certificate($pfx, $password);
         $see = new See();
         $see->setCertificate($certificate->export(X509ContentType::PEM));
         $see->setService(SunatEndpoints::FE_PRODUCCION);
-        $see->setClaveSOL($datosEmpresa['ruc_empresa'],$datosEmpresa['usuario_sol'],$datosEmpresa['clave_sol']);//'10157622680' / 'CALEL019'  /  'Durand019'
+        $see->setClaveSOL($datosEmpresa['ruc_empresa'], $datosEmpresa['usuario_sol'], $datosEmpresa['clave_sol']); //'10157622680' / 'CALEL019'  /  'Durand019'
         return $see;
+    }
+    public static function generarCodigoProducto($nombreProducto)
+    {
+        $palabras = explode(' ', mb_strtoupper($nombreProducto, 'UTF-8'));
+        $iniciales = array();
+        foreach ($palabras as $palabra) {
+            if ($palabra !== 'C/U' && $palabra !== 'UN') {
+                $iniciales[] = mb_substr($palabra, 0, 2, 'UTF-8');
+            }
+        }
+        $codigoProducto = implode('-', $iniciales);
+        return $codigoProducto;
     }
 }

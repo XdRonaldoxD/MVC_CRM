@@ -59,20 +59,24 @@ class MarcaController
     public function gestionarMarca()
     {
         $datos = [
-            'glosa_marca' => $_POST['glosa_marca'],
-            'vigente_marca' => 1
+            'glosa_marca' => $_POST['glosa_marca']
         ];
         if ($_POST['accion'] == "CREAR") {
-            $datos += ['vigente_marca' => 1];
-            Marca::create($datos);
+            // $datos += ['vigente_marca' => 1];
+            $marca=Marca::create($datos);
+            $datos+=['id_marca'=>$marca->id_marca];
             $respuesta = "Creado";
         } else {
             Marca::where('id_marca', $_POST['id_marca'])->update($datos);
             $respuesta = "Actualizado";
         }
+        if (isset($_POST['modulo']) && $_POST['modulo']=="PRODUCTO") {
+            echo json_encode($datos);
+            exit();
+        }
         echo json_encode($respuesta);
     }
-    public function actualizarMarca()
+    public function actualizarestadoMarca()
     {
         if ($_POST['accion'] == "activado") {
             $datos = ['vigente_marca' => 1];
@@ -80,6 +84,7 @@ class MarcaController
             $datos = ['vigente_marca' => 0];
         }
         Marca::where("id_marca", $_POST['id_marca'])->update($datos);
+        echo json_encode($_POST['accion']);
     }
 
     public function traerMarca()

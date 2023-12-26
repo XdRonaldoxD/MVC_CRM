@@ -5,6 +5,8 @@ require_once "models/EmpresaVentaOnline.php";
 require_once "models/CertificadoDigital.php";
 require_once "models/ConsultaGlobal.php";
 require_once "models/Folio.php";
+require_once "models/Sucursal.php";
+require_once "models/BodegaSucursal.php";
 require_once "config/Parametros.php";
 
 class EmpresaController
@@ -12,6 +14,12 @@ class EmpresaController
 
     public function GuardarInformacion()
     {
+        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+        $domain = $_SERVER['HTTP_HOST'];
+        $dominio_empresa = $protocol . $domain;
+        if ($protocol == 'http://') {
+            $dominio_empresa .= "/MVC_CRM";
+        }
         $arreglo = [
             'cloud_name' => cloud_name,
             'api_key'    => api_key,
@@ -27,12 +35,14 @@ class EmpresaController
             'celular_empresa_venta_online' => $informacionForm->celular_empresa,
             'direccion_empresa_venta_online' => $informacionForm->direccion_empresa,
             'idDistrito' => empty($informacionForm->distrito) ? null : $informacionForm->distrito,
-            'dominio_empresa_venta_online' => $informacionForm->dominio,
+            'dominio_empresa_venta_online' => $dominio_empresa,
             'pixelgoogle_empresa_venta_online' => $informacionForm->pixelgoogle_empresa,
             'pixelfacebook_empresa_venta_online' => $informacionForm->pixelfacebook_empresa,
             'nombre_empresa_venta_online' => $informacionForm->nombre_empresa,
             'email_empresa_venta_online' => $informacionForm->email_empresa_venta_online,
-            'giro_empresa_venta_online' => $informacionForm->giro_empresa_venta_online
+            'giro_empresa_venta_online' => $informacionForm->giro_empresa_venta_online,
+            'id_sucursal' => $informacionForm->id_sucursal,
+            'id_bodega' => $informacionForm->id_bodega,
         ];
 
         if (isset($_FILES['icono_empresa'])) {
@@ -280,8 +290,17 @@ class EmpresaController
         left join distrito using (idDistrito)
         left join provincia using (idProvincia)
         left join departamentos using (idDepartamento)";
-        $ConsultaGlobal = (new ConsultaGlobal())->ConsultaSingular($query);
-        echo json_encode($ConsultaGlobal);
+        $consultaGlobal = (new ConsultaGlobal())->ConsultaSingular($query);
+        $sucursal = Sucursal::where('vigente_sucursal', 1)->get();
+        $bodegas = BodegaSucursal::join('bodega', 'bodega.id_bodega', 'bodega_sucursal.id_bodega')
+            ->where('vigente_bodega', 1)
+            ->get();
+        $datos=[
+            "data"=>$consultaGlobal,
+            "sucursal"=>$sucursal,
+            "bodegas"=>$bodegas
+        ];
+        echo json_encode($datos);
     }
 
     public function CargarPixelEmpresa()

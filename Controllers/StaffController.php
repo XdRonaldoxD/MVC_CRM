@@ -2,6 +2,8 @@
 require_once "models/Usuario.php";
 require_once "models/Perfil.php";
 require_once "models/Staff.php";
+require_once "models/Sucursal.php";
+require_once "models/BodegaSucursal.php";
 require_once "models/ConsultaGlobal.php";
 class StaffController
 {
@@ -10,7 +12,7 @@ class StaffController
         if (isset($_POST['id_usuario'])) {
             $Staff = Usuario::join('staff', 'staff.id_staff', 'usuario.id_staff')
                 ->where('id_usuario', $_POST['id_usuario'])
-                ->select('staff.*', 'usuario.id_perfil')
+                ->select('staff.*', 'usuario.id_perfil','usuario.id_usuario')
                 ->first();
         } else {
             $Staff = json_encode(null);
@@ -36,7 +38,9 @@ class StaffController
             'e_mail_staff' => $InformacionStaff->e_mail_staff,
             'telefono_staff' => $InformacionStaff->telefono_staff,
             'celular_staff' => $InformacionStaff->celular_staff,
-            'sexo_staff' => $InformacionStaff->sexo_staff
+            'sexo_staff' => $InformacionStaff->sexo_staff,
+            'id_sucursal'=>$InformacionStaff->id_sucursal,
+            'id_bodega'=>$InformacionStaff->id_bodega
         ];
         if (!empty($InformacionStaff->id_staff)) {
             Staff::where('id_staff', $InformacionStaff->id_staff)->update($staff);
@@ -83,10 +87,19 @@ class StaffController
             echo json_encode("Actualizado");
         }
     }
-    public function mostrarPerfiles()
+    public function mostrarDatosUsuario()
     {
         $perfiles = Perfil::where('vigente_perfil', 1)->get();
-        echo json_encode($perfiles);
+        $sucursal = Sucursal::where('vigente_sucursal', 1)->get();
+        $bodegas=BodegaSucursal::join('bodega','bodega.id_bodega','bodega_sucursal.id_bodega')
+        ->where('vigente_bodega',1)
+        ->get();
+        $respuesta=[
+            "perfiles"=>$perfiles,
+            "sucursal"=>$sucursal,
+            "bodegas"=>$bodegas,
+        ];
+        echo json_encode($respuesta);
     }
 
 
@@ -115,7 +128,9 @@ class StaffController
         telefono_staff,
         celular_staff,
         sexo_staff,
-        glosa_perfil
+        glosa_perfil,
+        staff.id_bodega,
+        staff.id_sucursal
         FROM usuario
         inner join staff using (id_staff)
         left join perfil using (id_perfil)

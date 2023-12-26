@@ -93,7 +93,6 @@ class NotaCreditoSunat{
         $comprobante['total_opgratuitas_2'] = $op_gratuitas2;
         $comprobante['igv'] = $igv;
         $comprobante['total'] = $total;
-        
         require_once('cpe40/cantidad_en_letras.php');
         $comprobante['total_texto'] = CantidadEnLetra($total);
         
@@ -101,6 +100,12 @@ class NotaCreditoSunat{
         $nombreXML = $emisor['nrodoc'] . '-' . $comprobante['tipodoc'] . '-' . $comprobante['serie'] . '-' . $comprobante['correlativo'];
         $rutaXML = 'cpe40/xml/nota_credito/';
         $rutaCRD = 'cpe40/cdr/nota_credito/';
+        if (!file_exists($rutaXML)) {
+            mkdir($rutaXML, 0777, true);
+        }
+        if (!file_exists($rutaCRD)) {
+            mkdir($rutaCRD, 0777, true);
+        }
         $rutaCertificadoDigital = 'cpe40/certificado_digital/';
         require_once('cpe40/api/api_genera_xml.php');
         $objXML = new api_genera_xml();

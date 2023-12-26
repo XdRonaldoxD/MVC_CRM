@@ -31,8 +31,10 @@ class ConsultaGlobal
         from atributo_producto
         inner join atributo using (id_atributo)
         where id_producto=producto.id_producto
-        ) as atributo_producto
-        from producto
+        ) as atributo_producto,
+        stock_producto_bodega.total_stock_producto_bodega
+        from stock_producto_bodega
+        inner join producto using (id_producto)
         $condicion ";
         $marcar = $this->db->prepare($sql);
         $marcar->execute();
@@ -50,33 +52,38 @@ class ConsultaGlobal
 		(select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
 		FROM producto_color where id_producto=producto.id_producto
 		) as color_producto,
-		  (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~') 
+		  (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~')
         from especificaciones_producto where id_producto=producto.id_producto
         ) as especificacion_producto,
-        (SELECT GROUP_CONCAT(atributo.glosa_atributo,',',atributo_producto.id_atributo_producto SEPARATOR '~') 
+        (SELECT GROUP_CONCAT(atributo.glosa_atributo,',',atributo_producto.id_atributo_producto SEPARATOR '~')
         from atributo_producto
         inner join atributo using (id_atributo)
         where id_producto=producto.id_producto
-        ) as atributo_producto
-        from categoria_producto 
-        INNER JOIN  producto USING (id_producto)
+        ) as atributo_producto,
+        stock_producto_bodega.total_stock_producto_bodega
+        from stock_producto_bodega
+        INNER JOIN producto on producto.id_producto=stock_producto_bodega.id_producto
+        INNER JOIN categoria_producto on categoria_producto.id_producto=producto.id_producto
         INNER JOIN categoria USING (id_categoria)
-        $condicion and producto.vigente_producto=1";
-        $CategoriaProducto = $this->db->prepare($sql);
-        $CategoriaProducto->execute();
-        $result = $CategoriaProducto->fetchAll(PDO::FETCH_OBJ);
-        $CategoriaProducto = null;
+        $condicion ";
+        $categoriaProducto = $this->db->prepare($sql);
+        $categoriaProducto->execute();
+        $result = $categoriaProducto->fetchAll(PDO::FETCH_OBJ);
+        $categoriaProducto = null;
         return $result;
     }
 
     public function EstructuraFilterApi($condicion)
     {
-        $sql = "SELECT max(producto.precioventa_producto) as precio_mayor,min(producto.precioventa_producto) as precio_menor from categoria_producto INNER JOIN  producto USING (id_producto)
+        $sql = "SELECT max(producto.precioventa_producto) as precio_mayor,min(producto.precioventa_producto) as precio_menor
+        from stock_producto_bodega
+        INNER JOIN producto on producto.id_producto=stock_producto_bodega.id_producto
+        INNER JOIN categoria_producto on categoria_producto.id_producto=producto.id_producto
         $condicion ";
-        $CategoriaProducto = $this->db->prepare($sql);
-        $CategoriaProducto->execute();
-        $result = $CategoriaProducto->fetch(PDO::FETCH_OBJ);
-        $CategoriaProducto = null;
+        $categoriaProducto = $this->db->prepare($sql);
+        $categoriaProducto->execute();
+        $result = $categoriaProducto->fetch(PDO::FETCH_OBJ);
+        $categoriaProducto = null;
         return $result;
     }
 
@@ -104,18 +111,27 @@ class ConsultaGlobal
 
     public  function TraerDatosProductos($condicion)
     {
-        $consulta = "SELECT producto.*,
-        (select GROUP_CONCAT(id_producto SEPARATOR '~') from producto_relacionado where idproductopadre_producto_relacionado=producto.id_producto) as producto_relacionado,
+        $consulta = "SELECT producto.*,glosa_marca,
+       (select
+            GROUP_CONCAT(pr.id_producto,'|',pr.glosa_producto,'|',pr.codigo_producto,'|',producto_relacionado.id_producto_relacionado SEPARATOR '~')
+            from producto_relacionado
+            inner join producto as pr on pr.id_producto=producto_relacionado.id_producto
+            where producto_relacionado.idproductopadre_producto_relacionado=producto.id_producto)
+            as producto_relacionado,
         (select GROUP_CONCAT(CONCAT(hexadecimal_producto_color,'|',id_producto_color,'|',nombre_producto_color) SEPARATOR '~') from producto_color where id_producto=producto.id_producto) as color_producto,
-        (select GROUP_CONCAT(CONCAT(id_producto_imagen,'|',nombre_producto_imagen,'|',url_producto_imagen,'|',portada_producto_imagen) SEPARATOR '~') from producto_imagen where id_producto=producto.id_producto ORDER BY orden_producto_imagen ) as producto_imagen,
+        (select GROUP_CONCAT(CONCAT(id_producto_imagen,'|',IFNULL(nombre_producto_imagen,''),'|',url_producto_imagen,'|',portada_producto_imagen) SEPARATOR '~') from producto_imagen where id_producto=producto.id_producto ORDER BY orden_producto_imagen ) as producto_imagen,
         (select GROUP_CONCAT(CONCAT(id_especificaciones_producto,'|',glosa_especificaciones_producto,'|',respuesta_especificaciones_producto) SEPARATOR '~') from especificaciones_producto where id_producto=producto.id_producto) as producto_especificaciones,
         (select GROUP_CONCAT(CONCAT(id_categoria_producto,'|',id_categoria) SEPARATOR '~') from categoria_producto where id_producto=producto.id_producto) as categoria_producto,
+        (select GROUP_CONCAT(CONCAT(id_stock_producto_bodega,'|',glosa_bodega,'|',total_stock_producto_bodega,'|', IFNULL(ultimopreciocompra_stock_producto_bodega,0)) SEPARATOR '~')
+         from stock_producto_bodega
+         inner join bodega using (id_bodega)
+         where id_producto=producto.id_producto) as stock_producto_bodega,
         (select GROUP_CONCAT(CONCAT(atributo_producto.id_atributo_producto,'|',atributo_producto.id_atributo,'|',atributo.glosa_atributo,'|',atributo_producto.stock_atributo) SEPARATOR '~') from atributo_producto
         inner join atributo on  atributo_producto.id_atributo=atributo.id_atributo
          where id_producto=producto.id_producto) as atributo_producto
         FROM producto
-        $condicion
-        ";
+        left join marca using (id_marca)
+        $condicion ";
         $producto = $this->db->prepare($consulta);
         $producto->execute();
         $result = $producto->fetch(PDO::FETCH_OBJ);

@@ -97,6 +97,12 @@ class BoletaSunat
         $nombreXML = $emisor['nrodoc'] . '-' . $comprobante['tipodoc'] . '-' . $comprobante['serie'] . '-' . $comprobante['correlativo'];
         $rutaXML = 'cpe40/xml/boleta/';
         $rutaCRD = 'cpe40/cdr/boleta/';
+        if (!file_exists($rutaXML)) {
+            mkdir($rutaXML, 0777, true);
+        }
+        if (!file_exists($rutaCRD)) {
+            mkdir($rutaCRD, 0777, true);
+        }
         $rutaCertificadoDigital = 'cpe40/certificado_digital/';
 
         require_once('cpe40/api/api_genera_xml.php');

@@ -20,6 +20,7 @@ require_once "models/ConsultaGlobal.php";
 require_once "models/Categorias.php";
 require_once "models/CategoriaProducto.php";
 require_once "models/TipoDocumento.php";
+require_once "models/EmpresaVentaOnline.php";
 
 class LibroVentasController
 {
@@ -30,18 +31,29 @@ class LibroVentasController
     public function exportarLibroVentas()
     {
         $request = json_decode($_POST['informacionForm']);
+        $id_empresa = $_POST['id_empresa'];
         $idusuario = $_POST['id_usuario'];
         $fechadesde = $request->fecha_desde . ' 00:00:00';
         $fechahasta = $request->fecha_hasta . ' 23:59:59';
         $tipodoc = $request->tipo_documento;
         $documento = '';
         $consulta = '';
+        $consultaNotaCredito='';
         if (!empty($request->fecha_desde)) {
             $consulta .= " and negocio.fechacreacion_negocio>='$fechadesde'";
         }
         if (!empty($request->fecha_hasta)) {
             $consulta .= " and negocio.fechacreacion_negocio<='$fechahasta'";
         }
+        //NOTA CREDITO--------------------------------------------------
+        $condicionesNotaCredito = [];
+        if (!empty($request->fecha_desde)) {
+            $condicionesNotaCredito[]= "fechacreacion_nota_credito>='$fechadesde'";
+        }
+        if (!empty($request->fecha_hasta)) {
+            $condicionesNotaCredito[]= "fechacreacion_nota_credito<='$fechahasta'";
+        }
+        //---------------------------------------------------------------
         switch ($tipodoc) {
             case '1':
                 $consulta .= " and factura.id_factura is not null";
@@ -51,83 +63,119 @@ class LibroVentasController
                 $consulta .= " and boleta.id_boleta is not null";
                 $documento = "BOLETA";
                 break;
-            case '6':
-                $consulta .= " and (boleta_nota_credito.id_boleta is not null or factura_nota_credito.id_factura is not null)";
-                $documento = "NOTA CREDITO";
-                break;
             default:
                 $consulta .= '';
                 break;
         }
-        $encabezado = ["FECHA", "N° ANTECIÓN", "TIPO DOCUMENTO", "N° DOCUMENTO", "RUT EMPRESA", "NOMBRE CLIENTE", "EXENTO", "AFECTO", "IMPUESTO", 'IVA', "TOTAL"];
-        $consultaglobal = "SELECT cliente.*,negocio.id_negocio,negocio.numero_negocio,negocio.fechacreacion_negocio,boleta.*,
-        factura.*,nota_venta.*
+        $encabezado = ["FECHA","TIPO DOCUMENTO", "N° DOCUMENTO", "SERIE","RUC EMPRESA", "NOMBRE CLIENTE", "EXENTO", "AFECTO", 'IVA', "TOTAL"];
+        $consultaglobal = "SELECT
+        cliente.*,
+        negocio.id_negocio,
+        negocio.numero_negocio,
+        DATE_FORMAT(negocio.fechacreacion_negocio,'%d/%m/%Y') as fechacreacion_negocio,
+        boleta.*,
+        factura.*,
+        nota_venta.*
         FROM negocio
         INNER JOIN cliente using (id_cliente)
         LEFT JOIN boleta using (id_negocio)
         LEFT JOIN factura using (id_negocio)
         LEFT JOIN nota_venta using (id_negocio)
-
-        LEFT JOIN nota_credito as boleta_nota_credito on boleta_nota_credito.id_boleta=boleta.id_boleta
-        LEFT JOIN nota_credito as factura_nota_credito on factura_nota_credito.id_factura=factura.id_factura
         where negocio.vigente_negocio=1 $consulta
         order by negocio.id_negocio  desc";
         $todos = (new ConsultaGlobal())->ConsultaGlobal($consultaglobal);
-    
+        //NOTA CREDITO-----------------------------------------------------------------------------
+        $notacredito=[];
+        if ($tipodoc=='6' || empty($tipodoc)) {
+            $wherenotacredito='';
+            if (!empty($condicionesNotaCredito)) {
+                $wherenotacredito = ' where '.implode(" AND ", $condicionesNotaCredito);
+            }
+            $consultaNotaCredito = "SELECT
+            DATE_FORMAT(fechacreacion_nota_credito,'%d/%m/%Y') as fechacreacion_nota_credito,
+            numero_nota_credito,
+            serie_nota_credito,
+            valorafecto_nota_credito,
+            valorexento_nota_credito,
+            iva_nota_credito,
+            total_nota_credito,
+            estado_nota_credito,
+            nota_credito.id_boleta,
+            nota_credito.id_factura,
+            boleta.numero_boleta,
+            boleta.serie_boleta,
+            factura.numero_factura,
+            factura.serie_factura,
+            CONCAT(IFNULL(cliente_negocio_factura.nombre_cliente,''),' ',IFNULL(cliente_negocio_factura.apellidopaterno_cliente,''),' ',IFNULL(cliente_negocio_factura.apellidomaterno_cliente,'')) as cliente_negocio_factura,
+            CONCAT(IFNULL(cliente_negocio_boleta.nombre_cliente,''),' ',IFNULL(cliente_negocio_boleta.apellidopaterno_cliente,''),' ',IFNULL(cliente_negocio_boleta.apellidomaterno_cliente,'')) as cliente_negocio_boleta
+            FROM nota_credito
+            LEFT JOIN boleta using (id_boleta)
+            LEFT JOIN factura using (id_factura)
+            LEFT JOIN negocio as negocio_boleta on negocio_boleta.id_negocio=boleta.id_negocio
+            LEFT JOIN negocio as negocio_factura on negocio_factura.id_negocio=factura.id_negocio
+            LEFT JOIN cliente as cliente_negocio_factura on cliente_negocio_factura.id_cliente=negocio_factura.id_cliente
+            LEFT JOIN cliente as cliente_negocio_boleta on cliente_negocio_boleta.id_cliente=negocio_boleta.id_cliente
+            $wherenotacredito
+            order by nota_credito.id_nota_credito  desc";
+            $notacredito=(new ConsultaGlobal())->ConsultaGlobal($consultaNotaCredito);
+            foreach ($notacredito as &$value) {
+                $cliente='';
+                $numero_referencia='';
+                $documento_referencia="";
+                $serie_referencia="";
+                if ($value->id_factura) {
+                    $cliente=$value->cliente_negocio_factura;
+                    $numero_referencia=$value->numero_factura;
+                    $documento_referencia='FACTURA ELECTRONICA';
+                    $serie_referencia=$value->serie_factura;
+                }
+                if ($value->id_boleta) {
+                    $cliente=$value->cliente_negocio_boleta;
+                    $numero_referencia=$value->numero_boleta;
+                    $documento_referencia='BOLETA ELECTRONICA';
+                    $serie_referencia=$value->serie_boleta;
+                }
+                $value->cliente=$cliente;
+                $value->numero_referencia=$numero_referencia;
+                $value->documento_referencia=$documento_referencia;
+                $value->serie_referencia=$serie_referencia;
+            }
+        }
+        //----------------------------------------------------------------------
+     
+        $empresa = EmpresaVentaOnline::where('id_empresa_venta_online', $id_empresa)->first();
         // GUARDAMOS EL ARCHIVO  //TRAEMOS EL EXCEL DE LA CRECION DE PYTHON
         //PYTHON EXPORTANTO ARCHIVO
         $jsonarray = array();
-        $jsontotales = array();
+   
         foreach ($todos as  $elemento) {
             $texto = "ELECTRONICA";
             $tipodocumento = '';
             $exento = 0;
             $afecto = 0;
-            $impuesto = 0;
             $iva = 0;
             $total = 0;
             $numerodoc = "";
+            $seriedoc='';
+         
             if ($elemento->id_boleta) {
                 $tipodocumento = "BOLETA $texto";
                 $iva = $elemento->iva_boleta;
                 $total = $elemento->total_boleta;
                 $numerodoc = $elemento->numero_boleta;
+                $seriedoc = $elemento->serie_boleta;
                 $afecto = $elemento->valor_boleta;
 
-                if (array_key_exists('BOLETA', $jsontotales)) {
-                    $jsontotales['BOLETA']["CANTIDAD"]++;
-                    $jsontotales['BOLETA']["AFECTOS"] += $afecto;
-                    $jsontotales['BOLETA']["IVA"] += $iva;
-                    $jsontotales['BOLETA']["TOTAL"] += $total;
-                } else {
-                    $jsontotales['BOLETA'] = array(
-                        "CANTIDAD" => 1,
-                        "AFECTOS" => $afecto,
-                        "IVA" => $iva,
-                        "TOTAL" => $total
-                    );
-                }
+            
             }
             if ($elemento->id_factura) {
                 $tipodocumento = "FACTURA $texto";
                 $iva = $elemento->iva_factura;
                 $total = $elemento->total_factura;
                 $numerodoc = $elemento->numero_factura;
+                $seriedoc = $elemento->serie_factura;
                 $afecto = $elemento->valorafecto_factura;
 
-                if (array_key_exists('FACTURA', $jsontotales)) {
-                    $jsontotales['FACTURA']["CANTIDAD"]++;
-                    $jsontotales['FACTURA']["AFECTOS"] += $afecto;
-                    $jsontotales['FACTURA']["IVA"] += $iva;
-                    $jsontotales['FACTURA']["TOTAL"] += $total;
-                } else {
-                    $jsontotales['FACTURA'] = array(
-                        "CANTIDAD" => 1,
-                        "AFECTOS" => $afecto,
-                        "IVA" => $iva,
-                        "TOTAL" => $total
-                    );
-                }
             }
             if ($elemento->id_nota_venta) {
                 $tipodocumento = "NOTA VENTA";
@@ -135,66 +183,54 @@ class LibroVentasController
                 $total = $elemento->total_nota_venta;
                 $numerodoc = $elemento->numero_nota_venta;
                 $afecto = $elemento->valor_nota_venta;
-
-                if (array_key_exists($tipodocumento, $jsontotales)) {
-                    $jsontotales[$tipodocumento]["CANTIDAD"]++;
-                    $jsontotales[$tipodocumento]["AFECTOS"] += $afecto;
-                    $jsontotales[$tipodocumento]["IVA"] += $iva;
-                    $jsontotales[$tipodocumento]["TOTAL"] += $total;
-                } else {
-                    $jsontotales[$tipodocumento] = array(
-                        "CANTIDAD" => 1,
-                        "AFECTOS" => $afecto,
-                        "IVA" => $iva,
-                        "TOTAL" => $total
-                    );
-                }
             }
             $jsonarray[] = array(
-                $encabezado[0] => date('Y/m/d', strtotime($elemento->fechacreacion_negocio)),
-                $encabezado[1] => $elemento->numero_negocio,
-                $encabezado[2] => $tipodocumento,
-                $encabezado[3] => $numerodoc,
-                $encabezado[4] => '11111111',
+                $encabezado[0] => $elemento->fechacreacion_negocio,
+                $encabezado[1] => $tipodocumento,
+                $encabezado[2] => $numerodoc,
+                $encabezado[3] => $seriedoc,
+                $encabezado[4] => $empresa->ruc_empresa_venta_online,
                 $encabezado[5] => $elemento->nombre_cliente . ' ' . $elemento->apellidopaterno_cliente . ' ' . $elemento->apellidomaterno_cliente,
                 $encabezado[6] => $exento,
                 $encabezado[7] => $afecto,
-                $encabezado[8] => $impuesto,
-                $encabezado[9] => $iva,
-                $encabezado[10] => $total
+                $encabezado[8] => $iva,
+                $encabezado[9] => $total
             );
         }
+
         $jsonarray = json_encode($jsonarray);
-        $file = fopen("datos$idusuario.txt", 'w');
+        $file = fopen("datos$idusuario.json", 'w');
         fwrite($file, $jsonarray);
         fclose($file);
-        $jsontotales = json_encode($jsontotales);
-        $file = fopen("datos_totales$idusuario.txt", 'w');
-        fwrite($file, $jsontotales);
-        fclose($file);
 
-        // var_dump($todos);
-        // exit();
-        $segundacabecera = "$idusuario,$request->fecha_desde,$request->fecha_hasta,$documento";
-        $comando = "python " . __DIR__ . "/../Helpers/exportarlibroVentas.py $segundacabecera";
-        $respuesta = shell_exec($comando);
+        $jsonarray = json_encode($notacredito);
+        $file = fopen("datos_nota_credito$idusuario.json", 'w');
+        fwrite($file, $jsonarray);
+        fclose($file);
+        $segundacabecera = "$idusuario,$request->fecha_desde,$request->fecha_hasta,$documento,$empresa->ruc_empresa_venta_online";
+        $comando = "python " . __DIR__ . "/../Helpers/python/exportarlibroVentas.py $segundacabecera";
+        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') { //SABER SI TIENN HTTPS SITIOS DE PRUDUCCION
+            $activateCommand = ACTIVAR_COMANDO_PYTHON;
+            $respuesta = shell_exec($activateCommand . ' && ' . $comando);
+        } else {
+            $respuesta = shell_exec($comando);
+        }
         if (empty($respuesta)) {
             echo "Error" . $respuesta;
             exit;
         }
-
         $inputFileName = __DIR__ . "/../datos$idusuario.xlsx";
-        $datostext = __DIR__ . "/../datos$idusuario.txt";
-        $totaltext = __DIR__ . "/../datos_totales$idusuario.txt";
+        $datostext = __DIR__ . "/../datos$idusuario.json";
+        $totalnotacredito = __DIR__ . "/../datos_nota_credito$idusuario.json";
         $spreadsheet = IOFactory::load($inputFileName);
-        // Obtener el contenido del archivo Excel como una cadena de bytes y lo creamos en datos.txt
+        // Obtener el contenido del archivo Excel como una cadena de bytes y lo creamos en datos.json
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
         ob_start();
         $fileName = "Libro_venta_excel.xlsx";
         //ELIMINAMOS LOS ARCHIVOS-----------------------------------------
         unlink($inputFileName);
         unlink($datostext);
-        unlink($totaltext);
+        unlink($totalnotacredito);
         //----------------------------------------------------------------
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . urlencode($fileName) . '"');

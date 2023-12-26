@@ -30,7 +30,8 @@ class Producto extends Model
         'contenidomultidosis_producto',
         'urlamigable_producto',
         'vigente_producto',
-        'visibleonline_producto'
+        'visibleonline_producto',
+        'codigo_barra_producto'
     ];
 
     public $timestamps = false;
