@@ -252,14 +252,6 @@ class ProductoController
                     $codigo_producto = $producto[2];
                     $id_producto_relacionado = $producto[3];
                     $consultRelacionado = ProductoImagen::where('id_producto', $id_producto)->where('portada_producto_imagen', 1)->value('url_producto_imagen');
-                    // $path_producto_imagen = __DIR__ . "/../archivo/imagen_producto/{$ConsultRelacionado->path_producto_imagen}";
-                    // if (is_file($path_producto_imagen)) {
-                    //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                    //     $domain = $_SERVER['HTTP_HOST'];
-                    //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$ConsultRelacionado->path_producto_imagen";
-                    // } else {
-                    //     $imagens = '';
-                    // }
                     $element = [
                         'id_producto_relacionado' => $id_producto_relacionado,
                         'codigo_producto' => $codigo_producto,
@@ -303,15 +295,6 @@ class ProductoController
                     $nombre_producto_imagen = $elementos[1];
                     $url_producto_imagen = $elementos[2];
                     $portada_imagen = isset($elementos[3]) ? $elementos[3] : 0;
-                    // $imagen_base_64 = __DIR__ . "/../archivo/imagen_producto/{$path_producto_imagen}";
-                    // if (is_file($imagen_base_64)) {
-                    //     // $imagenComoBase64 = base64_encode(file_get_contents($imagen_base_64));
-                    //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-                    //     $domain = $_SERVER['HTTP_HOST'];
-                    //     $imagenComoBase64 = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$path_producto_imagen";
-                    // } else {
-                    //     $imagenComoBase64 = '';
-                    // }
                     $datos = [
                         'id_producto_imagen' => $id_producto_imagen,
                         'nombre_imagen' => $nombre_producto_imagen,
@@ -324,7 +307,6 @@ class ProductoController
             }
         }
         //
-
         //SACAMOS ESPECIFICACIOENS DE LOS PRODUCTOS
         $arreglo_especificacion = [];
         if ($ConsultaGlobal->producto_especificaciones) {

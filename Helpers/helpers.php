@@ -37,7 +37,6 @@ class helpers
             return true;
         }
     }
-
     public static function nombreMes($fecha)
     {
       $miFecha = new Carbon($fecha, 'America/Lima');
@@ -55,5 +54,11 @@ class helpers
         }
      
         return $random_string;
+    }
+
+    public static function crearDirectorioSiNoExiste($ruta) {
+        if (!file_exists($ruta)) {
+            mkdir($ruta, 0777, true); // Otorga permisos mínimos necesarios (0755)
+        }
     }
 }

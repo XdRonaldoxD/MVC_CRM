@@ -1,11 +1,7 @@
 <?php
 
-
-use Verot\Upload\Upload;
-
 require_once "models/Slider.php";
 require_once "models/ConsultaGlobal.php";
-
 
 class SliderController
 {
@@ -13,15 +9,18 @@ class SliderController
     public function ActualizarCrearSlider()
     {
         try {
-            $Formulario = json_decode($_POST['formulario']);
+            $formulario = json_decode($_POST['formulario']);
             $sliderdata = [
-                'nombre_slider' => $Formulario->titulo_slider,
-                'id_categoria' => $Formulario->id_categoria,
-                'texto_slider'=>$Formulario->texto_slider
+                'nombre_slider' => $formulario->titulo_slider,
+                'id_categoria' => $formulario->id_categoria,
+                'texto_slider'=>$formulario->texto_slider
             ];
-            $rutacarpeta="/../archivo/imagen_slider";
-            if ($Formulario->id_slider) {
-                $slider = Slider::where('id_slider', $Formulario->id_slider)->first();
+            $rutacarpeta="/../archivo/".DOMINIO_ARCHIVO."/imagen_slider/";
+            if (!file_exists(__DIR__ . $rutacarpeta)) {
+                mkdir(__DIR__ . $rutacarpeta, 0777, true);
+            }
+            if ($formulario->id_slider) {
+                $slider = Slider::where('id_slider', $formulario->id_slider)->first();
             }
             if (isset($_FILES['imagen_escritorio']) && !empty($_FILES['imagen_escritorio'])) {
                 $imagen = $_FILES['imagen_escritorio']['name'];
@@ -29,17 +28,13 @@ class SliderController
                 $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
                 $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
                 $temp = $_FILES['imagen_escritorio']['tmp_name'];
-                //crear el directorio
-                if (!file_exists(__DIR__ . $rutacarpeta)) {
-                    mkdir(__DIR__ . $rutacarpeta, 0777, true);
-                }
-                if (isset($slider) && $slider->pathescritorio_slider && file_exists(__DIR__ . "$rutacarpeta/$slider->pathescritorio_slider")) {
-                        unlink(__DIR__ . "$rutacarpeta/$slider->pathescritorio_slider");
+                if (isset($slider) && $slider->pathescritorio_slider && file_exists(__DIR__ . $rutacarpeta.$slider->pathescritorio_slider)) {
+                        unlink(__DIR__ . $rutacarpeta.$slider->pathescritorio_slider);
                 }
                 // GUARDA LA IMAGEN
                 $path = time() . $nombre_imagen;
                 $pathescritorio_slider =  $path . '.' . $ext;
-                move_uploaded_file($temp, __DIR__ . "$rutacarpeta/$pathescritorio_slider");
+                move_uploaded_file($temp, __DIR__ . $rutacarpeta.$pathescritorio_slider);
                 $sliderdata += [
                     'pathescritorio_slider' => $pathescritorio_slider,
                 ];
@@ -50,24 +45,20 @@ class SliderController
                 $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
                 $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
                 $temp = $_FILES['imagen_mobile']['tmp_name'];
-                //crear el directorio
-                if (!file_exists(__DIR__ . $rutacarpeta)) {
-                    mkdir(__DIR__ . $rutacarpeta, 0777, true);
-                }
-                if (isset($slider) && $slider->pathmobile_slider && file_exists(__DIR__ . "$rutacarpeta/$slider->pathmobile_slider")) {
-                        unlink(__DIR__ . "$rutacarpeta/$slider->pathmobile_slider");
+                if (isset($slider) && $slider->pathmobile_slider && file_exists(__DIR__ . $rutacarpeta.$slider->pathmobile_slider)) {
+                        unlink(__DIR__ . $rutacarpeta.$slider->pathmobile_slider);
                 }
                 // GUARDA LA IMAGEN
                 $path = time() . $nombre_imagen;
                 $pathmobile_slider =  $path . '.' . $ext;
-                move_uploaded_file($temp, __DIR__ . "$rutacarpeta/$pathmobile_slider");
+                move_uploaded_file($temp, __DIR__ . $rutacarpeta.$pathmobile_slider);
                 $pathmobile_slider =  $path . '.' . $ext;
                 $sliderdata += [
                     'pathmobile_slider' => $pathmobile_slider,
                 ];
             }
-            if ($Formulario->accion === "ACTUALIZAR") {
-                Slider::where('id_slider', $Formulario->id_slider)->update($sliderdata);
+            if ($formulario->accion === "ACTUALIZAR") {
+                Slider::where('id_slider', $formulario->id_slider)->update($sliderdata);
                 $respuesta = "Actualizado";
             } else {
                 $sliderdata += [
@@ -86,21 +77,11 @@ class SliderController
 
     public function GestionActivoDesactivado()
     {
-        if ($_POST['accion'] === 'ACTIVAR') {
-            $data = [
-                'vigente_slider' => 1
-            ];
-        } else {
-            $data = [
-                'vigente_slider' => 0
-            ];
-        }
-        Slider::where("id_slider", $_POST['id_slider'])->update($data);
+        $accion = $_POST['accion'] ?? '';
+        $idSlider = $_POST['id_slider'] ?? '';
+        Slider::where('id_slider', $idSlider)->update(['vigente_slider' => ($accion === 'ACTIVAR' ? 1 : 0)]);
         echo json_encode("exitoso");
     }
-
-
-
     public function ListarSlider()
     {
         $datosPost = file_get_contents("php://input");
@@ -112,7 +93,10 @@ class SliderController
         }
         $buscar = $datosPost->search->value;
         $consulta = " and (nombre_slider LIKE '%$buscar%') ";
-        $query = "SELECT * FROM slider
+        $query = "SELECT *,
+        concat('".RUTA_ARCHIVO."/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathescritorio_slider) as pathescritorio_slider,
+        concat('".RUTA_ARCHIVO."/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathmobile_slider) as pathmobile_slider
+        FROM slider
         left join categoria using (id_categoria)
         WHERE  vigente_slider=$datosPost->vigente_slider
          $consulta

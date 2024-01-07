@@ -10,7 +10,7 @@ class ResumenAnulacion
     {
         $emisor = array(
             'tipodoc'                       =>  '6',
-            'nrodoc'                        =>  '20123456789',
+            'nrodoc'                        =>  $this->datos['company']['ruc'],
             'razon_social'                  =>  $this->datos['company']['razonSocial'],
             'nombre_comercial'              =>  $this->datos['company']['nombreComercial'], //DEBE IR UN NOMBRE CORTO
             'direccion'                     =>  $this->datos['company']['address']['direccion'],
@@ -19,8 +19,8 @@ class ResumenAnulacion
             'provincia'                     =>  $this->datos['company']['address']['provincia'],
             'distrito'                      =>  $this->datos['company']['address']['distrito'],
             'pais'                          =>  'PE',
-            'usuario_secundario'            =>  'MODDATOS',
-            'clave_usuario_secundario'      =>  'MODDATOS',
+            'usuario_secundario'            =>  $this->datos['usuario_sol'],
+            'clave_usuario_secundario'      =>  $this->datos['clave_sol']
         );
 
         $cabecera = array(
@@ -47,21 +47,22 @@ class ResumenAnulacion
 
         //Nombre XML: RUC-TIPO-SERIE-CORRELATIVO
         $nombreXML = $emisor['nrodoc'] . '-' . $cabecera['tipodoc'] . '-' . $cabecera['serie'] . '-' . $cabecera['correlativo'];
-        $rutaXML = 'cpe40/xml/anulacion/';
-        $rutaCRD = 'cpe40/cdr/anulacion/';
-        if (!file_exists($rutaXML)) {
-            mkdir($rutaXML, 0777, true);
-        }
-        if (!file_exists($rutaCRD)) {
-            mkdir($rutaCRD, 0777, true);
-        }
-        $rutaCertificadoDigital = 'cpe40/certificado_digital/';
+        $rutaXML = 'cpe40/xml/'.DOMINIO_ARCHIVO;
+        $rutaCRD = 'cpe40/cdr/'.DOMINIO_ARCHIVO;
+        helpers::crearDirectorioSiNoExiste($rutaXML);
+        helpers::crearDirectorioSiNoExiste($rutaCRD);
+        $rutaXML = 'cpe40/xml/'.DOMINIO_ARCHIVO.'/anulacion/';
+        $rutaCRD = 'cpe40/cdr/'.DOMINIO_ARCHIVO.'/anulacion/';
+        helpers::crearDirectorioSiNoExiste($rutaXML);
+        helpers::crearDirectorioSiNoExiste($rutaCRD);
+        
+        $rutaCertificadoDigital = 'cpe40/certificado_digital/'.DOMINIO_ARCHIVO."/".$this->datos['path_certificado_digital'];
         $obj_xml->CrearXmlBajaDocumentos($emisor, $cabecera, $detalle,  $rutaXML . $nombreXML);
 
         //ENVIO CPE-SUNAT
         require_once('cpe40/api/api_cpe.php');
         $obj_cpe = new api_cpe();
-        $estado_envio = $obj_cpe->enviar_resumen($emisor, $nombreXML, $rutaCertificadoDigital,  $rutaXML);
+        $estado_envio = $obj_cpe->enviar_resumen($emisor, $nombreXML, $rutaCertificadoDigital,  $rutaXML,$this->datos['clavecertificado']);
 
         $hash_cpe = $estado_envio['hash_cpe'];
         $ruta_xml=$estado_envio['ruta_xml'];

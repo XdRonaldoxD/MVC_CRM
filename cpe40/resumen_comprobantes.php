@@ -69,7 +69,7 @@ echo '</br> 1. SE CREÓ EL XML DE RESUMEN DE COMPROBANTES';
 //ENVIO CPE-SUNAT
 require_once('./api/api_cpe.php');
 $obj_cpe = new api_cpe();
-$estado_envio = $obj_cpe->enviar_resumen($emisor, $nombreXML, "certificado_digital/", 'xml/');
+$estado_envio = $obj_cpe->enviar_resumen($emisor, $nombreXML, "certificado_digital/", 'xml/','');
 echo '</br> 2. SE ENVIA EL XML CPE-SUNAT';
 
 echo '</br> NRO DE TICKET: ' . $estado_envio['ticket'];

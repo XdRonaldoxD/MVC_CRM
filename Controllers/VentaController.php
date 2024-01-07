@@ -19,7 +19,7 @@ class VentaController
             $longitud = $DatosPost->length;
         }
         $buscar = $DatosPost->search->value;
-        $consulta = "SELECT negocio.id_negocio as id_negocio_global,negocio.*,cliente.*,boleta.*,factura.*,nota_venta.*,'" . RUTA_ARCHIVO . "/archivo' as ruta_archivo,
+        $consulta = "SELECT negocio.id_negocio as id_negocio_global,negocio.*,cliente.*,boleta.*,factura.*,nota_venta.*,'" . RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."' as ruta_archivo,
         s_boleta.nombre_staff as nombre_staff_boleta,s_boleta.apellidopaterno_staff as apellidopaterno_staff_boleta,s_boleta.apellidomaterno_staff as apellidomaterno_staff_boleta,
         s_factura.nombre_staff as nombre_staff_factura,s_factura.apellidopaterno_staff as apellidopaterno_staff_factura,s_factura.apellidomaterno_staff as apellidomaterno_staff_factura,
         s_nota_venta.nombre_staff as nombre_staff_nota_venta,s_nota_venta.apellidopaterno_staff as apellidopaterno_staff_nota_venta,s_nota_venta.apellidomaterno_staff as apellidomaterno_staff_nota_venta

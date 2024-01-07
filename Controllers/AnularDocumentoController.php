@@ -1,9 +1,9 @@
 <?php
 
-
+use setasign\Fpdi\Tcpdf\Fpdi;
 
 require_once "models/ConsultaGlobal.php";
-require_once "config/Helper.php";
+require_once "Helpers/helpers.php";
 require_once "models/EmpresaVentaOnline.php";
 require_once "models/MotivoDevolucion.php";
 require_once "models/Boleta.php";
@@ -12,6 +12,7 @@ require_once "models/Ingreso.php";
 require_once "models/NegocioDetalle.php";
 require_once "models/NotaCredito.php";
 require_once "models/Folio.php";
+require_once "models/CertificadoDigital.php";
 require_once "cpe40/nota_credito_sunat.php";
 require_once "cpe40/resumen_anulaciones.php";
 require_once "Controllers/NegocioController.php";
@@ -76,27 +77,37 @@ class AnularDocumentoController
         //Y ahí viene el criterio, x ejemplo yo en mi sistema lo tengo a 7 días siempre y cuando sea dentro del mes
         // Si se emitió un 29 por ejemplo y el 2 de junio quiero bajarlo, ya no me deja y me dice mejor usa la nota de credito
         $datosanulacion = json_decode($_POST['datos_anulacion']);
-        $empresaVentaOnline = empresaVentaOnline::leftjoin('certificado_digital_empresa', 'certificado_digital_empresa.id_empresa_venta_online', 'empresa_venta_online.id_empresa_venta_online')
-            ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
-            ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
-            ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
-            ->where('empresa_venta_online.id_empresa_venta_online', 27)
-            ->first();
         $motivodevolucion = MotivoDevolucion::where('id_motivo_devolucion', $datosanulacion->tipo_anulacion)->first();
-        $datosEmpresa = [
-            'ruc_empresa' => '10157622680',
-            'usuario_sol' => 'CALEL019',
-            'clave_sol' => 'Durand019',
-            'clave_certificado' => 'durand019'
-        ];
-        // if ($empresaVentaOnline->id_certificado_digital) {
-        //     $datosEmpresa += [
-        //         'path_certificado_digital' => $empresaVentaOnline->path_certificado_digital,
-        //     ];
-        //     $see = Helper::identificacionDocumentoProduccion($datosEmpresa);
-        // } else {
-        // $see = Helper::identificacionDocumentoPruebas();
-        // }
+        //OBETENEMOS LA EMPRESA---------------------------------------------
+        if (!$datosanulacion->id_empresa) {
+            echo json_encode("No hay empresa agregados");
+            exit(http_response_code(404));
+        }
+        $empresaVentaOnline = CertificadoDigital::join('empresa_venta_online', 'empresa_venta_online.id_empresa_venta_online', 'certificado_digital_empresa.id_empresa_venta_online')
+            ->where('certificado_digital_empresa.id_empresa_venta_online', $datosanulacion->id_empresa)->where('uso_certificado_digital', 1)->first();
+
+        if (!isset($empresaVentaOnline)) {
+            echo json_encode("No hay certificado digital");
+            exit(http_response_code(404));
+        }
+        $clavecertificado = null;
+        if ($empresaVentaOnline->clavearchivo_certificado_digital) {
+            $mensaje_encriptado = base64_decode($empresaVentaOnline->clavearchivo_certificado_digital);
+            $partes = explode('::', $mensaje_encriptado);
+            $clavecertificado = openssl_decrypt($partes[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes[1]);
+        }
+
+
+        $clave_sol_certificado = null;
+        if ($empresaVentaOnline->clavesol_certificado_digital) {
+            $clave_sol = base64_decode($empresaVentaOnline->clavesol_certificado_digital);
+            $partes_clave = explode('::', $clave_sol);
+            $clave_sol_certificado = openssl_decrypt($partes_clave[0], 'aes-256-cbc', 'CERTIFICADO_DIGITAL_SUNAT_VALIDO', OPENSSL_RAW_DATA, $partes_clave[1]);
+        }
+        //------------------------------------------------------------------
+
+        $path_documento = '';
+        $path_ticket_factura = '';
         if ($_POST['tipo_documento'] === "BOLETA") {
             $boleta = Boleta::where('id_boleta', $_POST['id_documento'])
                 ->join('cliente', 'cliente.id_cliente', 'boleta.id_cliente')
@@ -141,6 +152,8 @@ class AnularDocumentoController
                 "numDoc" =>  $numDoc
             ];
             $id_folio = 12;
+            $path_documento = $factura->path_documento;
+            $path_ticket_factura = $factura->path_ticket_factura;
         }
         $datos_cliente += [
             "rznSocial" => $cliente->nombre_cliente . ' ' . $cliente->apellidopaterno_cliente . ' ' . $cliente->apellidomaterno_cliente,
@@ -183,9 +196,9 @@ class AnularDocumentoController
             );
             array_push($details, $datositem);
         }
-        $tipodoc_anulado='';
+        $tipodoc_anulado = '';
         if ($datosanulacion->documento == "ANULAR") {
-            $tipodoc_anulado="RA";
+            $tipodoc_anulado = "RA";
             $folioAnular = Folio::where('id_folio', 16)->first();
             $seriefolio = date('Ymd');
             $numero_folio = 1;
@@ -199,6 +212,12 @@ class AnularDocumentoController
         }
 
         $data = array(
+            //EMPRESA------------------------------------------------
+            "clavecertificado" => $clavecertificado,
+            "usuario_sol" =>  $empresaVentaOnline->usuariosol_certificado_digital,
+            "clave_sol" => $clave_sol_certificado,
+            "path_certificado_digital" => $empresaVentaOnline->path_certificado_digital,
+            //-------------------------------------------------------
             "ublVersion" => "2.1",
             "tipoOperacion" => "0101",
             "tipoDoc" => $tipoDoc,
@@ -230,7 +249,7 @@ class AnularDocumentoController
             "totalImpuestos" => $mtoigv,
             "mtoImpVenta" => $totalventa,
         );
-  
+
         if ($datosanulacion->documento == "ANULAR") {
             $notaCreditoSunat = new ResumenAnulacion($data);
             $respuesta = $notaCreditoSunat->anulardocumento();
@@ -238,7 +257,79 @@ class AnularDocumentoController
                 echo json_encode($respuesta);
                 exit(http_response_code(404));
             }
-            echo json_encode($respuesta);
+            //REESCRIBIMOS EL PDF A ANULADO Y LO ELIMINAMOS EL ANTERIOR
+            //--------------------------------------PDF A4-----------------------------------
+            $existingPdfPath = 'archivo/' . DOMINIO_ARCHIVO . '/Factura/' . $path_documento;
+
+            $pdf = new Fpdi(); // Crea una instancia de Fpdi
+            $pdf->AddPage(); // Agrega una página al PDF
+            $pdf->SetFont('helvetica', 'B', 44); // Establece la fuente y el tamaño del texto
+            $pdf->SetTextColor(255, 0, 0); // color rojo
+
+
+            $pdf->GetStringWidth('ANULADO'); // Calcula la posición para centrar el texto horizontal y verticalmente
+
+            $pdf->SetXY(50, 80); // Establece la posición y el texto a agregar
+            $pdf->Cell(0, 10, 'ANULADO', 0, 1, 'C');
+
+            $pdf->setSourceFile($existingPdfPath);  // Carga el contenido del PDF existente
+            $tplIdx = $pdf->importPage(1);
+
+            $pdf->useTemplate($tplIdx, 0, 0, 210); // Utiliza la plantilla del PDF existente
+
+            // Establece el tamaño del papel y la orientación
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+            $pdf->SetAutoPageBreak(false);
+
+            // Renderiza el PDF
+            $outputPdf = $pdf->Output('', 'S');
+
+            // ELIMINAMOS
+            unlink($existingPdfPath);
+
+            // Guarda el PDF modificado
+            $modifiedPdfPath = $existingPdfPath;
+            file_put_contents($modifiedPdfPath, $outputPdf);
+            // --------------------------------------------------------------------------------------
+            // ---------------------------------------------TICKET--------------------------------------
+            $existingPdfPathticket = 'archivo/' . DOMINIO_ARCHIVO . '/Factura/' . $path_ticket_factura;
+
+            $pdf = new Fpdi(); // Crea una instancia de Fpdi
+            // Obtén el tamaño del PDF existente
+            list($existingWidth, $existingHeight) = $pdf->getTemplateSize($tplIdx);
+            $pdf->AddPage('P', array($existingWidth, $existingHeight)); // Agrega una página al PDF con el mismo tamaño que el ticket existente
+            $pdf->SetFont('helvetica', 'B', 44); // Establece la fuente y el tamaño del texto
+            $pdf->SetTextColor(255, 0, 0); // color rojo
+
+
+            $pdf->GetStringWidth('ANULADO'); // Calcula la posición para centrar el texto horizontal y verticalmente
+
+            $pdf->SetXY(50, 100); // Establece la posición y el texto a agregar
+            $pdf->Cell(0, 10, 'ANULADO', 0, 1, 'C');
+
+            $pdf->setSourceFile($existingPdfPathticket);  // Carga el contenido del PDF existente
+            $tplIdx = $pdf->importPage(1);
+
+            $pdf->useTemplate($tplIdx, 0, 0, 210, 330); // Utiliza la plantilla del PDF existente
+
+            // Establece el tamaño del papel y la orientación
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+            $pdf->SetAutoPageBreak(false);
+            $outputPdf = $pdf->Output('', 'S'); // Renderiza el PDF
+            unlink($existingPdfPathticket); // ELIMINAMOS
+            $modifiedPdfPath = $existingPdfPathticket; // Guarda el PDF modificado
+            file_put_contents($modifiedPdfPath, $outputPdf);
+            //------------------------------------------------------------------------------------------
+            //CAMBIAR EL ESTADO DE LA FACTURA
+            $factura->estado_factura = 0;
+            $factura->save();
+            $rutaspdf = [
+                "pdf" => RUTA_ARCHIVO . $existingPdfPath,
+                "ticket" => RUTA_ARCHIVO . $existingPdfPathticket
+            ];
+            $comentario_producto_historial = "ANULADO FACTURA ELECTRONICA $serie-$correlativo";
         } else {
             $notaCreditoSunat = new NotaCreditoSunat($data);
             $respuesta = $notaCreditoSunat->enviarnotacredito();
@@ -288,37 +379,34 @@ class AnularDocumentoController
             NotaCredito::create($datos);
             $folioAnular->numero_folio += 1;
             $folioAnular->save();
-
-            //AGREGAMOS LOS STOCK REDUCIDO + HISTORIAL
-            foreach ($detallenegocio as $i => $element) {
-  
-                $stockproductobodega=StockProductoBodega::where('id_producto',$element->id_producto)
-                ->where('id_bodega',$element->id_bodega)->first();
-                $stockproductobodega->total_stock_producto_bodega+=$element->cantidad_negocio_detalle;
-                $stockproductobodega->save();
-
-                $datoshistorial=[
-                    'id_usuario'=>$datosanulacion->id_usuario,
-                    'id_tipo_movimiento'=>1,
-                    'id_producto'=>$element->id_producto,
-                    'id_bodega'=>$element->id_bodega,
-                    'cantidadmovimiento_producto_historial'=>$element->cantidad_negocio_detalle,
-                    'fecha_producto_historial'=>date('Y-m-d H:i:s'),
-                    'comentario_producto_historial'=>"NOTA CREDITO N° $numero_folio",
-                    'id_tipo_documento'=>6,
-                ];
-                ProductoHistorial::create($datoshistorial);
-            }
-          
             //------------------------------------------
             $rutaspdf = [
-                "ticket" => RUTA_ARCHIVO . "/archivo/NOTA CREDITO/{$pathNotaCredito['path_ticket']}",
-                "pdf" => RUTA_ARCHIVO . "/archivo/NOTA CREDITO/{$pathNotaCredito['path']}"
+                "ticket" => RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/NOTA CREDITO/{$pathNotaCredito['path_ticket']}",
+                "pdf" => RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/NOTA CREDITO/{$pathNotaCredito['path']}"
             ];
-
-
-            echo json_encode($rutaspdf);
+            $comentario_producto_historial = "NOTA CREDITO N° $numero_folio";
         }
+
+        //AGREGAMOS LOS STOCK REDUCIDO + HISTORIAL
+        foreach ($detallenegocio as $i => $element) {
+            $stockproductobodega = StockProductoBodega::where('id_producto', $element->id_producto)
+                ->where('id_bodega', $element->id_bodega)->first();
+            $stockproductobodega->total_stock_producto_bodega += $element->cantidad_negocio_detalle;
+            $stockproductobodega->save();
+            $datoshistorial = [
+                'id_usuario' => $datosanulacion->id_usuario,
+                'id_tipo_movimiento' => 1,
+                'id_producto' => $element->id_producto,
+                'id_bodega' => $element->id_bodega,
+                'cantidadmovimiento_producto_historial' => $element->cantidad_negocio_detalle,
+                'fecha_producto_historial' => date('Y-m-d H:i:s'),
+                'comentario_producto_historial' => $comentario_producto_historial,
+                'id_tipo_documento' => 6,
+            ];
+            ProductoHistorial::create($datoshistorial);
+        }
+
+        echo json_encode($rutaspdf);
     }
 
     public function traerDocumento()
@@ -392,8 +480,8 @@ class AnularDocumentoController
                 break;
         }
 
-        $ticket = RUTA_ARCHIVO . "/archivo/$tipo_documento/$path";
-        $pdf = RUTA_ARCHIVO . "/archivo/$tipo_documento/$path_ticket";
+        $ticket = RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/$tipo_documento/$path";
+        $pdf = RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/$tipo_documento/$path_ticket";
 
         $ticketpdf = file_get_contents($ticket);
         $pdfContent = file_get_contents($pdf);

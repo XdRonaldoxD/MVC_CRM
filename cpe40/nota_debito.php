@@ -127,7 +127,7 @@ echo '</br> PARTE 01: XML DE NOTA DE DEBITO CREADO SATISFACTORIAMENTE';
 //PARTE 2: ENVIO CPE-SUNAT
 require_once('./api/api_cpe.php');
 $objCPE = new api_cpe();
-$estado_envio = $objCPE->enviar_invoice($emisor, $nombreXML, 'certificado_digital/', 'xml/', 'cdr/');
+$estado_envio = $objCPE->enviar_invoice($emisor, $nombreXML, 'certificado_digital/', 'xml/', 'cdr/','');
 
 
 echo '</br> PARTE 2: ENVIO CPE-SUNAT';

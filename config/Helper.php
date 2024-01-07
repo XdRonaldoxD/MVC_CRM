@@ -66,4 +66,6 @@ class Helper
         $codigoProducto = implode('-', $iniciales);
         return $codigoProducto;
     }
+
+
 }

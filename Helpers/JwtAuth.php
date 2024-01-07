@@ -30,7 +30,7 @@ class JwtAuth
             $signup = true;
         }
         if ($signup) {
-            $empresaVentaOnline=empresaVentaOnline::first();
+            $empresaVentaOnline=EmpresaVentaOnline::first();
             //Generar un toke y devolver
             $token = array(
                 'id_empresa'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->id_empresa_venta_online : null),

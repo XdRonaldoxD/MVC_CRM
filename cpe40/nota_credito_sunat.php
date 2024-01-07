@@ -8,7 +8,7 @@ class NotaCreditoSunat{
     public function enviarnotacredito(){
         $emisor = array(
             'tipodoc'                   =>  '6',
-            'nrodoc'                    =>  '20123456789',
+            'nrodoc'                    =>  $this->datos['company']['ruc'],
             'razon_social'              =>  $this->datos['company']['razonSocial'],
             'nombre_comercial'          =>  $this->datos['company']['nombreComercial'], //DEBE IR UN NOMBRE CORTO
             'direccion'                 =>  $this->datos['company']['address']['direccion'],
@@ -17,8 +17,8 @@ class NotaCreditoSunat{
             'provincia'                 =>  $this->datos['company']['address']['provincia'],
             'distrito'                  =>  $this->datos['company']['address']['distrito'],
             'pais'                      =>  'PE',
-            'usuario_secundario'        =>  'MODDATOS',
-            'clave_usuario_secundario'  =>  'MODDATOS'
+            'usuario_secundario'        =>  $this->datos['usuario_sol'],
+            'clave_usuario_secundario'  =>  $this->datos['clave_sol']
         );
         
         $cliente = array(
@@ -98,15 +98,16 @@ class NotaCreditoSunat{
         
         //PARTE 1: CREAR EL XML
         $nombreXML = $emisor['nrodoc'] . '-' . $comprobante['tipodoc'] . '-' . $comprobante['serie'] . '-' . $comprobante['correlativo'];
-        $rutaXML = 'cpe40/xml/nota_credito/';
-        $rutaCRD = 'cpe40/cdr/nota_credito/';
-        if (!file_exists($rutaXML)) {
-            mkdir($rutaXML, 0777, true);
-        }
-        if (!file_exists($rutaCRD)) {
-            mkdir($rutaCRD, 0777, true);
-        }
-        $rutaCertificadoDigital = 'cpe40/certificado_digital/';
+        $rutaXML = 'cpe40/xml/'.DOMINIO_ARCHIVO;
+        $rutaCRD = 'cpe40/cdr/'.DOMINIO_ARCHIVO;
+        helpers::crearDirectorioSiNoExiste($rutaXML);
+        helpers::crearDirectorioSiNoExiste($rutaCRD);
+        $rutaXML = 'cpe40/xml/'.DOMINIO_ARCHIVO.'/nota_credito/';
+        $rutaCRD = 'cpe40/cdr/'.DOMINIO_ARCHIVO.'/nota_credito/';
+        helpers::crearDirectorioSiNoExiste($rutaXML);
+        helpers::crearDirectorioSiNoExiste($rutaCRD);
+        
+        $rutaCertificadoDigital = 'cpe40/certificado_digital/'.DOMINIO_ARCHIVO."/".$this->datos['path_certificado_digital'];
         require_once('cpe40/api/api_genera_xml.php');
         $objXML = new api_genera_xml();
         $objXML->crea_xml_notacredito($rutaXML . $nombreXML, $emisor, $cliente, $comprobante, $detalle);
@@ -115,7 +116,7 @@ class NotaCreditoSunat{
         //PARTE 2: ENVIO CPE-SUNAT
         require_once('cpe40/api/api_cpe.php');
         $objCPE = new api_cpe();
-        $estado_envio = $objCPE->enviar_invoice($emisor, $nombreXML, $rutaCertificadoDigital, $rutaXML, $rutaCRD);
+        $estado_envio = $objCPE->enviar_invoice($emisor, $nombreXML, $rutaCertificadoDigital, $rutaXML, $rutaCRD,$this->datos['clavecertificado']);
         $respuesta = [
             "Estado" => $estado_envio['estado'],
             "Mensaje" => $estado_envio['estado_mensaje'],

@@ -11,8 +11,8 @@ class FacturaSunat
     public function enviarfactura()
     {
         $emisor = array(
-            'tipodoc'                   =>  '6',
-            'nrodoc'                    =>  '20123456789',
+            'tipodoc'                   =>  '6',//TIPO DOCUMETNO ESTE CASO RUC
+            'nrodoc'                    =>  $this->datos['company']['ruc'],
             'razon_social'              =>  $this->datos['company']['razonSocial'],
             'nombre_comercial'          =>  $this->datos['company']['nombreComercial'], //DEBE IR UN NOMBRE CORTO
             'direccion'                 =>  $this->datos['company']['address']['direccion'],
@@ -21,8 +21,8 @@ class FacturaSunat
             'provincia'                 =>  $this->datos['company']['address']['provincia'],
             'distrito'                  =>  $this->datos['company']['address']['distrito'],
             'pais'                      =>  'PE',
-            'usuario_secundario'        =>  'MODDATOS',
-            'clave_usuario_secundario'  =>  'MODDATOS'
+            'usuario_secundario'        =>  $this->datos['usuario_sol'],
+            'clave_usuario_secundario'  =>  $this->datos['clave_sol']
         );
 
         $cliente = array(
@@ -127,22 +127,21 @@ class FacturaSunat
 
         //nombre del XML segun SUNAT
         $nombreXML = $emisor['nrodoc'] . '-' . $comprobante['tipodoc'] . '-' . $comprobante['serie'] . '-' . $comprobante['correlativo'];
-        $rutaXML = 'cpe40/xml/factura/';
-        $rutaCRD = 'cpe40/cdr/factura/';
-        if (!file_exists($rutaXML)) {
-            mkdir($rutaXML, 0777, true);
-        }
-        if (!file_exists($rutaCRD)) {
-            mkdir($rutaCRD, 0777, true);
-        }
-        $rutaCertificadoDigital = 'cpe40/certificado_digital/';
+        $rutaXML = 'cpe40/xml/'.DOMINIO_ARCHIVO;
+        $rutaCRD = 'cpe40/cdr/'.DOMINIO_ARCHIVO;
+        helpers::crearDirectorioSiNoExiste($rutaXML);
+        helpers::crearDirectorioSiNoExiste($rutaCRD);
+        $rutaXML = 'cpe40/xml/'.DOMINIO_ARCHIVO.'/factura/';
+        $rutaCRD = 'cpe40/cdr/'.DOMINIO_ARCHIVO.'/factura/';
+        helpers::crearDirectorioSiNoExiste($rutaXML);
+        helpers::crearDirectorioSiNoExiste($rutaCRD);
+        $rutaCertificadoDigital = 'cpe40/certificado_digital/'.DOMINIO_ARCHIVO."/".$this->datos['path_certificado_digital'];
 
         $obj_xml->crea_xml_invoice($rutaXML . $nombreXML, $emisor, $cliente, $comprobante, $detalle, $cuotas);
         //PARTE 2: ENVIO CPE A SUNAT
         require_once('cpe40/api/api_cpe.php');
         $objEnvio = new api_cpe();
-        $estado_envio = $objEnvio->enviar_invoice($emisor, $nombreXML, $rutaCertificadoDigital, $rutaXML, $rutaCRD);
-
+        $estado_envio = $objEnvio->enviar_invoice($emisor, $nombreXML, $rutaCertificadoDigital, $rutaXML, $rutaCRD,$this->datos['clavecertificado']);
         $respuesta = [
             "Estado" => $estado_envio['estado'],
             "Mensaje" => $estado_envio['estado_mensaje'],

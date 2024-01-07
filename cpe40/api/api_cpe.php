@@ -3,15 +3,14 @@
 class api_cpe
 {
     //para enviar BOLETA, FACTURA, NOTA DE CREDITO Y NOTA DE DEBITO
-    function enviar_invoice($emisor, $nombreXML, $ruta_certificado, $ruta_archivo_xml, $ruta_archivo_cdr) {
+    function enviar_invoice($emisor, $nombreXML, $ruta_certificado, $ruta_archivo_xml, $ruta_archivo_cdr,$pass_certificado) {
         $estado_envio = 0; //inicia el proceso
 
         //FIRMAR DIGITALMENTE
         require_once('cpe40/signature.php');
         $objFirma = new Signature();
         $flg_firma = 0; //indica la posicion de la etiqueta del XML donde ser firmará digitalmente
-        $ruta_certificado = $ruta_certificado . 'certificado_prueba_sunat.pfx'; //debemos modificar cuando hagamos el pase a produccion
-        $pass_certificado = 'ceti';
+
         $ruta_xml = $ruta_archivo_xml . $nombreXML . '.XML';
         $resp_hash = $objFirma->signature_xml($flg_firma, $ruta_xml, $ruta_certificado, $pass_certificado);
         $estado_envio = 1;
@@ -157,15 +156,13 @@ class api_cpe
         return $estado_envio;
     }
 
-    function enviar_resumen($emisor, $nombreXML, $ruta_certificado, $ruta_archivo_xml) {
+    function enviar_resumen($emisor, $nombreXML, $ruta_certificado, $ruta_archivo_xml,$pass_certificado) {
         $estado_envio = 0; //inicia el proceso
 
         //FIRMAR DIGITALMENTE
         require_once('cpe40/signature.php');
         $objFirma = new Signature();
         $flg_firma = 0; //indica la posicion de la etiqueta del XML donde ser firmará digitalmente
-        $ruta_certificado = $ruta_certificado . 'certificado_prueba_sunat.pfx'; //debemos modificar cuando hagamos el pase a produccion
-        $pass_certificado = 'ceti';
         $ruta_xml = $ruta_archivo_xml . $nombreXML . '.XML';
         $resp_hash = $objFirma->signature_xml($flg_firma, $ruta_xml, $ruta_certificado, $pass_certificado);
         $estado_envio = 1; 

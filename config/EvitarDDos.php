@@ -7,9 +7,15 @@ class EvitarDDos
         $archivo = "archivo/registrosDDos/"  . md5($_SERVER['REQUEST_URI']) . '.txt';
         $tiempo_actual = time();
         $registros = array();
-        if (!is_dir('archivo/registrosDDos')) {
-            mkdir('archivo/registrosDDos');
-            chmod('archivo/registrosDDos', 0777);
+        // Directorio base
+        $directorio = "archivo";// Verificar y crear la carpeta si no existe
+        if (!is_dir($directorio)) {
+            mkdir($directorio);
+        }
+        $directorio_base=$directorio."/registrosDDos";
+        if (!is_dir($directorio_base)) {
+            mkdir($directorio_base);
+            chmod($directorio_base, 0777);
         }
         if (file_exists($archivo)) {
             $registros = unserialize(file_get_contents($archivo));

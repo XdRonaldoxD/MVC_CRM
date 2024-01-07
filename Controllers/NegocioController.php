@@ -26,10 +26,12 @@ require_once "models/Usuario.php";
 require_once "models/StockProductoBodega.php";
 require_once "models/EmpresaVentaOnline.php";
 require_once "models/TipoAfectacion.php";
+require_once "models/CertificadoDigital.php";
 require_once "Helpers/helpers.php";
 require_once "config/Helper.php";
 require_once "cpe40/boleta_sunat.php";
 require_once "cpe40/factura_sunat.php";
+
 
 class NegocioController
 {
@@ -38,6 +40,8 @@ class NegocioController
     public function __construct()
     {
         $this->fechaactual = date('Y-m-d H:i:s');
+
+        
     }
     public function GenerarNegocio()
     {
@@ -56,18 +60,21 @@ class NegocioController
         foreach ($datos->ProductoSeleccionados as $elemento) {
             $producto = StockProductoBodega::where('id_producto', $elemento->id_producto)->where('id_bodega', $staff->id_bodega)->first();
             if (!$producto || $producto->total_stock_producto_bodega <= 0) {
-                echo json_encode("Verificar stock producto");
+                echo json_encode("Verificar stock del producto");
                 exit(http_response_code(404));
             }
         }
         //-----------------------------------------------------
-        $EmpresaVentaOnline = EmpresaVentaOnline::leftjoin('certificado_digital_empresa', 'certificado_digital_empresa.id_empresa_venta_online', 'empresa_venta_online.id_empresa_venta_online')
-            ->leftjoin('distrito', 'distrito.idDistrito', 'empresa_venta_online.idDistrito')
-            ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
-            ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
-            ->where('empresa_venta_online.id_empresa_venta_online', $informacionForm->id_empresa)
-            ->first();
-
+        if (!$informacionForm->id_empresa) {
+            echo json_encode("No hay empresa agregados");
+            exit(http_response_code(404));
+        }
+        $EmpresaVentaOnline=CertificadoDigital::join('empresa_venta_online','empresa_venta_online.id_empresa_venta_online','certificado_digital_empresa.id_empresa_venta_online')
+        ->where('certificado_digital_empresa.id_empresa_venta_online',$informacionForm->id_empresa)->where('uso_certificado_digital',1)->first();
+        if (!isset($EmpresaVentaOnline)) {
+            echo json_encode("No hay certificado digital");
+            exit(http_response_code(404));
+        }
         $cliente = Cliente::leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
             ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
             ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
@@ -192,6 +199,7 @@ class NegocioController
             "clavecertificado" => $clavecertificado,
             "usuario_sol" =>  $EmpresaVentaOnline->usuariosol_certificado_digital,
             "clave_sol" => $clave_sol_certificado,
+            "path_certificado_digital" => $EmpresaVentaOnline->path_certificado_digital,
             //-------------------------------------------------------
             "ublVersion" => "2.1",
             "tipoOperacion" => "0101",
@@ -223,7 +231,6 @@ class NegocioController
             "details" => $details,
             'listaMetodosPago' => $listaMetodosPago
         );
-
         $respuesta = [];
         if ($tipo_documento === 'BOLETA') {
             $boleta = new BoletaSunat($data);
@@ -279,7 +286,7 @@ class NegocioController
                 'id_producto' => $elemento['id_producto'],
                 'cantidadmovimiento_producto_historial' => $elemento['cantidad'],
                 'fecha_producto_historial' => $this->fechaactual,
-                'id_tipo_documento'=>$id_tipo_documento,
+                'id_tipo_documento' => $id_tipo_documento,
                 'comentario_producto_historial' => "$tipo_documento DE VENTA ELECTRONICA"
             ];
             ProductoHistorial::create($producto_historial);
@@ -441,8 +448,8 @@ class NegocioController
         }
 
         $rutaspdf = [
-            "ticket" => RUTA_ARCHIVO . "/archivo/$tipo_documento/{$pathNotaVenta['path_ticket']}",
-            "pdf" => RUTA_ARCHIVO . "/archivo/$tipo_documento/{$pathNotaVenta['path']}"
+            "ticket" => RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."/$tipo_documento/{$pathNotaVenta['path_ticket']}",
+            "pdf" => RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."/$tipo_documento/{$pathNotaVenta['path']}"
         ];
         echo json_encode($rutaspdf);
     }
@@ -459,7 +466,7 @@ class NegocioController
         $Fecha = explode("-", $separaFecha[0]);
         $filename = "Ticket_" . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . ".pdf";
         $filename_documento = "Documento_" . $tipo_documento . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . ".pdf";
-        $path = 'archivo/' . $tipo_documento;
+        $path = 'archivo/' . DOMINIO_ARCHIVO . "/" . $tipo_documento;
         if (!file_exists($path)) {
             mkdir($path, 0777, true);
         }
@@ -551,8 +558,8 @@ class NegocioController
             $pathticket = $factura->path_ticket_factura;
         }
 
-        $pathtoFile_pdf = RUTA_ARCHIVO . "/archivos/{$_POST['documento']}Venta/$pathpdf";
-        $pathtoFile_ticket = RUTA_ARCHIVO . "/archivos/{$_POST['documento']}Venta/$pathticket";
+        $pathtoFile_pdf = RUTA_ARCHIVO . "/archivos/".DOMINIO_ARCHIVO."/{$_POST['documento']}Venta/$pathpdf";
+        $pathtoFile_ticket = RUTA_ARCHIVO . "/archivos/".DOMINIO_ARCHIVO."/{$_POST['documento']}Venta/$pathticket";
         $respuesta = [
             'pdf' => $pathtoFile_pdf,
             'ticket' => $pathtoFile_ticket

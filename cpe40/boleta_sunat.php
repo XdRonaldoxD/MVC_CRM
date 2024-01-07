@@ -1,5 +1,5 @@
 <?php
-
+require_once "Helpers/helpers.php";
 class BoletaSunat
 {
 
@@ -13,7 +13,7 @@ class BoletaSunat
     {
         $emisor = array(
             'tipodoc'                       =>  '6',
-            'nrodoc'                        =>  '20123456789',
+            'nrodoc'                        =>  $this->datos['company']['ruc'],
             'razon_social'                  =>  $this->datos['company']['razonSocial'],
             'nombre_comercial'              =>  $this->datos['company']['nombreComercial'], //DEBE IR UN NOMBRE CORTO
             'direccion'                     =>  $this->datos['company']['address']['direccion'],
@@ -22,8 +22,8 @@ class BoletaSunat
             'provincia'                     =>  $this->datos['company']['address']['provincia'],
             'distrito'                      =>  $this->datos['company']['address']['distrito'],
             'pais'                          =>  'PE',
-            'usuario_secundario'            =>  'MODDATOS',
-            'clave_usuario_secundario'      =>  'MODDATOS',
+            'usuario_secundario'            =>  $this->datos['usuario_sol'],
+            'clave_usuario_secundario'      =>  $this->datos['clave_sol']
         );
 
         // PARA CLIENTE
@@ -36,7 +36,7 @@ class BoletaSunat
         );
 
         $comprobante = array(
-            'tipodoc'                       =>  '03',
+            'tipodoc'                       =>  '03',//FACTURA: 01, BOLETA: 03, NC: 07, ND: 08
             'serie'                         =>  $this->datos['serie'],
             'correlativo'                   =>  $this->datos['correlativo'],
             'fecha_emision'                 =>  date('Y-m-d'),
@@ -95,15 +95,16 @@ class BoletaSunat
 
         //PARTE 1: CREAR EL XML
         $nombreXML = $emisor['nrodoc'] . '-' . $comprobante['tipodoc'] . '-' . $comprobante['serie'] . '-' . $comprobante['correlativo'];
-        $rutaXML = 'cpe40/xml/boleta/';
-        $rutaCRD = 'cpe40/cdr/boleta/';
-        if (!file_exists($rutaXML)) {
-            mkdir($rutaXML, 0777, true);
-        }
-        if (!file_exists($rutaCRD)) {
-            mkdir($rutaCRD, 0777, true);
-        }
-        $rutaCertificadoDigital = 'cpe40/certificado_digital/';
+        $rutaXML = 'cpe40/xml/'.DOMINIO_ARCHIVO;
+        $rutaCRD = 'cpe40/cdr/'.DOMINIO_ARCHIVO;
+        helpers::crearDirectorioSiNoExiste($rutaXML);
+        helpers::crearDirectorioSiNoExiste($rutaCRD);
+        $rutaXML = 'cpe40/xml/'.DOMINIO_ARCHIVO.'/boleta/';
+        $rutaCRD = 'cpe40/cdr/'.DOMINIO_ARCHIVO.'/boleta/';
+        helpers::crearDirectorioSiNoExiste($rutaXML);
+        helpers::crearDirectorioSiNoExiste($rutaCRD);
+   
+        $rutaCertificadoDigital = 'cpe40/certificado_digital/'.DOMINIO_ARCHIVO."/".$this->datos['path_certificado_digital'];
 
         require_once('cpe40/api/api_genera_xml.php');
         $objXML = new api_genera_xml();
@@ -114,7 +115,7 @@ class BoletaSunat
         //PARTE 2: ENVIO CPE-SUNAT
         require_once('cpe40/api/api_cpe.php');
         $objCPE = new api_cpe();
-        $estado_envio = $objCPE->enviar_invoice($emisor, $nombreXML, $rutaCertificadoDigital, $rutaXML, $rutaCRD);
+        $estado_envio = $objCPE->enviar_invoice($emisor, $nombreXML, $rutaCertificadoDigital, $rutaXML, $rutaCRD,$this->datos['clavecertificado']);
 
         $respuesta = [
             "Estado" => $estado_envio['estado'],

@@ -18,6 +18,6 @@ class CertificadoDigital extends Model
         'fechainicio_certificado_digital',
         'fechafin_certificado_digital',
         'fechacreacion_certificado_digital',
-        
+        'uso_certificado_digital'
     ];
 }

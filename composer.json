@@ -11,7 +11,9 @@
         "benmajor/php-image-resize": "^1.1",
         "verot/class.upload.php": "^2.1",
         "cloudinary/cloudinary_php": "^1.0",
-        "greenter/lite": "^4.3"
+        "greenter/lite": "^4.3",
+        "setasign/fpdi": "^2.6",
+        "tecnickcom/tcpdf": "^6.6"
     },
     "require-dev": {
         "phpunit/phpunit": "^9"

@@ -159,6 +159,7 @@ class CategoriaController
     public function GestionarCategoria()
     {
         $formulario=json_decode($_POST['formulario']);
+        $directorio=__DIR__ . "/../archivo/".DOMINIO_ARCHIVO."/imagen_categoria/";
         $urlAmigable = "";
         $urlAmigable .= str_replace(" ", "-",  $formulario->glosa_categoria);
         $urlAmigable = str_replace("/", "-", $urlAmigable);
@@ -180,14 +181,14 @@ class CategoriaController
             $nombre_imagen = str_replace(' ', '', $nombre_imagen);
             // $temp = $_FILES['imagen']['tmp_name'];
             //crear el directorio
-            if (!file_exists(__DIR__ . "/../archivo/imagen_categoria")) {
-                mkdir(__DIR__ . "/../archivo/imagen_categoria", 0777, true);
+            if (!file_exists($directorio)) {
+                mkdir($directorio, 0777, true);
             }
 
             if ($_POST['accion'] !== "CREAR") {
                 $Categorias = Categorias::where('id_categoria',$formulario->id_categoria)->first();
-                if ($Categorias->pathimagen_categoria && file_exists(__DIR__ . "/../archivo/imagen_categoria/$Categorias->pathimagen_categoria")) {
-                        unlink(__DIR__ . "/../archivo/imagen_categoria/$Categorias->pathimagen_categoria");
+                if ($Categorias->pathimagen_categoria && file_exists($directorio.$Categorias->pathimagen_categoria)) {
+                        unlink($directorio.$Categorias->pathimagen_categoria);
                 }
             }
 
@@ -218,7 +219,7 @@ class CategoriaController
             //
             $foo->image_x               = 220;
             $foo->image_y               = 100;
-            $foo->process(__DIR__ . "/../archivo/imagen_categoria/");
+            $foo->process($directorio);
             if ($foo->processed) {
                 $foo->clean();
             } else {
@@ -270,7 +271,7 @@ class CategoriaController
         if ($categoria->pathimagen_categoria) {
             $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
             $domain = $_SERVER['HTTP_HOST'];
-            $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_categoria/$categoria->pathimagen_categoria";
+            $imagens = $protocol . $domain . "/MVC_CRM/archivo/".DOMINIO_ARCHIVO."/imagen_categoria/$categoria->pathimagen_categoria";
             $categoria->pathimagen_categoria = $imagens;
         }
         echo $categoria;

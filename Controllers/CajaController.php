@@ -206,7 +206,7 @@ class CajaController
             ->leftjoin('staff', 'staff.id_staff', 'caja.id_staff')
             ->first();
         if (isset($_GET['id_caja'])) {
-            $path_imagen = __DIR__ . '/../archivo/imagenes/ahorro_farma.jpg';
+            $path_imagen = __DIR__ . '/../archivo/'.DOMINIO_ARCHIVO.'/imagenes/ahorro_farma.jpg';
             $imagen = base64_encode(file_get_contents($path_imagen));
             ob_start();
             if ($_GET['Formato'] == "TICKET") {
@@ -237,7 +237,7 @@ class CajaController
     public function MostrarDocumentos()
     {
         if ($_GET['tipo_documento'] == "INGRESO") {
-            $query_ingreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo' as ruta_archivo from ingreso 
+            $query_ingreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."' as ruta_archivo from ingreso
             INNER JOIN negocio USING (id_negocio)
             INNER JOIN medio_pago USING (id_medio_pago)
             inner join tipo_ingreso USING (id_tipo_ingreso)
@@ -247,7 +247,7 @@ class CajaController
             where id_caja={$_GET['id_caja']} AND medio_pago.id_medio_pago={$_GET['id_pago']}";
             $data = (new ConsultaGlobal())->ConsultaGlobal($query_ingreso);
         } else {
-            $query_egreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo' as ruta_archivo from egreso 
+            $query_egreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."' as ruta_archivo from egreso 
             INNER JOIN negocio USING (id_negocio)
             inner join tipo_egreso USING (id_tipo_egreso)
             LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
@@ -273,7 +273,7 @@ class CajaController
 
     public function EnviarCorreoElectronico()
     {
-        $path_imagen = __DIR__ . '/../archivo/imagenes/ahorro_farma.jpg';
+        $path_imagen = __DIR__ . '/../archivo/'.DOMINIO_ARCHIVO.'/imagenes/ahorro_farma.jpg';
         $imagen = base64_encode(file_get_contents($path_imagen));
 
         $DatosPost = file_get_contents("php://input");
@@ -313,8 +313,8 @@ class CajaController
             //Server settings
             // $mail->SMTPDebug = 0;                       // Enable verbose debug output
             $mail->isSMTP();
-            // smtp.mandrillapp.com  
-            // smithxd118@gmail.com     
+            // smtp.mandrillapp.com
+            // smithxd118@gmail.com
             // a74dac0e781527e2e06bd66041783587-us14
             // Send using SMTP
             $mail->Host       =  Host;                    // Set the SMTP server to send through
@@ -329,7 +329,7 @@ class CajaController
             $mail->setFrom(Email, 'Venta Electronica');
             //PARA QUIEN
             $mail->addAddress($correo);
-            // $mail->addAddress('rdurand@wilsoft.cl');  
+            // $mail->addAddress('rdurand@wilsoft.cl');
             //copia
             // $mail->addCC('smithxd118@gmail.com');
             // Add a recipient

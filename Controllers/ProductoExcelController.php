@@ -47,13 +47,10 @@ class ProductoExcelController
         move_uploaded_file($guardado, $path . '/' . $nombre_excel);
         $ruta = $path . "/" . $nombre_excel;
         $documento = IOFactory::load($ruta);
-        // print_r($cantidad);
         $respuesta = "";
         $ProductoNoRegistrado = array();
         $validandoExcel = array();
-
-        //saber la cantidad de hojas
-        $hojaActual = $documento->getSheet(0);
+        $hojaActual = $documento->getSheet(0);//saber la cantidad de hojas
         try {
             foreach ($hojaActual->getRowIterator() as $key => $fila) {
                 if ($key >= 3) {

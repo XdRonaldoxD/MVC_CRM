@@ -15,6 +15,8 @@ class EmpresaController
     public function GuardarInformacion()
     {
         $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
+        $directorio = __DIR__ . "/../archivo/" . DOMINIO_ARCHIVO . "/imagenes_empresa/";
+        $folder = $_SERVER['SERVER_NAME'] . '/archivo/' . DOMINIO_ARCHIVO . '/imagenes_empresa';
         $domain = $_SERVER['HTTP_HOST'];
         $dominio_empresa = $protocol . $domain;
         if ($protocol == 'http://') {
@@ -52,27 +54,24 @@ class EmpresaController
             $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
             $temp = $_FILES['icono_empresa']['tmp_name'];
             //crear el directorio
-            if (!file_exists(__DIR__ . "/../archivo/imagenes_empresa")) {
-                mkdir(__DIR__ . "/../archivo/imagenes_empresa", 0777, true);
+            if (!file_exists($directorio)) {
+                mkdir($directorio, 0777, true);
             }
             if (!empty($informacionForm->id_empresa_venta_online) && $informacionForm->id_empresa_venta_online != '') {
                 $EmpresaVentaOnline = EmpresaVentaOnline::where('id_empresa_venta_online', $informacionForm->id_empresa_venta_online)->first();
                 if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->public_idicono_empresa_venta_online) {
                     \Cloudinary\Uploader::destroy($EmpresaVentaOnline->public_idicono_empresa_venta_online, [
-                        "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa'
+                        "folder" => $folder
                     ]);
-                    // if (file_exists(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online")) {
-                    //     unlink(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online");
-                    // }
                 }
             }
 
             $path = time() . $nombre_imagen;
-            $ruta_archivo = __DIR__ . "/../archivo/imagenes_empresa/$path.$ext";
+            $ruta_archivo = $directorio . $path . $ext;
             move_uploaded_file($temp, $ruta_archivo);
             //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
             $respuesta = \Cloudinary\Uploader::upload($ruta_archivo, [
-                "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa',
+                "folder" => $folder,
                 "transformation" => array(
                     array(
                         "width" => 32, // especifica el ancho deseado
@@ -95,27 +94,23 @@ class EmpresaController
             $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
             $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
             $temp = $_FILES['logo_empresa_horizonta']['tmp_name'];
-            //crear el directorio
-            if (!file_exists(__DIR__ . "/../archivo/imagenes_empresa")) {
-                mkdir(__DIR__ . "/../archivo/imagenes_empresa", 0777, true);
+            if (!file_exists($directorio)) { //crear el directorio
+                mkdir($directorio, 0777, true);
             }
             if (!empty($informacionForm->id_empresa_venta_online) && $informacionForm->id_empresa_venta_online != '') {
                 $EmpresaVentaOnline = EmpresaVentaOnline::where('id_empresa_venta_online', $informacionForm->id_empresa_venta_online)->first();
                 if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->public_idlogohorizontal_empresa_venta_online) {
                     \Cloudinary\Uploader::destroy($EmpresaVentaOnline->public_idlogohorizontal_empresa_venta_online, [
-                        "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa'
+                        "folder" => $folder
                     ]);
-                    // if (file_exists(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online")) {
-                    //     unlink(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online");
-                    // }
                 }
             }
             $path = time() . $nombre_imagen;
-            $ruta_archivo = __DIR__ . "/../archivo/imagenes_empresa/$path.$ext";
+            $ruta_archivo = $directorio . $path . $ext;
             move_uploaded_file($temp, $ruta_archivo);
             //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
             $respuesta = \Cloudinary\Uploader::upload($ruta_archivo, [
-                "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa',
+                "folder" => $folder,
                 "transformation" => array(
                     array(
                         "width" => 250, // especifica el ancho deseado
@@ -139,26 +134,23 @@ class EmpresaController
             $nombre_imagen = preg_replace('([^A-Za-z0-9])', '', $nombre_imagen);
             $temp = $_FILES['logo_empresa_vertical']['tmp_name'];
             //crear el directorio
-            if (!file_exists(__DIR__ . "/../archivo/imagenes_empresa")) {
-                mkdir(__DIR__ . "/../archivo/imagenes_empresa", 0777, true);
+            if (!file_exists($directorio)) {
+                mkdir($directorio, 0777, true);
             }
             if (!empty($informacionForm->id_empresa_venta_online) && $informacionForm->id_empresa_venta_online != '') {
                 $EmpresaVentaOnline = EmpresaVentaOnline::where('id_empresa_venta_online', $informacionForm->id_empresa_venta_online)->first();
                 if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->public_idlogovertical_empresa_venta_online) {
                     \Cloudinary\Uploader::destroy($EmpresaVentaOnline->public_idlogovertical_empresa_venta_online, [
-                        "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa'
+                        "folder" => $folder
                     ]);
-                    // if (file_exists(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online")) {
-                    //     unlink(__DIR__ . "/../archivo/imagenes_empresa/$EmpresaVentaOnline->pathfoto_empresa_venta_online");
-                    // }
                 }
             }
             $path = time() . $nombre_imagen;
-            $ruta_archivo = __DIR__ . "/../archivo/imagenes_empresa/$path.$ext";
+            $ruta_archivo = $directorio . $path . $ext;
             move_uploaded_file($temp, $ruta_archivo);
             //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
             $respuesta = \Cloudinary\Uploader::upload($ruta_archivo, [
-                "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagenes_empresa',
+                "folder" => $folder,
                 "transformation" => array(
                     array(
                         "width" => 160, // especifica el ancho deseado
@@ -181,31 +173,27 @@ class EmpresaController
             $nombre_certificado = preg_replace('([^A-Za-z0-9])', '', $nombre_certificado);
             $temp = $_FILES['archivo_digital']['tmp_name'];
             //crear el directorio
-            if (!file_exists(__DIR__ . "/../archivo/certificado_digital")) {
-                mkdir(__DIR__ . "/../archivo/certificado_digital", 0777, true);
+            $directorio_certificado = __DIR__ . "/../cpe40/certificado_digital/" . DOMINIO_ARCHIVO . "/";
+            if (!file_exists($directorio_certificado)) {
+                mkdir($directorio_certificado, 0777, true);
             }
-            $path = $nombre_certificado;
-            $ruta_archivo = __DIR__ . "/../archivo/certificado_digital/$path.$ext";
+            $path = $nombre_certificado . time() . '.' . $ext;
+            $ruta_archivo = $directorio_certificado . $path;
             move_uploaded_file($temp, $ruta_archivo);  // GUARDA LA archivo_digital
-            $cert_path = $ruta_archivo;
-            // Contraseña del certificado
-            $cert_password = $informacionForm->clave_archivo;
-            // Carga el certificado y la clave privada en el contexto de OpenSSL
+            $cert_path = $ruta_archivo; // Contraseña del certificado
+            $cert_password = $informacionForm->clave_archivo; // Carga el certificado y la clave privada en el contexto de OpenSSL
             $context = openssl_pkcs12_read(file_get_contents($cert_path), $certs, $cert_password);
             if ($context) {
-                // Obtén la fecha de inicio del certificado
-                $cert_data = openssl_x509_parse($certs['cert']);
-                // Obtén la fecha de finalización del certificado
-                $start_date = date('Y-m-d H:i:s', $cert_data['validFrom_time_t']);
-                // Obtén la fecha de finalización del certificado
-                $end_date = date('Y-m-d H:i:s', $cert_data['validTo_time_t']);
+                $cert_data = openssl_x509_parse($certs['cert']); // Obtén la fecha de inicio del certificado
+                $start_date = date('Y-m-d H:i:s', $cert_data['validFrom_time_t']); // Obtén la fecha de finalización del certificado
+                $end_date = date('Y-m-d H:i:s', $cert_data['validTo_time_t']); // Obtén la fecha de finalización del certificado
                 $nombre_certificado_digital = $cert_data['name'];
                 preg_match('/CN=(.*?)\s/', $nombre_certificado_digital, $matches);
                 $nombre_certificado_digital = $matches[1];
                 $CertificadoDigital = [
                     'fechainicio_certificado_digital' => $start_date,
                     'fechafin_certificado_digital' => $end_date,
-                    'path_certificado_digital' => $path . '.' . $ext,
+                    'path_certificado_digital' => $path,
                     "fechacreacion_certificado_digital" => date('Y-m-d H:i:s'),
                     'nombre_certificado_digital' => $nombre_certificado_digital
                 ];
@@ -240,25 +228,26 @@ class EmpresaController
 
 
 
-        //ACTUALIZAMOS LA SERIE DEL FOLIO
-        if (isset($informacionForm->serie_boleta) &&  !empty($informacionForm->serie_boleta)) {
-            $fillable += [
-                'serie_boleta_empresa_venta_online' => $informacionForm->serie_boleta
-            ];
-            $Boleta = Folio::where('id_folio', 6)->first();
-            $Boleta->serie_folio = $informacionForm->serie_boleta;
-            $Boleta->save();
-        }
+        //ACTUALIZAMOS LA SERIE DEL FOLIO----------------------------------
+        $series = [
+            'serie_boleta' => 6,
+            'serie_factura' => 9,
+            'serie_nc_boleta' => 8,
+            'serie_nc_factura' => 12,
+            'serie_nd_boleta' => 14,
+            'serie_nd_factura' => 19,
+            'serie_nota_venta' => 17,
+        ];
 
-        if (isset($informacionForm->serie_factura) &&  !empty($informacionForm->serie_factura)) {
-            $fillable += [
-                'serie_factura_empresa_venta_online' => $informacionForm->serie_factura
-            ];
-            $Factura = Folio::where('id_folio', 9)->first();
-            $Factura->serie_folio = $informacionForm->serie_factura;
-            $Factura->save();
+        foreach ($series as $serieKey => $folioId) {
+            if (isset($informacionForm->$serieKey) && !empty($informacionForm->$serieKey)) {
+                $fillable += ["{$serieKey}_empresa_venta_online" => $informacionForm->$serieKey];
+                $folio = Folio::where('id_folio', $folioId)->first();
+                $folio->serie_folio = $informacionForm->$serieKey;
+                $folio->save();
+            }
         }
-        //------------------------------------------------
+        //------------------------------------------------------------------
         if (!empty($informacionForm->id_empresa_venta_online) && $informacionForm->id_empresa_venta_online != '') {
             $Empresa = EmpresaVentaOnline::where('id_empresa_venta_online', $informacionForm->id_empresa_venta_online)->update($fillable);
             $id_empresa_venta_online = $informacionForm->id_empresa_venta_online;
@@ -295,12 +284,33 @@ class EmpresaController
         $bodegas = BodegaSucursal::join('bodega', 'bodega.id_bodega', 'bodega_sucursal.id_bodega')
             ->where('vigente_bodega', 1)
             ->get();
-        $datos=[
-            "data"=>$consultaGlobal,
-            "sucursal"=>$sucursal,
-            "bodegas"=>$bodegas
+        $datos = [
+            "data" => $consultaGlobal,
+            "sucursal" => $sucursal,
+            "bodegas" => $bodegas
         ];
         echo json_encode($datos);
+    }
+
+    public function accionCertificado()
+    {
+        $certificadoDigital = CertificadoDigital::where('id_certificado_digital', $_POST['id_certificado_digital'])->first();
+        $ruta = RUTA_ARCHIVO . "/cpe40/certificado_digital/" . DOMINIO_ARCHIVO . "/$certificadoDigital->path_certificado_digital";
+        switch ($_POST['accion']) {
+            case 'ACTIVAR':
+                CertificadoDigital::where('id_certificado_digital', "!=", $_POST['id_certificado_digital'])->update(['uso_certificado_digital' => 0]);
+                $certificadoDigital->uso_certificado_digital = 1;
+                $certificadoDigital->save();
+                echo json_encode("Activado Exitosamente");
+                break;
+            default:
+                if (is_file($ruta)) {
+                    unlink($ruta);
+                }
+                $certificadoDigital->delete();
+                echo json_encode("Eliminado Exitosamente");
+                break;
+        }
     }
 
     public function CargarPixelEmpresa()

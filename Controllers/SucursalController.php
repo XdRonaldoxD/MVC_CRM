@@ -179,4 +179,21 @@ class SucursalController
             ->toArray();
         echo json_encode($clientes);
     }
+
+    public function buscaUsuarioDefecto()
+    {
+        $buscar = $_GET['search']; // Asegúrate de validar y limpiar esta entrada de usuario.
+        $sql = "SELECT CONCAT(nombre_staff,' ',apellidopaterno_staff,' ',apellidomaterno_staff) as  nombre_staff,usuario.id_usuario
+            FROM usuario
+            JOIN staff ON staff.id_staff = usuario.id_staff
+            WHERE (
+                nombre_staff LIKE '%$buscar%'
+                OR apellidopaterno_staff LIKE '%$buscar%'
+                OR apellidomaterno_staff LIKE '%$buscar%'
+            )
+            AND vigente_usuario = 1
+            ORDER BY SUBSTRING(nombre_staff, 1, 1), SUBSTRING(nombre_staff, -1);";
+        $staff = (new ConsultaGlobal())->ConsultaGlobal($sql);
+        echo json_encode($staff);
+    }
 }
