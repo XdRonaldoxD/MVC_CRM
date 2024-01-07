@@ -43,8 +43,8 @@ class EmpresaController
             'nombre_empresa_venta_online' => $informacionForm->nombre_empresa,
             'email_empresa_venta_online' => $informacionForm->email_empresa_venta_online,
             'giro_empresa_venta_online' => $informacionForm->giro_empresa_venta_online,
-            'id_sucursal' => $informacionForm->id_sucursal,
-            'id_bodega' => $informacionForm->id_bodega,
+            'id_sucursal' => empty($informacionForm->id_sucursal) ? null : $informacionForm->id_sucursal,
+            'id_bodega' => empty($informacionForm->id_bodega) ? null : $informacionForm->id_bodega,
         ];
 
         if (isset($_FILES['icono_empresa'])) {

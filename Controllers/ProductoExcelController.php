@@ -39,7 +39,8 @@ class ProductoExcelController
         $guardado = $_FILES['archivo']['tmp_name'];
         $nombreArchivo =  $Excel['name'];
         $nombreArchivos = pathinfo($nombreArchivo, PATHINFO_FILENAME);
-        $path = "archivo/ImportarExcelProducto";
+        $nombreArchivos = preg_replace('/[^a-zA-Z0-9_.]/', '', $nombreArchivos); // Limpiar espacios y caracteres especiales
+        $path = "archivo/" . DOMINIO_ARCHIVO . "/ImportarExcelProducto";
         if (!file_exists($path)) {
             mkdir($path, 0777, true);
         }
@@ -50,7 +51,7 @@ class ProductoExcelController
         $respuesta = "";
         $ProductoNoRegistrado = array();
         $validandoExcel = array();
-        $hojaActual = $documento->getSheet(0);//saber la cantidad de hojas
+        $hojaActual = $documento->getSheet(0); //saber la cantidad de hojas
         try {
             foreach ($hojaActual->getRowIterator() as $key => $fila) {
                 if ($key >= 3) {
@@ -135,7 +136,7 @@ class ProductoExcelController
                     if (isset($elemento[12]) && !empty($elemento[12])) {
                         $rut_imagenes = preg_replace('/\s+/', ' ', $elemento[12]);
                     }
-                    $existeBodega = true;
+                    $existeBodega = null;
                     $cantidaddatos = count($elemento);
                     $nbodega = null;
                     switch ($cantidaddatos) {
@@ -157,18 +158,16 @@ class ProductoExcelController
                         $numerobodega++;
                         $bodega = null;
                         if (isset($elemento[$numerobodega]) && !empty($elemento[$numerobodega])) {
-                            $bodega =  trim($elemento[$numerobodega]);
+                            $bodega = trim($elemento[$numerobodega]);
                             $bodega = str_replace("  ", " ", $bodega);
                             $bodega = strtoupper($bodega);
                         }
                         $numerobodega += 2;
-                        if ($bodega) {
+                        if ($bodega && !empty($bodega)) {
                             $bodegas = Bodega::where('glosa_bodega', 'LIKE', "%$bodega%")->where('vigente_bodega', 1)->exists();
-                            if (!$bodegas) {
-                                $existeBodega = null;
+                            if ($bodegas) {
+                                $existeBodega = true;
                             }
-                        } else {
-                            $existeBodega = null;
                         }
                     }
                     if (
@@ -180,7 +179,7 @@ class ProductoExcelController
                             "Tipo Inventario" => $tipo_inventario_insertar,
                             "Nombre Producto" => $nombre_producto_insertar,
                             "Precio Venta" => $precio_venta_insertar,
-                            "Bodega no existe" => $precio_venta_insertar,
+                            "Bodega no existe" => $existeBodega,
                         );
                         $columnas = "";
                         foreach ($datosnull as $key => $element) {
@@ -382,35 +381,37 @@ class ProductoExcelController
                             $precio_compra = str_replace("  ", " ", $precio_compra);
                             $precio_compra = strtoupper($precio_compra);
                         }
-                        $bodegas = Bodega::where('glosa_bodega', 'LIKE', "%$bodega%")->where('vigente_bodega', 1)->first();
-                        $id_bodega = $bodegas->id_bodega;
-                        $databodega = [
-                            'total_stock_producto_bodega' => $stock,
-                            'ultimopreciocompra_stock_producto_bodega' => $precio_compra
-                        ];
-                        if ($_POST['tipo_accion'] == "CREAR") {
-                            $databodega += [
-                                'id_producto' => $id_producto,
-                                'id_bodega' => $id_bodega
+                        if ($bodega && !empty($bodega)) {
+                            $bodegas = Bodega::where('glosa_bodega', 'LIKE', "%$bodega%")->where('vigente_bodega', 1)->first();
+                            $id_bodega = $bodegas->id_bodega;
+                            $databodega = [
+                                'total_stock_producto_bodega' => $stock,
+                                'ultimopreciocompra_stock_producto_bodega' => $precio_compra
                             ];
-                            StockProductoBodega::create($databodega);
-                            $id_tipo_movimiento = 1;
-                        } else {
-                            StockProductoBodega::where('id_bodega', $id_bodega)->where('id_producto', $id_producto)->update($databodega);
-                            $id_tipo_movimiento = 3;
+                            if ($_POST['tipo_accion'] == "CREAR") {
+                                $databodega += [
+                                    'id_producto' => $id_producto,
+                                    'id_bodega' => $id_bodega
+                                ];
+                                StockProductoBodega::create($databodega);
+                                $id_tipo_movimiento = 1;
+                            } else {
+                                StockProductoBodega::where('id_bodega', $id_bodega)->where('id_producto', $id_producto)->update($databodega);
+                                $id_tipo_movimiento = 3;
+                            }
+                            //HISTORIAL
+                            $dataHistorial += [
+                                'id_tipo_movimiento' => $id_tipo_movimiento,
+                                'id_usuario' => $_POST['id_usuario'],
+                                'id_producto' => $id_producto,
+                                'id_bodega' => $id_bodega,
+                                'cantidadmovimiento_producto_historial' => $stock,
+                                'fecha_producto_historial' => date('Y-m-d H:i:s'),
+                                'comentario_producto_historial' => "MIGRADO DESDE EL EXCEL.",
+                                'preciocompra_producto_historial' => $precio_compra
+                            ];
+                            ProductoHistorial::create($dataHistorial);
                         }
-                        //HISTORIAL
-                        $dataHistorial += [
-                            'id_tipo_movimiento' => $id_tipo_movimiento,
-                            'id_usuario' => $_POST['id_usuario'],
-                            'id_producto' => $id_producto,
-                            'id_bodega' => $id_bodega,
-                            'cantidadmovimiento_producto_historial' => $stock,
-                            'fecha_producto_historial' => date('Y-m-d H:i:s'),
-                            'comentario_producto_historial' => "MIGRADO DESDE EL EXCEL.",
-                            'preciocompra_producto_historial' => $precio_compra
-                        ];
-                        ProductoHistorial::create($dataHistorial);
                     }
 
 
@@ -489,7 +490,7 @@ class ProductoExcelController
             "respuesta_producto_registrado" => $ProductoNoRegistrado,
             "validandoExcel" => $validandoExcel
         ];
-        unlink('archivo/ImportarExcelProducto/' . $nombre_excel);
+        unlink("archivo/" . DOMINIO_ARCHIVO . "/ImportarExcelProducto/" . $nombre_excel);
         echo  json_encode($retornando);
     }
 
