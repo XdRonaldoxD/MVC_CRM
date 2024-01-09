@@ -1,4 +1,7 @@
 /archivo/
+/cpe40/cdr/
+/cpe40/certificado_digital/
+/cpe40/xml/
 .cpanel.yml
 .htaccess
 config/Parametros.php
