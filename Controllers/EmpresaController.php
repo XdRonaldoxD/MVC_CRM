@@ -14,14 +14,8 @@ class EmpresaController
 
     public function GuardarInformacion()
     {
-        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
         $directorio = __DIR__ . "/../archivo/" . DOMINIO_ARCHIVO . "/imagenes_empresa/";
         $folder = $_SERVER['SERVER_NAME'] . '/archivo/' . DOMINIO_ARCHIVO . '/imagenes_empresa';
-        $domain = $_SERVER['HTTP_HOST'];
-        $dominio_empresa = $protocol . $domain;
-        if ($protocol == 'http://') {
-            $dominio_empresa .= "/MVC_CRM";
-        }
         $arreglo = [
             'cloud_name' => cloud_name,
             'api_key'    => api_key,
@@ -37,7 +31,7 @@ class EmpresaController
             'celular_empresa_venta_online' => $informacionForm->celular_empresa,
             'direccion_empresa_venta_online' => $informacionForm->direccion_empresa,
             'idDistrito' => empty($informacionForm->distrito) ? null : $informacionForm->distrito,
-            'dominio_empresa_venta_online' => $dominio_empresa,
+            'dominio_empresa_venta_online' =>  $_SERVER['SERVER_NAME'],
             'pixelgoogle_empresa_venta_online' => $informacionForm->pixelgoogle_empresa,
             'pixelfacebook_empresa_venta_online' => $informacionForm->pixelfacebook_empresa,
             'nombre_empresa_venta_online' => $informacionForm->nombre_empresa,

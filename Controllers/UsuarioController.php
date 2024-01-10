@@ -110,9 +110,13 @@ class UsuarioController
 
     public function ConsultarDominio()
     {
-        $EmpresaVentaOnline = EmpresaVentaOnline::where('dominio_empresa_venta_online', $_POST['dominio'])->first();
-        if (isset($EmpresaVentaOnline) && $EmpresaVentaOnline->urlicono_empresa_venta_online) {
-            echo json_encode($EmpresaVentaOnline->urlicono_empresa_venta_online);
+        $empresaVentaOnline = EmpresaVentaOnline::where('dominio_empresa_venta_online', $_SERVER['SERVER_NAME'])->first();
+        if (isset($empresaVentaOnline)) {
+            $datos=[
+                'icono'=>$empresaVentaOnline->urlicono_empresa_venta_online,
+                "nombre_empresa"=>empty($empresaVentaOnline->nombre_empresa_venta_online) ? null : $empresaVentaOnline->nombre_empresa_venta_online
+            ];
+            echo json_encode($datos);
         } else {
             die(http_response_code(404));
         }
