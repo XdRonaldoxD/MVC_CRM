@@ -217,14 +217,15 @@ class NotaVentaController
             $correo = $DatosPost->Correo_pdf;
             $url = $DatosPost->url_pdf;
         }
+        $url = str_replace(' ', '%20', $url);
         $mail = new PHPMailer(true);
         try {
             //Server settings
             // $mail->SMTPDebug = 0;                       // Enable verbose debug output
-            // $mail->SMTPDebug = SMTP::DEBUG_SERVER; 
+            // $mail->SMTPDebug = SMTP::DEBUG_SERVER;
             $mail->isSMTP();
-            // smtp.mandrillapp.com  
-            // smithxd118@gmail.com     
+            // smtp.mandrillapp.com
+            // smithxd118@gmail.com
             // a74dac0e781527e2e06bd66041783587-us14
             // Send using SMTP
             $mail->Host       = Host;                  // Set the SMTP server to send through
