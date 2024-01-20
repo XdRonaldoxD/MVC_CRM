@@ -266,7 +266,8 @@ class NegocioController
             'vigente_negocio' => 1,
             'efectivo_negocio' =>  $totalespagados->total_pagado,
             'vuelto_negocio' => $totalespagados->vuelto,
-            'id_bodega' => $staff->id_bodega
+            'id_bodega' => $staff->id_bodega,
+            'id_sucursal'=> $staff->id_sucursal
         ];
         $folio->numero_folio += 1;
         $folio->save();
