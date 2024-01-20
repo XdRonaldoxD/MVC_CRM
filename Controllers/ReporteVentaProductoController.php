@@ -47,6 +47,8 @@ class ReporteVentaProductoController
         $fecha_fin = $_POST['fecha_fin'];
         $id_usuario = $_POST['id_usuario'];
         $segundacabecera = HOST . ';' . USERNAME . ';' . PASSWORD . ';' . BASE_DATOS . ';' . $fecha_inicio . ';' . $fecha_fin . ';' . $id_usuario;
+        $segundacabecera = str_replace(' ', '', $segundacabecera);
+        $segundacabecera = '"' . $segundacabecera . '"';//AGREGAMOS COMILLAS PARA LA CONCATENACION
         $comando = "python " . __DIR__ . "/../Helpers/python/exportarReporteProducto.py $segundacabecera";
         if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') { //SABER SI TIENN HTTPS SITIOS DE PRUDUCCION
             $activateCommand = ACTIVAR_COMANDO_PYTHON;
