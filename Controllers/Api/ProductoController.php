@@ -17,13 +17,11 @@ class ProductoController
     protected $id_bodega;
     public function __construct()
     {
-        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-        $domain = $_SERVER['HTTP_HOST'];
-        $dominio_empresa = $protocol . $domain;
-        if ($protocol == 'http://') {
-            $dominio_empresa .= "/MVC_CRM";
+        if (!isset($_GET['dominio']) && !empty($_GET['dominio'])) {
+            echo "No exite el dominio";
+            die(http_response_code(404));
         }
-        $empresaonline = EmpresaVentaOnline::where('dominio_empresa_venta_online', $dominio_empresa)->first()->toArray();
+        $empresaonline = EmpresaVentaOnline::where('dominio_empresa_venta_online', $_GET['dominio'])->first()->toArray();
         $this->id_bodega = $empresaonline['id_bodega'];
     }
     public function traerDatosInicialProducto()
@@ -69,9 +67,9 @@ class ProductoController
         //SLIDER----------------------------------------------------------------------------
         $query = "SELECT
         UPPER(nombre_slider) as title,
-        concat('" . RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathescritorio_slider)  as image_classic,
-        concat('" . RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathescritorio_slider)  as image_full,
-        concat('" . RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathmobile_slider)  as image_mobile,
+        concat('" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/imagen_slider/',pathescritorio_slider)  as image_classic,
+        concat('" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/imagen_slider/',pathescritorio_slider)  as image_full,
+        concat('" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/imagen_slider/',pathmobile_slider)  as image_mobile,
         texto_slider,urlamigable_categoria
         FROM slider
         inner join categoria using (id_categoria)
@@ -125,14 +123,6 @@ class ProductoController
         }
         foreach ($productos as $key => $element) {
             $imagen_base_64 = ProductoImagen::where("id_producto", $element['id_producto'])->pluck('url_producto_imagen');
-            // $imagen_base_64 = [];
-            // foreach ($imagenes as $key => $value) {
-            //     //TRAER EL PROTOCOLO Y DOMINiO AL FINAL UNIRLO(NO FUNCIONA PUBLIC PATH solo laravel)
-            //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-            //     $domain = $_SERVER['HTTP_HOST'];
-            //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/$value";
-            //     array_push($imagen_base_64, $imagens);
-            // }
             $producto_color = ProductoColor::where("id_producto", $element['id_producto'])->get()->toArray();
             $categorias = CategoriaProducto::join("categoria", "categoria.id_categoria", "categoria_producto.id_categoria")
                 ->where("id_producto", $element['id_producto'])->get()->toArray();
@@ -404,7 +394,7 @@ class ProductoController
         $categoria_select = Categorias::where('urlamigable_categoria', $_GET['urlamigable_categoria'])->first();
 
         $id_categoria = $categoria_select->id_categoria;
-  
+
         $hijos = [];
         while ($recorrer) {
             $categorias = Categorias::where('id_categoria_padre', $id_categoria)->get();
@@ -437,7 +427,7 @@ class ProductoController
         and id_bodega=$this->id_bodega GROUP BY producto.id_producto ";
 
         $consulta_filter = $consultaApi->EstructuraFilterApi($condicion_filter);
-      
+
         $producto = $consultaApi->ListarCategoriaProductoApi($condicion_filter);
         $arreglo_check = [];
         foreach ($hijos_ as $value) {
@@ -452,13 +442,13 @@ class ProductoController
                 array_push($arreglo_check, $dato);
             }
         }
-        $precioinicial=0;
+        $precioinicial = 0;
         if ($consulta_filter) {
-            $precioinicial=$consulta_filter->precio_mayor;
+            $precioinicial = $consulta_filter->precio_mayor;
         }
-        $precio_mayor=0;
+        $precio_mayor = 0;
         if ($consulta_filter) {
-            $precio_mayor=$consulta_filter->precio_mayor + 1;
+            $precio_mayor = $consulta_filter->precio_mayor + 1;
         }
         $estructura_filtar = [
             [
@@ -505,7 +495,7 @@ class ProductoController
 
     public function ConstruirProducto($element)
     {
-  
+
         $producto_relacionado_arreglo = [];
         //TRAEMOS PRIMEROS LOS DATOS DE LOS PRODUCTOS RELACIOANDO CON LA MISTRA ESTRUCTURA DEL TRAER PRODUCTO POR US URL
         if ($element->producto_relacionado) {
@@ -733,18 +723,6 @@ class ProductoController
         }
         if ($element->producto_imagen) {
             $imagenes = explode("~", $element->producto_imagen);
-            // foreach ($imagen as $key => $value) {
-            //     // $path_producto_imagen = __DIR__ . "/../../archivo/imagen_producto/{$value}";
-            //     // $path_producto_imagen = base64_encode(file_get_contents($path_producto_imagen));
-            //     // $elementos = [
-            //     //     'data:image/png;base64,' . $path_producto_imagen,
-            //     // ];
-
-            //     $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-            //     $domain = $_SERVER['HTTP_HOST'];
-            //     $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_producto/{$value}";
-            //     array_push($imagenes, $imagens);
-            // }
         } else {
             $imagenes = [
                 "assets/images/products/product-1-1.jpg",
@@ -978,9 +956,8 @@ class ProductoController
 
     public function TodasCategoriaPadre()
     {
-        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-        $domain = $_SERVER['HTTP_HOST'];
-        $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_categoria";
+
+        $imagens = RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/imagen_categoria";
         $consulta = " SELECT *,if(pathimagen_categoria is null,null,CONCAT('$imagens','/',pathimagen_categoria))  as pathimagen_categoria FROM  categoria 
         where vigente_categoria=1 and 
         visibleonline_categoria=1 and 
@@ -991,12 +968,10 @@ class ProductoController
 
     public function MegaMenuProductos()
     {
-        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-        $domain = $_SERVER['HTTP_HOST'];
-        $imagens = $protocol . $domain . "/MVC_CRM/archivo/imagen_categoria";
-        $consulta = " SELECT *,if(pathimagen_categoria is null,null,CONCAT('$imagens','/',pathimagen_categoria))  as pathimagen_categoria FROM  categoria 
-            where vigente_categoria=1 and 
-            visibleonline_categoria=1 and 
+        $imagens = RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/imagen_categoria";
+        $consulta = " SELECT *,if(pathimagen_categoria is null,null,CONCAT('$imagens','/',pathimagen_categoria))  as pathimagen_categoria FROM  categoria
+            where vigente_categoria=1 and
+            visibleonline_categoria=1 and
             id_categoria_padre=0 order by orden_categoria";
         $Categorias = (new ConsultaGlobal())->ConsultaGlobal($consulta);
         $datos = [];
@@ -1046,54 +1021,46 @@ class ProductoController
 
     public function MegaMenuProductosMobile()
     {
-        $Categorias_padres = Categorias::select('*')
+        $categorias_padres = Categorias::select('*')
             ->where('vigente_categoria', 1)
             ->where('visibleonline_categoria', 1)
             ->where('id_categoria_padre', 0)
             ->orderBy('orden_categoria')
             ->get();
         $arbol_mega_menu = [];
-        foreach ($Categorias_padres as $key => $element) {
-            $subhijo = true;
+        foreach ($categorias_padres as $element) {
             $id_padre = $element->id_categoria;
-            $arreglo_children = [];
-            while ($subhijo) {
-                $Categorias_hijos = Categorias::select('*')
+            $datos_padre_principal = [
+                'type' => 'link',
+                'label' => $element->glosa_categoria,
+                'url' => "/shop/catalog/$element->urlamigable_categoria",
+                'children' => []
+            ];
+            $categorias_hijos = Categorias::select('*')
+                ->where('id_categoria_padre', $id_padre)
+                ->get();
+            foreach ($categorias_hijos as $categoria) {
+                $id_padre = $categoria->id_categoria;
+                $categorias_hijos = Categorias::select('*')
                     ->where('id_categoria_padre', $id_padre)
                     ->first();
-                if (isset($Categorias_hijos)) {
-                    $datos = [
+                $datos_padre = [
+                    'type' => 'link',
+                    'label' => $categoria->glosa_categoria,
+                    'url' => "/shop/catalog/$categoria->urlamigable_categoria",
+                    'children' => []
+                ];
+                if (isset($categorias_hijos)) {
+                    $arreglo_children = [
                         'type' => 'link',
-                        'label' => $Categorias_hijos->glosa_categoria,
-                        'url' => '/'
+                        'label' => $categorias_hijos->glosa_categoria,
+                        'url' => "/shop/catalog/$categorias_hijos->urlamigable_categoria",
                     ];
-                    array_push($arreglo_children, $datos);
-                    $id_padre = $Categorias_hijos->id_categoria;
-                } else {
-                    $datos_padre = [
-                        'type' => 'link',
-                        'label' => $element->glosa_categoria,
-                        'url' => '/'
-                    ];
-                    $tiene_hijo = Categorias::select('*')
-                        ->where('id_categoria_padre', $element->id_categoria)
-                        ->first();
-                    if (isset($tiene_hijo)) {
-                        $datos_padre += [
-                            'children' => $arreglo_children
-                        ];
-                        array_push($arbol_mega_menu, $datos_padre);
-                    }
-
-                    $subhijo = false;
+                    array_push($datos_padre['children'], $arreglo_children);
                 }
+                array_push($datos_padre_principal['children'], $datos_padre);
             }
-
-            // ['type' => 'link', 'label' => 'Home', 'url' => '/', 'children' => [
-            //     ['type' => 'link', 'label' => 'Home 1', 'url' => '/'],
-            //     ['type' => 'link', 'label' => 'Home 2', 'url' => '/home-two'],
-            //     ['type' => 'link', 'label' => 'Offcanvas Cart', 'url' => '/offcanvas-cart']
-            // ]];
+            array_push($arbol_mega_menu, $datos_padre_principal);
         }
         echo json_encode($arbol_mega_menu);
     }

@@ -6,13 +6,11 @@ class EmpresaController
     protected $dominio_empresa;
     public function __construct()
     {
-        $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-        $domain = $_SERVER['HTTP_HOST'];
-        $dominio_empresa = $protocol . $domain;
-        if ($protocol == 'http://') {
-            $dominio_empresa .= "/MVC_CRM";
+        if (!isset($_GET['dominio']) && !empty($_GET['dominio'])) {
+            echo "No exite el dominio";
+            die(http_response_code(404));
         }
-        $this->dominio_empresa = $dominio_empresa;
+        $this->dominio_empresa = $_GET['dominio'];
     }
     public function traerDatosEmpresa()
     {
