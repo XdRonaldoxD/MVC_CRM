@@ -94,12 +94,14 @@ class SliderController
         $buscar = $datosPost->search->value;
         $consulta = " and (nombre_slider LIKE '%$buscar%') ";
         $query = "SELECT *,
-        concat('".RUTA_ARCHIVO."/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathescritorio_slider) as pathescritorio_slider,
-        concat('".RUTA_ARCHIVO."/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathmobile_slider) as pathmobile_slider
+        concat('".RUTA_ARCHIVO."/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathescritorio_slider) as rutacritorio_slider,
+        concat('".RUTA_ARCHIVO."/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathmobile_slider) as rutamobile_slider,
+        pathescritorio_slider,
+        pathmobile_slider
         FROM slider
         left join categoria using (id_categoria)
         WHERE  vigente_slider=$datosPost->vigente_slider
-         $consulta
+        $consulta
         order by fechacreacion_slider desc";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
         $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";

@@ -31,7 +31,7 @@ class EmpresaController
             'celular_empresa_venta_online' => $informacionForm->celular_empresa,
             'direccion_empresa_venta_online' => $informacionForm->direccion_empresa,
             'idDistrito' => empty($informacionForm->distrito) ? null : $informacionForm->distrito,
-            'dominio_empresa_venta_online' =>  $_SERVER['SERVER_NAME'],
+            'dominio_empresa_venta_online' =>  $_GET['dominio'],
             'pixelgoogle_empresa_venta_online' => $informacionForm->pixelgoogle_empresa,
             'pixelfacebook_empresa_venta_online' => $informacionForm->pixelfacebook_empresa,
             'nombre_empresa_venta_online' => $informacionForm->nombre_empresa,
