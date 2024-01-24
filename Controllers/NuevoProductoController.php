@@ -109,8 +109,8 @@ class NuevoProductoController
                 $datostock = [
                     'id_producto' => $id_producto,
                     'total_stock_producto_bodega' => $valor->total_stock_producto_bodega,
-                    'ultimopreciocompra_stock_producto_bodega' => $valor->ultimopreciocompra_stock_producto_bodega,
-                    'precioventa_stock_producto_bodega' => $valor->precioventa_stock_producto_bodega
+                    'ultimopreciocompra_stock_producto_bodega' => round($valor->ultimopreciocompra_stock_producto_bodega,2),
+                    'precioventa_stock_producto_bodega' => round($valor->precioventa_stock_producto_bodega,2)
                 ];
                 if (isset($valor->id_stock_producto_bodega)) {
                     StockProductoBodega::where('id_stock_producto_bodega',$valor->id_stock_producto_bodega)->update($datostock);
