@@ -27,7 +27,7 @@ class ProductoController
         // Definir la consulta base
         $query = "SELECT
             *,
-            (SELECT GROUP_CONCAT(glosa_bodega,'@',total_stock_producto_bodega  SEPARATOR '|')
+            (SELECT GROUP_CONCAT(glosa_bodega,'@',total_stock_producto_bodega,'@',FORMAT(IFNULL(precioventa_stock_producto_bodega, 0), 2) SEPARATOR '|')
             FROM stock_producto_bodega
             INNER JOIN bodega using (id_bodega)
             where id_producto=producto.id_producto
@@ -73,47 +73,58 @@ class ProductoController
 
     public function ListaProductoDeshabilitado()
     {
-        // FILTROS DEL DATATABLE ANGULAR
-        $DatosPost = file_get_contents("php://input");
-        $DatosPost = json_decode($DatosPost);
-        if ($DatosPost->length < 1) {
-            $longitud = 10;
-        } else {
-            $longitud = $DatosPost->length;
-        }
-        $buscar = $DatosPost->search->value;
-
-        $recordsFilteredTotal = Producto::where("producto.vigente_producto", 0);
-        if (isset($DatosPost->categoria_padres)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->join('categoria_producto', 'categoria_producto.id_categoria_producto', "producto.id_producto")
-                ->whereIn("categoria_producto.id_categoria", $DatosPost->categoria_padres);
-        }
-        if (isset($DatosPost->glosa_producto)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->where('producto.glosa_producto', 'LIKE', "%$DatosPost->glosa_producto%");
-        }
-        if (isset($DatosPost->sku_producto)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->where('producto.codigo_producto', 'LIKE', "%$DatosPost->sku_producto%");
-        }
-        if (isset($DatosPost->id_tipo_inventario)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->where('producto.id_tipo_inventario', $DatosPost->id_tipo_inventario);
-        }
-        if (!empty($buscar)) {
-            $recordsFilteredTotal = $recordsFilteredTotal->Where(function ($query) use ($buscar) {
-                $query->where('glosa_producto', 'LIKE', "%$buscar%")
-                    ->orWhere('codigo_producto', 'LIKE', "%$buscar%")
-                    ->orWhere('codigo_barra_producto', 'LIKE', "%$buscar%")
-                    ->orWhere('precioventa_producto', 'LIKE', "%$buscar%");
-            });
-        }
-        $listaProducto = $recordsFilteredTotal;
-        $recordsFilteredTotales = $recordsFilteredTotal->get()->count();
-        $listaProducto = $listaProducto->orderBy('producto.id_producto', 'desc')->skip($DatosPost->start)->take($longitud)->get();
-        $datos = array(
-            "draw" => $DatosPost->draw,
-            "recordsTotal" => $recordsFilteredTotales,
-            "recordsFiltered" => $recordsFilteredTotales,
-            "data" => $listaProducto
-        );
+          // FILTROS DEL DATATABLE ANGULAR
+          $DatosPost = file_get_contents("php://input");
+          $DatosPost = json_decode($DatosPost);
+          if ($DatosPost->length < 1) {
+              $longitud = 10;
+          } else {
+              $longitud = $DatosPost->length;
+          }
+          $buscar = $DatosPost->search->value;
+          // Definir la consulta base
+          $query = "SELECT
+              *,
+              (SELECT GROUP_CONCAT(glosa_bodega,'@',total_stock_producto_bodega,'@',FORMAT(IFNULL(precioventa_stock_producto_bodega, 0), 2) SEPARATOR '|')
+              FROM stock_producto_bodega
+              INNER JOIN bodega using (id_bodega)
+              where id_producto=producto.id_producto
+              ) as total_stock_producto_bodega
+           FROM producto WHERE vigente_producto = 0";
+  
+          // Aplicar filtros
+          if (isset($DatosPost->categoria_padres)) {
+              $query .= " JOIN categoria_producto ON categoria_producto.id_categoria_producto = producto.id_producto";
+              $query .= " WHERE categoria_producto.id_categoria IN (" . implode(",", $DatosPost->categoria_padres) . ")";
+          }
+  
+          if (isset($DatosPost->glosa_producto)) {
+              $query .= " AND producto.glosa_producto LIKE '%" . $DatosPost->glosa_producto . "%'";
+          }
+  
+          if (isset($DatosPost->sku_producto)) {
+              $query .= " AND producto.codigo_producto LIKE '%" . $DatosPost->sku_producto . "%'";
+          }
+  
+          if (isset($DatosPost->id_tipo_inventario)) {
+              $query .= " AND producto.id_tipo_inventario = " . $DatosPost->id_tipo_inventario;
+          }
+  
+          if (!empty($buscar)) {
+              $query .= " AND (producto.glosa_producto LIKE '%$buscar%' OR ";
+              $query .= "producto.codigo_producto LIKE '%$buscar%' OR ";
+              $query .= "producto.codigo_barra_producto LIKE '%$buscar%' OR ";
+              $query .= "producto.precioventa_producto LIKE '%$buscar%')";
+          }
+          $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
+          $query .= " ORDER BY producto.id_producto DESC  LIMIT {$longitud} OFFSET $DatosPost->start ";
+          $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
+          $datos = array(
+              "draw" => $DatosPost->draw,
+              "recordsTotal" => count($consultaGlobalLimit),
+              "recordsFiltered" => count($consultaGlobalLimit),
+              "data" => $consultaGlobal
+          );
         echo json_encode($datos);
     }
 
@@ -220,7 +231,7 @@ class ProductoController
     {
         $tipo_inventario = TipoInventario::where("vigente_tipo_inventario", 1)->get();
         $tipo_afectacion = TipoAfectacion::where('vigente_afectacion', 1)->get();
-        $query_bodega = 'SELECT id_bodega,glosa_bodega, 0 AS total_stock_producto_bodega, 0 AS ultimopreciocompra_stock_producto_bodega
+        $query_bodega = 'SELECT id_bodega,glosa_bodega, 0 AS total_stock_producto_bodega, 0 AS ultimopreciocompra_stock_producto_bodega,0 as precioventa_stock_producto_bodega
         FROM bodega
         WHERE vigente_bodega = 1';
         $bodegas = (new ConsultaGlobal())->ConsultaGlobal($query_bodega);
@@ -384,13 +395,17 @@ class ProductoController
             if (count($producto_bodega) > 0) {
                 foreach ($producto_bodega as $key => $element) {
                     $elementos = explode('|', $element);
+                    $id_stock_producto_bodega = $elementos[0];
                     $glosa_bodega = $elementos[1];
                     $total_stock_producto_bodega = $elementos[2];
                     $ultimopreciocompra_stock_producto_bodega = $elementos[3];
+                    $precioventa_stock_producto_bodega = $elementos[4];
                     $datos = [
+                        'id_stock_producto_bodega' => $id_stock_producto_bodega,
                         'glosa_bodega' => $glosa_bodega,
                         'total_stock_producto_bodega' => $total_stock_producto_bodega,
-                        'ultimopreciocompra_stock_producto_bodega' => $ultimopreciocompra_stock_producto_bodega
+                        'ultimopreciocompra_stock_producto_bodega' => $ultimopreciocompra_stock_producto_bodega,
+                        'precioventa_stock_producto_bodega' => $precioventa_stock_producto_bodega
                     ];
                     array_push($stock_producto_bodega, $datos);
                 }

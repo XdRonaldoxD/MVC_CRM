@@ -42,8 +42,9 @@ SELECT  codigo_producto,glosa_producto,glosa_sucursal,
             numero_negocio,
             CONCAT(nombre_staff,' ',apellidopaterno_staff,' ',IF(apellidomaterno_staff IS NULL, '', apellidomaterno_staff)) as usuario_venta,
             cantidad_negocio_detalle,
-            total_negocio_detalle
-        cantidad_negocio_detalle
+            total_negocio_detalle,
+        ROUND(total_negocio_detalle - (cantidad_negocio_detalle * ( SELECT precioventa_stock_producto_bodega FROM stock_producto_bodega 
+        WHERE id_producto = negocio_detalle.id_producto and id_bodega = negocio_detalle.id_bodega )),2) as utilidad
         FROM negocio_detalle
         inner join producto using (id_producto)
         inner join negocio using (id_negocio)
@@ -58,11 +59,18 @@ cursor.execute(consulta, fechas)
 negocio_detalle = cursor.fetchall()
 
 # Obtener los resultados de la consulta y asignar nombres a las columnas
-columnas = ['CODIGO', 'PRODUCTO','SUCURSAL', 'CLIENTE', 'FECHA','N° PEDIDO', 'USUARIO VENTA', 'CANTIDAD', 'TOTAL VENDIDO']
+columnas = ['CODIGO', 'PRODUCTO','SUCURSAL', 'CLIENTE', 'FECHA','N° PEDIDO', 'USUARIO VENTA', 'CANTIDAD', 'TOTAL VENDIDO','TOTAL UTILIDAD']
 df_negocio_detalle = pd.DataFrame(negocio_detalle, columns=columnas)
 fila_negocio_detalle=0
 sucursales_cadena=''
+
 if not df_negocio_detalle.empty:
+    fila_negocio_detalle=df_negocio_detalle.shape[0]#sacamos la cantidad
+    df_resumen_usuarios = df_negocio_detalle.groupby('USUARIO VENTA').agg({# Agregar información resumida sobre los usuarios de venta
+        'CANTIDAD': 'sum',
+        'TOTAL VENDIDO': 'sum',
+        'TOTAL UTILIDAD': 'sum',
+    }).reset_index()
     # # EXTRAEMOS LA SUCURSAL DEL DATAFRAME-------------------------
     arreglo_sucursales = df_negocio_detalle['SUCURSAL'].to_numpy()
     arreglo_sucursales = [sucursal for sucursal in arreglo_sucursales if sucursal is not None]
@@ -70,11 +78,17 @@ if not df_negocio_detalle.empty:
         sucursales_unicas = np.unique(arreglo_sucursales)
         sucursales_cadena = ', '.join(sucursales_unicas)
     # # ------------------------------------------------------------
-    fila_negocio_detalle=df_negocio_detalle.shape[0]
-    df_resumen_usuarios = df_negocio_detalle.groupby('USUARIO VENTA').agg({# Agregar información resumida sobre los usuarios de venta
-        'CANTIDAD': 'sum',
-        'TOTAL VENDIDO': 'sum'
-    }).reset_index()
+    # sacamos los totales del total negocio y total utilidad----------------------------
+    df_totales_negocio=round(df_negocio_detalle['TOTAL VENDIDO'].sum(),2)
+    df_utilidad_negocio=round(df_negocio_detalle['TOTAL UTILIDAD'].sum(),2)
+
+    total_row_data = pd.DataFrame({
+        'TOTAL VENDIDO':[df_totales_negocio],
+        'TOTAL UTILIDAD':[df_utilidad_negocio]
+    })
+    #AGREGAMOS A LA ULTIMA FILA , la cual se agregar a la columnas que corresponda
+    df_negocio_detalle = pd.concat([df_negocio_detalle, total_row_data], ignore_index=True)
+
 
 
 # Obtener la fecha actual para incluirla en el nombre del archivo Excel

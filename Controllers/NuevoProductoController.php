@@ -34,7 +34,6 @@ class NuevoProductoController
     }
     public function ListaProductosRelacionado()
     {
-        // echo json_encode($_POST['id_producto']);
         $id_producto_general = explode(',', $_POST['id_producto']);
         $Todos_Producto = Producto::join('producto_imagen', 'producto_imagen.id_producto', 'producto.id_producto')
             ->where('producto.vigente_producto', 1)
@@ -89,8 +88,7 @@ class NuevoProductoController
                 'glosa_producto' => $informacionForm->glosa_producto,
                 'detalle_producto' => $informacionForm->descripcion_corta,
                 'detallelargo_producto' => $informacionForm->descripcion_extendida,
-                'precioventa_producto' => $precioStockForm->precio_venta,
-                'id_unidad' => empty($informacionForm->id_unidad) ? null : $informacionForm->id_unidad ,
+                'id_unidad' => empty($informacionForm->id_unidad) ? null : $informacionForm->id_unidad,
                 'id_tipo_concentracion' => empty($informacionForm->id_tipo_concentracion) ? null : $informacionForm->id_tipo_concentracion,
                 'urlamigable_producto' => $urlAmigable,
                 'fechacreacion_producto' => date('Y-m-d H:i:s'),
@@ -105,16 +103,22 @@ class NuevoProductoController
             } else {
                 $Productos = Producto::create($datosProducto);
                 $id_producto = $Productos->id_producto;
-                foreach ($precioStockForm->stock as $key => $valor) {
-                    $datostock=[
-                        'id_producto'=>$id_producto,
-                        'id_bodega'=>$valor->id_bodega,
-                        'total_stock_producto_bodega'=>$valor->total_stock_producto_bodega,
-                        'ultimopreciocompra_stock_producto_bodega'=>$valor->ultimopreciocompra_stock_producto_bodega,
-                    ];
+            }
+            //CREAMOS O ACTUALIZAMOS EL PRECIOS (COMPRA Y VENTA) DEL PRODUCTO
+            foreach ($precioStockForm->stock as $key => $valor) {
+                $datostock = [
+                    'id_producto' => $id_producto,
+                    'total_stock_producto_bodega' => $valor->total_stock_producto_bodega,
+                    'ultimopreciocompra_stock_producto_bodega' => $valor->ultimopreciocompra_stock_producto_bodega,
+                    'precioventa_stock_producto_bodega' => $valor->precioventa_stock_producto_bodega
+                ];
+                if (isset($valor->id_stock_producto_bodega)) {
+                    StockProductoBodega::where('id_stock_producto_bodega',$valor->id_stock_producto_bodega)->update($datostock);
+                }else{
                     StockProductoBodega::create($datostock);
                 }
             }
+            //---------------------------------------------------------------------------------------------------
             //COLORES-----------------------------------------------------------
             $idproductoscolor = array_column(array_filter($colores, function ($item) {
                 return $item->id_producto_color != null;
@@ -150,7 +154,7 @@ class NuevoProductoController
                     list(, $Base64Img) = explode(';', $Base64Img);
                     list(, $Base64Img) = explode(',', $Base64Img);
                     $Base64Img = base64_decode($Base64Img);
-                    $extension = $Helper->getImageMimeType($Base64Img);// OBTIENE LA EXTENSIÓN DE LA IMAGEN
+                    $extension = $Helper->getImageMimeType($Base64Img); // OBTIENE LA EXTENSIÓN DE LA IMAGEN
                     //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
                     $respuesta = \Cloudinary\Uploader::upload('data:image/' . $extension . ';base64,' . base64_encode($Base64Img), array(
                         "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagen_producto',
@@ -179,8 +183,8 @@ class NuevoProductoController
                     $search = new \Cloudinary\Search;
                     $search_result = $search->expression("filename:" . basename($productoImagen->url_producto_imagen))->execute();
                     $public_id_producto_imagen = $search_result["resources"][0]["public_id"];
-                }else{
-                    $public_id_producto_imagen=$productoImagen->public_id_producto_imagen;
+                } else {
+                    $public_id_producto_imagen = $productoImagen->public_id_producto_imagen;
                 }
                 $respuesta = \Cloudinary\Uploader::destroy($public_id_producto_imagen, [
                     "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagen_producto'

@@ -122,7 +122,7 @@ class ConsultaGlobal
         (select GROUP_CONCAT(CONCAT(id_producto_imagen,'|',IFNULL(nombre_producto_imagen,''),'|',url_producto_imagen,'|',portada_producto_imagen) SEPARATOR '~') from producto_imagen where id_producto=producto.id_producto ORDER BY orden_producto_imagen ) as producto_imagen,
         (select GROUP_CONCAT(CONCAT(id_especificaciones_producto,'|',glosa_especificaciones_producto,'|',respuesta_especificaciones_producto) SEPARATOR '~') from especificaciones_producto where id_producto=producto.id_producto) as producto_especificaciones,
         (select GROUP_CONCAT(CONCAT(id_categoria_producto,'|',id_categoria) SEPARATOR '~') from categoria_producto where id_producto=producto.id_producto) as categoria_producto,
-        (select GROUP_CONCAT(CONCAT(id_stock_producto_bodega,'|',glosa_bodega,'|',total_stock_producto_bodega,'|', IFNULL(ultimopreciocompra_stock_producto_bodega,0)) SEPARATOR '~')
+        (select GROUP_CONCAT(CONCAT(id_stock_producto_bodega,'|',glosa_bodega,'|',total_stock_producto_bodega,'|', IFNULL(ultimopreciocompra_stock_producto_bodega,0),'|', IFNULL(precioventa_stock_producto_bodega,0)) SEPARATOR '~')
          from stock_producto_bodega
          inner join bodega using (id_bodega)
          where id_producto=producto.id_producto) as stock_producto_bodega,
@@ -142,7 +142,7 @@ class ConsultaGlobal
     public  function ConsultaProductosRelacionado($condicion)
     {
         $consulta = "SELECT *,nombre_producto_imagen as glosa_producto
-        FROM producto_imagen 
+        FROM producto_imagen
         $condicion
         ";
         $producto = $this->db->prepare($consulta);

@@ -13,7 +13,8 @@ class StockProductoBodega extends Model
         'totalcritico_stock_producto_bodega',
         'stockentransito_stock_producto_bodega',
         'saldocantidad_stock_producto_bodega',
-        'ultimopreciocompra_stock_producto_bodega'
+        'ultimopreciocompra_stock_producto_bodega',
+        'precioventa_stock_producto_bodega'
     ];
     public $timestamps = false;
 }
