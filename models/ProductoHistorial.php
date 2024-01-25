@@ -18,6 +18,7 @@ class ProductoHistorial extends Model
         'fecha_producto_historial',
         'comentario_producto_historial',
         'preciocompra_producto_historial',
+        'precioventa_producto_historial',
         'id_tipo_documento',
         'numerotipodocumento_producto_historial'
     ];

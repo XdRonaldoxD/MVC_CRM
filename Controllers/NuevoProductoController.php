@@ -115,6 +115,9 @@ class NuevoProductoController
                 if (isset($valor->id_stock_producto_bodega)) {
                     StockProductoBodega::where('id_stock_producto_bodega',$valor->id_stock_producto_bodega)->update($datostock);
                 }else{
+                    $datostock+=[
+                        'id_bodega' => $valor->id_bodega,
+                    ];
                     StockProductoBodega::create($datostock);
                 }
             }
