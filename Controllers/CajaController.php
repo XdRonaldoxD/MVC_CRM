@@ -6,6 +6,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 require_once "models/ConsultaGlobal.php";
 require_once "models/Caja.php";
 require_once "models/Usuario.php";
+require_once "models/EmpresaVentaOnline.php";
 require_once "config/Parametros.php";
 
 class CajaController
@@ -206,8 +207,8 @@ class CajaController
             ->leftjoin('staff', 'staff.id_staff', 'caja.id_staff')
             ->first();
         if (isset($_GET['id_caja'])) {
-            $path_imagen = __DIR__ . '/../archivo/'.DOMINIO_ARCHIVO.'/imagenes/ahorro_farma.jpg';
-            $imagen = base64_encode(file_get_contents($path_imagen));
+            $empresaVentaOnline = EmpresaVentaOnline::where('id_empresa_venta_online', $_GET['id_empresa'])->first();
+            $imagen = base64_encode(file_get_contents($empresaVentaOnline->urllogovertical_empresa_venta_online));
             ob_start();
             if ($_GET['Formato'] == "TICKET") {
                 require_once 'generar-pdf/pdf/TicketCaja.php';

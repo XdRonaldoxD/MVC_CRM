@@ -232,10 +232,12 @@ class ProductoController
         $datos = $this->ObtenerDatosProducto($consulta);
         $unidad = Unidad::where('vigente_unidad', 1)->get();
         $tipo_concentracion = TipoConcentracion::where('vigente_tipo_concentracion', 1)->get();
+        $tipo_inventario = TipoInventario::where("vigente_tipo_inventario", 1)->get();
         $respuesta = [
             "producto" => $datos,
             'unidad' => $unidad,
-            "tipo_concentracion" => $tipo_concentracion
+            "tipo_concentracion" => $tipo_concentracion,
+            "tipo_inventario" => $tipo_inventario
         ];
         echo json_encode($respuesta);
     }
