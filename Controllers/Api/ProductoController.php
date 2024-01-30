@@ -797,6 +797,7 @@ class ProductoController
             "price" => $element->precioventa_producto,
             "stock" => $element->total_stock_producto_bodega,
             "descripcion" => $element->detalle_producto,
+            "glosa_marca" => $element->glosa_marca,
             "detallelargo_producto" => $element->detallelargo_producto,
             "compareAtPrice" => null,
             "images" => $imagenes,
@@ -894,8 +895,6 @@ class ProductoController
             "customFields" => []
         ];
         array_push($arreglos, $datos);
-
-
         return $arreglos;
     }
 

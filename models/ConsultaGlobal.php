@@ -32,9 +32,11 @@ class ConsultaGlobal
         inner join atributo using (id_atributo)
         where id_producto=producto.id_producto
         ) as atributo_producto,
-        stock_producto_bodega.total_stock_producto_bodega
+        stock_producto_bodega.total_stock_producto_bodega,
+        glosa_marca
         from stock_producto_bodega
         inner join producto using (id_producto)
+        left join marca using (id_marca)
         $condicion ";
         $marcar = $this->db->prepare($sql);
         $marcar->execute();
