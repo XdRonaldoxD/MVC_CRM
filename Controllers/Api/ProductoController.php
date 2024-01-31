@@ -794,7 +794,7 @@ class ProductoController
             "name" => $element->glosa_producto,
             "sku" => $element->codigo_producto,
             "slug" => $element->urlamigable_producto,
-            "price" => $element->precioventa_producto,
+            "price" => $element->precioventa_stock_producto_bodega,
             "stock" => $element->total_stock_producto_bodega,
             "descripcion" => $element->detalle_producto,
             "glosa_marca" => $element->glosa_marca,

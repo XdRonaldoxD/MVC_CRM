@@ -13,26 +13,27 @@ class ConsultaGlobal
     {
         $sql = "SELECT producto.*,
         (SELECT GROUP_CONCAT(id_producto SEPARATOR '~') from producto_relacionado where idproductopadre_producto_relacionado=producto.id_producto) as producto_relacionado,
-        (SELECT GROUP_CONCAT(categoria.id_categoria,'@',categoria.glosa_categoria SEPARATOR '~') 
+        (SELECT GROUP_CONCAT(categoria.id_categoria,'@',categoria.glosa_categoria SEPARATOR '~')
         from categoria_producto
         inner join categoria on categoria.id_categoria = categoria_producto.id_categoria
         where id_producto=producto.id_producto) 
         as categorias,
-        (SELECT GROUP_CONCAT(producto_imagen.url_producto_imagen SEPARATOR '~') 
+        (SELECT GROUP_CONCAT(producto_imagen.url_producto_imagen SEPARATOR '~')
         from producto_imagen where id_producto=producto.id_producto
         ) as producto_imagen,
 		(select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
 		FROM producto_color where id_producto=producto.id_producto
 		) as color_producto,
-		  (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~') 
+		  (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~')
         from especificaciones_producto where id_producto=producto.id_producto
         ) as especificacion_producto,
-        (SELECT GROUP_CONCAT(atributo.glosa_atributo,',',atributo_producto.id_atributo_producto SEPARATOR '~') 
+        (SELECT GROUP_CONCAT(atributo.glosa_atributo,',',atributo_producto.id_atributo_producto SEPARATOR '~')
         from atributo_producto
         inner join atributo using (id_atributo)
         where id_producto=producto.id_producto
         ) as atributo_producto,
         stock_producto_bodega.total_stock_producto_bodega,
+        stock_producto_bodega.precioventa_stock_producto_bodega,
         glosa_marca
         from stock_producto_bodega
         inner join producto using (id_producto)
