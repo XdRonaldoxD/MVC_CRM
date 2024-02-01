@@ -11,6 +11,7 @@ require_once "models/Categorias.php";
 require_once "models/AtributoProducto.php";
 require_once "models/EmpresaVentaOnline.php";
 require_once "models/ConsultaGlobal.php";
+require_once "models/StockProductoBodega.php";
 class ProductoController
 {
 
@@ -93,7 +94,6 @@ class ProductoController
     {
         $arreglos = [];
         //PRODUCTOS MAS VENDIDOS
-
         $productos = PedidoDetalle::join("producto", "producto.id_producto", "pedido_detalle.id_producto")
             ->join('stock_producto_bodega', 'stock_producto_bodega.id_producto', 'producto.id_producto')
             ->select("producto.*", 'stock_producto_bodega.total_stock_producto_bodega')
@@ -178,7 +178,7 @@ class ProductoController
                 "name" => $element['glosa_producto'],
                 "sku" => $element['codigo_producto'],
                 "slug" => $element['urlamigable_producto'],
-                "price" => $element['precioventa_producto'],
+                "price" => $element['precioventa_stock_producto_bodega'] ?? 0,
                 "stock" => $element['total_stock_producto_bodega'],
                 "descripcion" => $element['detallelargo_producto'],
                 "compareAtPrice" => null,
@@ -365,21 +365,24 @@ class ProductoController
             inner join atributo using (id_atributo)
             where id_producto=producto.id_producto
             ) as atributo_producto,
-            total_stock_producto_bodega
+            total_stock_producto_bodega,
+            precioventa_stock_producto_bodega,
+            glosa_marca
             from stock_producto_bodega
             inner join producto using (id_producto)
-            where vigente_producto=1 and visibleonline_producto=1 and total_stock_producto_bodega>0
+            left join marca using (id_marca)
+            where vigente_producto=1
+            and visibleonline_producto=1
+            and total_stock_producto_bodega>0
+            and fechacreacion_producto >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+            order by id_producto desc
             limit 10";
         $ConsultaApi = new ConsultaGlobal();
         $Productos = $ConsultaApi->ConsultaGlobal($condicion);
         $data = [];
         foreach ($Productos as $value) {
-            $fecha_actual = date("Y-m-d");
-            $fecha_producto = date('Y-m-d', strtotime($value->fechacreacion_producto . "+ 5 months"));
-            if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
-                $arreglos = $this->ConstruirProducto($value);
-                array_push($data, $arreglos[0]);
-            }
+            $arreglos = $this->ConstruirProducto($value);
+            array_push($data, $arreglos[0]);
         }
         echo json_encode($data);
     }
@@ -595,7 +598,7 @@ class ProductoController
                     "name" => $ConsultRelacionado->glosa_producto,
                     "sku" => $ConsultRelacionado->codigo_producto,
                     "slug" => $ConsultRelacionado->urlamigable_producto,
-                    "price" => $ConsultRelacionado->precioventa_producto,
+                    "price" => $ConsultRelacionado->precioventa_stock_producto_bodega ?? 0,
                     "stock" => $ConsultRelacionado->total_stock_producto_bodega,
                     "descripcion" => $ConsultRelacionado->detalle_producto,
                     "detallelargo_producto" => $ConsultRelacionado->detallelargo_producto,
@@ -794,7 +797,7 @@ class ProductoController
             "name" => $element->glosa_producto,
             "sku" => $element->codigo_producto,
             "slug" => $element->urlamigable_producto,
-            "price" => $element->precioventa_stock_producto_bodega,
+            "price" => $element->precioventa_stock_producto_bodega ?? 0,
             "stock" => $element->total_stock_producto_bodega,
             "descripcion" => $element->detalle_producto,
             "glosa_marca" => $element->glosa_marca,
@@ -902,7 +905,9 @@ class ProductoController
     {
         $id_categoria = $_POST['id_categoria'];
         $buscar = $_POST['query'];
-        $productos = Producto::where("producto.vigente_producto", 1);
+        $productos = StockProductoBodega::join('producto', 'producto.id_producto', 'stock_producto_bodega.id_producto')
+            ->where("producto.vigente_producto", 1)
+            ->where('stock_producto_bodega.id_bodega', $this->id_bodega);
         if ($id_categoria !== "") {
             $productos = $productos->join("categoria_producto", "producto.id_producto", "categoria_producto.id_categoria")
                 ->where('categoria_producto.id_categoria', $id_categoria);
@@ -911,7 +916,9 @@ class ProductoController
             $query->where('producto.glosa_producto', 'LIKE', "%$buscar%")
                 ->orWhere('producto.codigo_producto', 'LIKE', "%$buscar%")
                 ->orWhere('producto.codigo_barra_producto', 'LIKE', "%$buscar%");
-        })->take(50)->get();
+        })->take(50)
+            ->select('producto.*', 'stock_producto_bodega.precioventa_stock_producto_bodega')
+            ->get();
         $array = [];
         foreach ($productos as $value) {
             $producto_imagen = ProductoImagen::where('portada_producto_imagen', 1)->where('id_producto', $value->id_producto)->first();
@@ -920,14 +927,12 @@ class ProductoController
             } else {
                 $imagens = 'assets/images/products/product-1.jpg';
             }
-
-
             $element = [
                 "id" => $value->id_producto,
                 "name" => $value->glosa_producto,
                 "sku" => $value->codigo_producto,
                 "slug" =>  $value->urlamigable_producto,
-                "price" => $value->precioventa_producto,
+                "price" => $value->precioventa_stock_producto_bodega,
                 "compareAtPrice" => null,
                 "images" => [
                     $imagens
