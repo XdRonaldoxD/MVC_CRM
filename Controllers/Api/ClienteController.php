@@ -130,11 +130,11 @@ class ClienteController
                 'success' => true,
             ];
         }
-    
         $sitio_cliente = Provincia::join('departamentos', 'departamentos.idDepartamento', "provincia.idDepartamento")
             ->where("provincia.idProvincia", $formulario->idProvincia)
             ->first();
         $datos += [
+            "idProvincia"=> $formulario->idProvincia,
             "provincia" => $sitio_cliente->provincia,
             "departamento" => $sitio_cliente->departamento,
         ];
