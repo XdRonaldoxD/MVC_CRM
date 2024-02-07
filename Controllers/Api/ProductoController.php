@@ -49,21 +49,23 @@ class ProductoController
         inner join atributo using (id_atributo)
         where id_producto=producto.id_producto
         ) as atributo_producto,
-        total_stock_producto_bodega
+        total_stock_producto_bodega,
+        glosa_marca
         from stock_producto_bodega
         inner join producto using (id_producto)
-        where vigente_producto=1 and visibleonline_producto=1 and total_stock_producto_bodega>0
-        limit 10";
+        left join marca using (id_marca)
+        where vigente_producto=1
+        and visibleonline_producto=1
+        and total_stock_producto_bodega>0
+        and fechacreacion_producto >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+        order by id_producto desc
+        limit 20";
         $consultaApi = new ConsultaGlobal();
         $productos = $consultaApi->ConsultaGlobal($condicion);
         $data = [];
         foreach ($productos as $value) {
-            $fecha_actual = date("Y-m-d");
-            $fecha_producto = date('Y-m-d', strtotime($value->fechacreacion_producto . "+ 5 months"));
-            if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
                 $arreglos = $this->ConstruirProducto($value);
                 array_push($data, $arreglos[0]);
-            }
         }
         //SLIDER----------------------------------------------------------------------------
         $query = "SELECT
@@ -376,7 +378,7 @@ class ProductoController
             and total_stock_producto_bodega>0
             and fechacreacion_producto >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
             order by id_producto desc
-            limit 10";
+            limit 20";
         $ConsultaApi = new ConsultaGlobal();
         $Productos = $ConsultaApi->ConsultaGlobal($condicion);
         $data = [];
@@ -982,11 +984,13 @@ class ProductoController
         foreach ($Categorias as $cat) {
             $Categorias_sub_1 = Categorias::select('*')
                 ->where('id_categoria_padre', $cat->id_categoria)
+                ->where('vigente_categoria',1)
                 ->get();
             $columnas = [];
             foreach ($Categorias_sub_1 as $key => $element) {
                 $Categorias_sub_hijos = Categorias::select('*')
                     ->where('id_categoria_padre', $element->id_categoria)
+                    ->where('vigente_categoria',1)
                     ->get();
                 $items = [];
                 foreach ($Categorias_sub_hijos as $key => $value) {
@@ -1042,11 +1046,13 @@ class ProductoController
             ];
             $categorias_hijos = Categorias::select('*')
                 ->where('id_categoria_padre', $id_padre)
+                ->where('vigente_categoria', 1)
                 ->get();
             foreach ($categorias_hijos as $categoria) {
                 $id_padre = $categoria->id_categoria;
                 $categorias_hijos = Categorias::select('*')
                     ->where('id_categoria_padre', $id_padre)
+                    ->where('vigente_categoria', 1)
                     ->first();
                 $datos_padre = [
                     'type' => 'link',
