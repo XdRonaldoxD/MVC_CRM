@@ -55,6 +55,7 @@ class NuevoProductoController
 
     public function GuardarProductoActualizar()
     {
+        $folder = $_SERVER['SERVER_NAME'] . '/archivo/' . DOMINIO_ARCHIVO . '/imagen_producto';
         Cloudinary::config([
             'cloud_name' => cloud_name,
             'api_key'    => api_key,
@@ -109,13 +110,13 @@ class NuevoProductoController
                 $datostock = [
                     'id_producto' => $id_producto,
                     'total_stock_producto_bodega' => $valor->total_stock_producto_bodega,
-                    'ultimopreciocompra_stock_producto_bodega' => round($valor->ultimopreciocompra_stock_producto_bodega,2),
-                    'precioventa_stock_producto_bodega' => round($valor->precioventa_stock_producto_bodega,2)
+                    'ultimopreciocompra_stock_producto_bodega' => round($valor->ultimopreciocompra_stock_producto_bodega, 2),
+                    'precioventa_stock_producto_bodega' => round($valor->precioventa_stock_producto_bodega, 2)
                 ];
                 if (isset($valor->id_stock_producto_bodega)) {
-                    StockProductoBodega::where('id_stock_producto_bodega',$valor->id_stock_producto_bodega)->update($datostock);
-                }else{
-                    $datostock+=[
+                    StockProductoBodega::where('id_stock_producto_bodega', $valor->id_stock_producto_bodega)->update($datostock);
+                } else {
+                    $datostock += [
                         'id_bodega' => $valor->id_bodega,
                     ];
                     StockProductoBodega::create($datostock);
@@ -160,7 +161,7 @@ class NuevoProductoController
                     $extension = $Helper->getImageMimeType($Base64Img); // OBTIENE LA EXTENSIÓN DE LA IMAGEN
                     //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
                     $respuesta = \Cloudinary\Uploader::upload('data:image/' . $extension . ';base64,' . base64_encode($Base64Img), array(
-                        "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagen_producto',
+                        "folder" => $folder,
                         "public_id" => $archivos->nombre_imagen . "_" . time(),  // Nombre único en Cloudinary
                         "overwrite" => true,  // Sobrescribe si ya existe una imagen con el mismo nombre
                         "resource_type" => "image",
@@ -190,8 +191,18 @@ class NuevoProductoController
                     $public_id_producto_imagen = $productoImagen->public_id_producto_imagen;
                 }
                 $respuesta = \Cloudinary\Uploader::destroy($public_id_producto_imagen, [
-                    "folder" => $_SERVER['SERVER_NAME'] . '/archivo/imagen_producto'
+                    "folder" => $folder
                 ]);
+                if (isset($respuesta_original['result']) && $respuesta_original['result'] == 'ok') {
+                    // Si la imagen se eliminó correctamente de la ruta original, no es necesario hacer nada más
+                    $respuesta = $respuesta_original;
+                } else {
+                    // Si la imagen no se eliminó de la ruta original, eliminarla de la segunda ruta
+                    $segunda_ruta = $_SERVER['SERVER_NAME'] . '/archivo/imagen_producto';
+                    $respuesta = \Cloudinary\Uploader::destroy($public_id_producto_imagen, [
+                        "folder" => $segunda_ruta
+                    ]);
+                }
                 $productoImagen->delete();
             }
             //PRODUCTO RELACIONADO

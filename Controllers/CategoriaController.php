@@ -46,7 +46,7 @@ class CategoriaController
                 $cat_padre = "";
             } else {
                 $atributo_padre = Categorias::where('id_categoria', $item['id_categoria_padre'])->first();
-                $cat_padre =   $atributo_padre['glosa_categoria'] ?? '' ;
+                $cat_padre =   $atributo_padre['glosa_categoria'] ?? '';
             }
             $element = [
                 'id_categoria' => $item['id_categoria'],
@@ -158,79 +158,85 @@ class CategoriaController
 
     public function GestionarCategoria()
     {
-        $formulario=json_decode($_POST['formulario']);
-        $directorio=__DIR__ . "/../archivo/".DOMINIO_ARCHIVO."/imagen_categoria/";
+        Cloudinary::config([
+            'cloud_name' => cloud_name,
+            'api_key'    => api_key,
+            'api_secret' => api_secret,
+            "secure" => true
+        ]);
+        $formulario = json_decode($_POST['formulario']);
+        $folder = $_SERVER['SERVER_NAME'] . '/archivo/' . DOMINIO_ARCHIVO . '/imagen_categoria';
+
         $urlAmigable = "";
         $urlAmigable .= str_replace(" ", "-",  $formulario->glosa_categoria);
         $urlAmigable = str_replace("/", "-", $urlAmigable);
         $urlAmigable = str_replace("\\", "-", $urlAmigable);
         $urlAmigable = str_replace("+", "-", $urlAmigable);
         $datos = [
-            'id_tipo_inventario' =>$formulario->id_tipo_inventario,
-            'glosa_categoria' =>$formulario->glosa_categoria,
-            'descripcion_categoria' =>$formulario->descripcion_categoria ?? null,
+            'id_tipo_inventario' => $formulario->id_tipo_inventario,
+            'glosa_categoria' => $formulario->glosa_categoria,
+            'descripcion_categoria' => $formulario->descripcion_categoria ?? null,
             'visibleonline_categoria' => ($formulario->visibleOnline) ? 1 : 0,
-            'urlamigable_categoria' => $urlAmigable.'-'.$formulario->codigo_categoria,
+            'urlamigable_categoria' => $urlAmigable . '-' . $formulario->codigo_categoria,
             'codigo_categoria' => $formulario->codigo_categoria,
         ];
-
         if (!empty($_FILES['imagen'])) {
-            $imagen = $_FILES['imagen']['name'];
-            $ext = pathinfo($imagen, PATHINFO_EXTENSION);
+            $imagen = $_FILES['imagen']['tmp_name'];
             $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
             $nombre_imagen = str_replace(' ', '', $nombre_imagen);
-            // $temp = $_FILES['imagen']['tmp_name'];
-            //crear el directorio
-            if (!file_exists($directorio)) {
-                mkdir($directorio, 0777, true);
-            }
-
             if ($_POST['accion'] !== "CREAR") {
-                $Categorias = Categorias::where('id_categoria',$formulario->id_categoria)->first();
-                if ($Categorias->pathimagen_categoria && file_exists($directorio.$Categorias->pathimagen_categoria)) {
-                        unlink($directorio.$Categorias->pathimagen_categoria);
-                }
+                $this->eliminarImagen($formulario->id_categoria, 'MegaMenu');
             }
-
-            // GUARDA LA IMAGEN
-            $fechacreacion = date('Y-m-d H:i:s');
-            $separaFecha = explode(" ", $fechacreacion);
-            $Fecha = explode("-", $separaFecha[0]);
-            $path =  $Fecha[0] . $Fecha[1] . $Fecha[2] . time() ;
-            // move_uploaded_file($temp, __DIR__ . "/../archivo/imagen_categoria/$path.'.'.$ext"); //
-
-            //SEGUNDA LIBRERIA
-            $foo = new Upload($_FILES['imagen']);
-            if (!$foo) {
-                echo json_encode("Error");
-                die;
-            }
-            // $foo->process(__DIR__ . "/../archivo/imagen_categoria/");
-            //
-            // if ($foo->processed) {
-            //     echo 'image renamed "foo" copied';
-            // } else {
-            //     echo 'error : ' . $foo->error;
-            // }
-            $foo->file_new_name_body = $path;
-            $foo->image_resize          = true;
-            //SI DESEAMOS PONER EL MISMO TAMAÑO Y  DARLE LA MISMA ANCHO Y ALTO COMENTAR EL IMAGE RATIO
-            $foo->image_ratio           = true;
-            //
-            $foo->image_x               = 220;
-            $foo->image_y               = 100;
-            $foo->process($directorio);
-            if ($foo->processed) {
-                $foo->clean();
-            } else {
-                echo 'error : ' . $foo->error;
-                die();
-            }
-            $datos += ["pathimagen_categoria" => $path.'.'.$ext];
+            // TRANSFORMACIÓN DE IMAGEN A 370 * 230
+            $transformacion = array(
+                "width" => 370,
+                "height" => 230
+            );
+            //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
+            $respuesta = \Cloudinary\Uploader::upload($imagen, array(
+                "folder" => $folder,
+                "public_id" => $nombre_imagen . "_" . time(),  // Nombre único en Cloudinary
+                "overwrite" => true,  // Sobrescribe si ya existe una imagen con el mismo nombre
+                "resource_type" => "image",
+                "transformation" => $transformacion
+            ));
+            $datos += [
+                "pathimagen_categoria" => $respuesta['secure_url'],
+                "pathimagen_id_categoria" => $respuesta['public_id'],
+            ];
         }
+        if (!empty($_FILES['imagen_popular'])) {
+            $imagen_popular = $_FILES['imagen_popular']['tmp_name'];
+            $nombre_imagen = pathinfo($imagen, PATHINFO_FILENAME);
+            $nombre_imagen = str_replace(' ', '', $nombre_imagen);
+   
+            if ($_POST['accion'] !== "CREAR") {
+                $this->eliminarImagen($formulario->id_categoria, 'Popular');
+            }
+            // TRANSFORMACIÓN DE IMAGEN A 370 * 230
+            $transformacion = array(
+                "width" => 700,
+                "height" => 700
+            );
+            //LO SUBIMOS AL CLOUDINARY A LA NUBE PARA QUE NO SEA MAS PESADO EL SERVIDOR
+            $respuesta = \Cloudinary\Uploader::upload($imagen_popular, array(
+                "folder" => $folder,
+                "public_id" => $nombre_imagen . "_" . time(),  // Nombre único en Cloudinary
+                "overwrite" => true,  // Sobrescribe si ya existe una imagen con el mismo nombre
+                "resource_type" => "image",
+                "transformation" => $transformacion
+            ));
+            $datos += [
+                "pathimagenpopular_categoria" => $respuesta['secure_url'],
+                "pathimagenpopular_id_categoria" => $respuesta['public_id'],
+            ];
+        }
+
+
+
         $categoria_padre = json_decode($_POST['categoria_padre']);
         if ($_POST['accion'] == "CREAR") {
-            $datos+=[
+            $datos += [
                 'vigente_categoria' => 1
             ];
             if (count($categoria_padre) > 0) {
@@ -249,7 +255,7 @@ class CategoriaController
                     $datos += ['id_categoria_padre' => $elementos];
                 }
             }
-            Categorias::where('id_categoria',$formulario->id_categoria)->update($datos);
+            Categorias::where('id_categoria', $formulario->id_categoria)->update($datos);
             $respuesta = "Actualizado";
         }
         echo json_encode($respuesta);
@@ -268,18 +274,44 @@ class CategoriaController
     public function TraerCategoria()
     {
         $categoria = Categorias::where("id_categoria", $_POST['id_categoria'])->first();
-        if ($categoria->pathimagen_categoria) {
-            $protocol = stripos($_SERVER['SERVER_PROTOCOL'], 'https') === true ? 'https://' : 'http://';
-            $domain = $_SERVER['HTTP_HOST'];
-            $imagens = $protocol . $domain . "/MVC_CRM/archivo/".DOMINIO_ARCHIVO."/imagen_categoria/$categoria->pathimagen_categoria";
-            $categoria->pathimagen_categoria = $imagens;
-        }
         echo $categoria;
     }
 
-    public function FiltrarCategoria(){
-        $buscar=$_GET['search'];
-        $respuesta=Categorias::where('glosa_categoria','LIKE',"%$buscar%")->get();
+    public function FiltrarCategoria()
+    {
+        $buscar = $_GET['search'];
+        $respuesta = Categorias::where('glosa_categoria', 'LIKE', "%$buscar%")->get();
         echo $respuesta;
+    }
+
+    public function eliminarImagen($id_categoria, $columnas)
+    {
+        $folder = $_SERVER['SERVER_NAME'] . '/archivo/' . DOMINIO_ARCHIVO . '/imagen_categoria';
+        $categoria = Categorias::where('id_categoria', $id_categoria)->first();
+        switch ($columnas) {
+            case 'MegaMenu':
+                $url = $categoria->pathimagen_categoria;
+                $idurl = $categoria->pathimagen_id_categoria;
+                break;
+            default:
+                $url = $categoria->pathimagenpopular_categoria;
+                $idurl = $categoria->pathimagenpopular_id_categoria;
+                break;
+        }
+   
+        if (!$idurl && $url) {
+            $search = new \Cloudinary\Search;
+            $search_result = $search->expression("filename:" . basename($url))->execute();
+            $public_id = $search_result["resources"][0]["public_id"];
+        } else {
+            $public_id = $idurl;
+        }
+        //ELIMINAMOS LA IMAGEN
+        if ($public_id) {
+            \Cloudinary\Uploader::destroy($public_id, [
+                "folder" =>$folder
+            ]);
+        }
+    
     }
 }

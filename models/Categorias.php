@@ -16,6 +16,9 @@ class Categorias extends Model
       'descripcion_categoria',
       'vigente_categoria',
       'pathimagen_categoria',
+      'pathimagen_id_categoria',
+      'pathimagenpopular_categoria',
+      'pathimagenpopular_id_categoria',
       'visibleonline_categoria',
       'urlamigable_categoria',
       'codigo_categoria'
