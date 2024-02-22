@@ -63,9 +63,11 @@ class ConsultaGlobal
         inner join atributo using (id_atributo)
         where id_producto=producto.id_producto
         ) as atributo_producto,
-        stock_producto_bodega.total_stock_producto_bodega
+        stock_producto_bodega.total_stock_producto_bodega,
+        glosa_marca
         from stock_producto_bodega
         INNER JOIN producto on producto.id_producto=stock_producto_bodega.id_producto
+        LEFT JOIN marca using (id_marca)
         INNER JOIN categoria_producto on categoria_producto.id_producto=producto.id_producto
         INNER JOIN categoria USING (id_categoria)
         $condicion ";
@@ -285,5 +287,4 @@ class ConsultaGlobal
         $ConsultaGlobal = null;
         return $result;
     }
- 
 }

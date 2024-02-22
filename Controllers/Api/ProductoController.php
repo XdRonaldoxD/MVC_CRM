@@ -64,8 +64,8 @@ class ProductoController
         $productos = $consultaApi->ConsultaGlobal($condicion);
         $data = [];
         foreach ($productos as $value) {
-                $arreglos = $this->ConstruirProducto($value);
-                array_push($data, $arreglos[0]);
+            $arreglos = $this->ConstruirProducto($value);
+            array_push($data, $arreglos[0]);
         }
         //SLIDER----------------------------------------------------------------------------
         $query = "SELECT
@@ -397,9 +397,7 @@ class ProductoController
         //CATEGORIAS HIJAS (EMBASE A ESTAS CATEGORIAS SE TRAE TODOS LOS PRODUCTOS RELACIONADOS)
         $recorrer = true;
         $categoria_select = Categorias::where('urlamigable_categoria', $_GET['urlamigable_categoria'])->first();
-
         $id_categoria = $categoria_select->id_categoria;
-
         $hijos = [];
         while ($recorrer) {
             $categorias = Categorias::where('id_categoria_padre', $id_categoria)->get();
@@ -984,13 +982,13 @@ class ProductoController
         foreach ($Categorias as $cat) {
             $Categorias_sub_1 = Categorias::select('*')
                 ->where('id_categoria_padre', $cat->id_categoria)
-                ->where('vigente_categoria',1)
+                ->where('vigente_categoria', 1)
                 ->get();
             $columnas = [];
             foreach ($Categorias_sub_1 as $key => $element) {
                 $Categorias_sub_hijos = Categorias::select('*')
                     ->where('id_categoria_padre', $element->id_categoria)
-                    ->where('vigente_categoria',1)
+                    ->where('vigente_categoria', 1)
                     ->get();
                 $items = [];
                 foreach ($Categorias_sub_hijos as $key => $value) {
@@ -1128,23 +1126,51 @@ class ProductoController
 
     public function CategoriaPopulares()
     {
-        $Consulta = "SELECT categoria.*, COUNT(id_producto) AS total_productos
-        FROM categoria_producto
-        INNER JOIN categoria using (id_categoria)
+        //MUESTRA A TODAS LA CETEGORIAS PADRES----------------------------------------
+        $consulta = "SELECT * FROM categoria
+        where id_categoria_padre=0
         GROUP BY id_categoria
-        ORDER BY total_productos DESC
+        ORDER BY glosa_categoria asc
         LIMIT 6";
+        //---------------------------------------------------------
         $objeto = [];
-        $Categorias = (new ConsultaGlobal())->ConsultaGlobal($Consulta);
-        foreach ($Categorias as $value) {
+        $categoriasPadre = (new ConsultaGlobal())->ConsultaGlobal($consulta);
+        foreach ($categoriasPadre as $value) {
+            $recorrer = true;
+            $id_categoria = $value->id_categoria;
+            $hijos = [];
+            while ($recorrer) {
+                $categorias = Categorias::where('id_categoria_padre', $id_categoria)->get();
+                if (count($categorias) > 1) {
+                    foreach ($categorias as $elements) {
+                        $categorias_sub_hijo = Categorias::where('id_categoria_padre', $elements->id_categoria)->get();
+                        if (count($categorias_sub_hijo) > 0) {
+                            foreach ($categorias_sub_hijo as $elementos) {
+                                array_push($hijos, $elementos->id_categoria);
+                            }
+                        } else {
+                            array_push($hijos, $elements->id_categoria);
+                        }
+                    }
+                    $recorrer = false;
+                } elseif (count($categorias) == 1) {
+                    $id_categoria = $categorias[0]->id_categoria;
+                } else {
+                    $categoria = Categorias::where('id_categoria', $value->id_categoria)->first();
+                    array_push($hijos, $categoria->id_categoria);
+                    $recorrer = false;
+                }
+            }
+            $hijos = array_unique($hijos);
+            $cantidProducto=CategoriaProducto::whereIn('id_categoria',$hijos)->count();
             $datos = [
-                "id" => $value->id_categoria,
+                "id" => $id_categoria,
                 "type" => "shop",
                 "name" =>  $value->glosa_categoria,
                 "slug" => $value->urlamigable_categoria,
                 "path" => "shop/catalog",
-                "image" => "assets/images/categories/category-1.jpg",
-                "items" => $value->total_productos,
+                "image" => $value->pathimagenpopular_categoria ?? "assets/images/categories/category-1.jpg",
+                "items" => $cantidProducto,
                 "customFields" => [],
                 "parents" => null,
                 "children" => []
