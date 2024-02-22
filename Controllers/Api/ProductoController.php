@@ -1129,6 +1129,7 @@ class ProductoController
         //MUESTRA A TODAS LA CETEGORIAS PADRES----------------------------------------
         $consulta = "SELECT * FROM categoria
         where id_categoria_padre=0
+        and vigente_categoria=1
         GROUP BY id_categoria
         ORDER BY glosa_categoria asc
         LIMIT 6";
