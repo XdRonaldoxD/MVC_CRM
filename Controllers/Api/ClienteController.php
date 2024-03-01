@@ -124,7 +124,7 @@ class ClienteController
             $datos += [
                 'id_cliente' => $formulario->id_cliente,
                 "idDepartamento" => $formulario->idDepartamento,
-                'id_usuario' => $formulario->id_usuario,
+                'id_usuario' => $existeCliente->id_usuario,
             ];
             $rpta = [
                 'success' => true,

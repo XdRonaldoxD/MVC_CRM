@@ -50,6 +50,7 @@ class ProductoController
         where id_producto=producto.id_producto
         ) as atributo_producto,
         total_stock_producto_bodega,
+        precioventa_stock_producto_bodega,
         glosa_marca
         from stock_producto_bodega
         inner join producto using (id_producto)
@@ -426,25 +427,37 @@ class ProductoController
         $hijos = implode(',', $hijos_);
         // ------------------------------------------
         $condicion_filter = "where categoria_producto.id_categoria in ($hijos)
-        and vigente_producto=1 and visibleonline_producto=1 and total_stock_producto_bodega>0
+        and vigente_producto=1 and visibleonline_producto=1
         and id_bodega=$this->id_bodega GROUP BY producto.id_producto ";
-
         $consulta_filter = $consultaApi->EstructuraFilterApi($condicion_filter);
-
         $producto = $consultaApi->ListarCategoriaProductoApi($condicion_filter);
-        $arreglo_check = [];
-        foreach ($hijos_ as $value) {
-            $categoria_producto = CategoriaProducto::join('categoria', 'categoria.id_categoria', 'categoria_producto.id_categoria')
-                ->where('categoria_producto.id_categoria', $value)->get();
-            if (count($categoria_producto) > 0) {
-                $dato = [
-                    "slug" => $categoria_producto[0]->urlamigable_categoria,
-                    "name" => $categoria_producto[0]->glosa_categoria,
-                    "count" => count($categoria_producto)
-                ];
-                array_push($arreglo_check, $dato);
+        $brandCounts = [];
+        $datos = [];
+        foreach ($producto as  $element) {
+            $arreglo = $this->ConstruirProducto($element);
+            array_push($datos, $arreglo[0]);
+
+            //PARA EL BRAND QUE SOLO TRAIGA 1 CATEGORIA AL PRIMERO QUE PERTENESCA Y LO AUMENTA SU CANTIDAD
+            $slug = $element->urlamigable_categoria;
+            $name = $element->glosa_categoria;
+            $found = false;
+            foreach ($brandCounts as &$count) {
+                if ($count['slug'] === $slug) {
+                    $count['count']++;
+                    $found = true;
+                    break;
+                }
             }
+            if (!$found) {
+                $brandCounts[] = [
+                    'slug' => $slug,
+                    'name' => $name,
+                    'count' => 1
+                ];
+            }
+            // -----------------------------------------------------
         }
+
         $precioinicial = 0;
         if ($consulta_filter) {
             $precioinicial = $consulta_filter->precio_mayor;
@@ -457,7 +470,7 @@ class ProductoController
             [
                 "type" => "range",
                 "slug" => "price",
-                "name" => "Price",
+                "name" => "Precio",
                 "value" => [
                     0,
                     $precioinicial,
@@ -468,17 +481,11 @@ class ProductoController
             [
                 "type" => "check",
                 "slug" => "brand",
-                "name" => "Brand",
+                "name" => "Categoria(s)",
                 "value" => [],
-                "items" => $arreglo_check
-            ],
-
+                "items" => $brandCounts
+            ]
         ];
-        $datos = [];
-        foreach ($producto as $key => $element) {
-            $arreglo = $this->ConstruirProducto($element);
-            array_push($datos, $arreglo[0]);
-        }
         $respuesta = [
             'data_productos' => $datos,
             'filters' => $estructura_filtar
@@ -776,18 +783,48 @@ class ProductoController
         if ($element->especificacion_producto) {
             $especificacion = explode("~", $element->especificacion_producto);
         }
-
+        //ASIGNAMOS EL COLOR SI ESQUE POSEE------------------------------
+        $attributes = [
+            [
+                "name" => "Color",
+                "slug" => "color",
+                "featured" => false, //PARA QUE SE VISUALIZE SI ES TRUE O FALSE
+                "values" =>
+                $color_producto,
+                "customFields" => []
+            ]
+        ];
+        //---------------------------------------------
         foreach ($especificacion as $key => $especifica) {
             $especifica = explode(",", $especifica);
+            $name = isset($especifica[0]) ? $especifica[0] : '';
+            $value = isset($especifica[1]) ? $especifica[1] : '';
             $elementos = [
-                "name" => isset($especifica[0]) ? $especifica[0] : '',
-                "value" =>  isset($especifica[1]) ? $especifica[1] : ''
+                "name" => $name,
+                "value" =>  $value
             ];
             array_push($especificacion_producto, $elementos);
+
+            //PARA EL SHOP LIST DE LOS PRODUCTO-----------------
+            $espeficiar = [
+                "name" => $name,
+                "slug" => "speed",
+                "featured" => true,
+                "values" => [
+                    [
+                        "name" => $value,
+                        "slug" => "",
+                        "customFields" => []
+                    ]
+                ],
+                "customFields" => []
+            ];
+            array_push($attributes, $espeficiar);
+            //-------------------------------------------------
         }
 
         $fecha_actual = date("Y-m-d");
-        $fecha_producto = date('Y-m-d', strtotime($element->fechacreacion_producto . "+ 5 months"));
+        $fecha_producto = date('Y-m-d', strtotime($element->fechacreacion_producto . "+ 2 months"));
         $new = [];
         if (strtotime($fecha_producto) > strtotime($fecha_actual)) {
             $new = ["new"];
@@ -820,81 +857,7 @@ class ProductoController
             "categories" => [
                 $categorias_arreglo
             ],
-            "attributes" => [
-                [
-                    "name" => "Color",
-                    "slug" => "color",
-                    "featured" => false,
-                    "values" =>
-                    $color_producto,
-                    "customFields" => []
-                ],
-                [
-                    "name" => "Speed",
-                    "slug" => "speed",
-                    "featured" => true,
-                    "values" => [
-                        [
-                            "name" => "750 RPM",
-                            "slug" => "750-rpm",
-                            "customFields" => []
-                        ]
-                    ],
-                    "customFields" => []
-                ],
-                [
-                    "name" => "Power Source",
-                    "slug" => "power-source",
-                    "featured" => true,
-                    "values" => [
-                        [
-                            "name" => "Cordless-Electric",
-                            "slug" => "cordless-electric",
-                            "customFields" => []
-                        ]
-                    ],
-                    "customFields" => []
-                ],
-                [
-                    "name" => "Battery Cell Type",
-                    "slug" => "battery-cell-type",
-                    "featured" => true,
-                    "values" => [
-                        [
-                            "name" => "Lithium",
-                            "slug" => "lithium",
-                            "customFields" => []
-                        ]
-                    ],
-                    "customFields" => []
-                ],
-                [
-                    "name" => "Voltage",
-                    "slug" => "voltage",
-                    "featured" => true,
-                    "values" => [
-                        [
-                            "name" => "20 Volts",
-                            "slug" => "20-volts",
-                            "customFields" => []
-                        ]
-                    ],
-                    "customFields" => []
-                ],
-                [
-                    "name" => "Battery Capacity",
-                    "slug" => "battery-capacity",
-                    "featured" => true,
-                    "values" => [
-                        [
-                            "name" => "2 Ah",
-                            "slug" => "2-Ah",
-                            "customFields" => []
-                        ]
-                    ],
-                    "customFields" => []
-                ]
-            ],
+            "attributes" => $attributes,
             "customFields" => []
         ];
         array_push($arreglos, $datos);
@@ -1162,16 +1125,24 @@ class ProductoController
                     $recorrer = false;
                 }
             }
+
             $hijos = array_unique($hijos);
-            $cantidProducto=CategoriaProducto::whereIn('id_categoria',$hijos)->count();
+            $cantidProducto = CategoriaProducto::join('producto', 'producto.id_producto', 'categoria_producto.id_producto')
+                ->join('stock_producto_bodega', 'stock_producto_bodega.id_producto', 'producto.id_producto')
+                ->whereIn('categoria_producto.id_categoria', $hijos)
+                ->where('producto.visibleonline_producto', 1)
+                ->where('stock_producto_bodega.id_bodega', $this->id_bodega)
+                ->groupby('producto.id_producto')
+                ->get();
+
             $datos = [
-                "id" => $id_categoria,
+                "id" => $value->id_categoria,
                 "type" => "shop",
                 "name" =>  $value->glosa_categoria,
                 "slug" => $value->urlamigable_categoria,
                 "path" => "shop/catalog",
                 "image" => $value->pathimagenpopular_categoria ?? "assets/images/categories/category-1.jpg",
-                "items" => $cantidProducto,
+                "items" => count($cantidProducto),
                 "customFields" => [],
                 "parents" => null,
                 "children" => []
