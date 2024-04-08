@@ -80,15 +80,17 @@ class AnularDocumentoController
         $motivodevolucion = MotivoDevolucion::where('id_motivo_devolucion', $datosanulacion->tipo_anulacion)->first();
         //OBETENEMOS LA EMPRESA---------------------------------------------
         if (!$datosanulacion->id_empresa) {
+            http_response_code(404);
             echo json_encode("No hay empresa agregados");
-            exit(http_response_code(404));
+            return;
         }
         $empresaVentaOnline = CertificadoDigital::join('empresa_venta_online', 'empresa_venta_online.id_empresa_venta_online', 'certificado_digital_empresa.id_empresa_venta_online')
             ->where('certificado_digital_empresa.id_empresa_venta_online', $datosanulacion->id_empresa)->where('uso_certificado_digital', 1)->first();
 
         if (!isset($empresaVentaOnline)) {
+            http_response_code(404);
             echo json_encode("No hay certificado digital");
-            exit(http_response_code(404));
+            return;
         }
         $clavecertificado = null;
         if ($empresaVentaOnline->clavearchivo_certificado_digital) {

@@ -40,11 +40,7 @@
                                                                     </tr>
                                                                     <tr>
                                                                         <td style="text-align:center" width="250px" height="210">
-                                                                            <img style="  
-                                                                         display: block;
-                                                                            max-width: 100%;
-                                                                        height: auto;
-                                                                        " src="https://desarrollo.crmveterinario.com/images/recursos/reportes/personaje-animado.png" alt="" class="CToWUd">
+                                                                            <img alt="" src="cliente_service"  class="CToWUd">
                                                                         </td>
                                                                         <td width="20px">&nbsp;</td>
                                                                         <td width="250px" height="210">
@@ -52,7 +48,7 @@
                                                                                 <tbody>
                                                                                     <tr>
                                                                                         <td>
-                                                                                            <p style="font-weight:bold;font-size:2em;font-style:italic">Hola: <?=$respuesta_cliente['datos']['nombre_cliente'] .' '.$respuesta_cliente['datos']['apellidopaterno_cliente'] ?></p>
+                                                                                            <p style="font-weight:bold;font-size:2em;font-style:italic">Hola: <?= $respuesta_cliente['datos']['nombre_cliente'] . ' ' . $respuesta_cliente['datos']['apellidopaterno_cliente'] ?></p>
                                                                                         </td>
                                                                                     </tr>
                                                                                     <tr>
@@ -77,7 +73,7 @@
                                                                                         <td colspan="2">Tu pedido:</td>
                                                                                     </tr>
                                                                                     <tr>
-                                                                                        <td colspan="2">Nº <?=  $Pedido->numero_pedido ?></td>
+                                                                                        <td colspan="2">Nº <?= $Pedido->numero_pedido ?></td>
                                                                                     </tr>
                                                                                 </tbody>
                                                                             </table>
@@ -88,7 +84,7 @@
                                                         </td>
                                                         <td width="40px"></td>
                                                     </tr>
-                                                    <tr style="background-color:#f8f8f8">
+                                                    <!-- <tr style="background-color:#f8f8f8">
                                                         <td width="40px"></td>
                                                         <td width="520px" align="center">
                                                             <table style="width:520px">
@@ -125,7 +121,7 @@
                                                             </table>
                                                         </td>
                                                         <td width="40px"></td>
-                                                    </tr>
+                                                    </tr> -->
                                                     <tr style="background-color:#f8f8f8">
                                                         <td width="40px"></td>
                                                         <td width="520px" align="center">
@@ -159,7 +155,7 @@
                                                                         <td colspan="3">Tu pedido:</td>
                                                                     </tr>
                                                                     <tr style="text-align:center;font-size:1.5em;font-weight:bold">
-                                                                        <td colspan="3">Nº <?=  $Pedido->numero_pedido ?></td>
+                                                                        <td colspan="3">Nº <?= $Pedido->numero_pedido ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td>&nbsp;</td>
@@ -168,22 +164,22 @@
                                                                         <td style="padding:0 15px" height="160">
                                                                             <table>
                                                                                 <tbody>
-                                                                                    
+
                                                                                     <tr>
                                                                                         <td style="font-weight:bold">Nombre titular:</td>
                                                                                     </tr>
                                                                                     <tr>
-                                                                                        <td style="font-weight:300"><?=  $respuesta_cliente['datos']['nombre_cliente'] .' '.$respuesta_cliente['datos']['apellidopaterno_cliente'] ?></td>
+                                                                                        <td style="font-weight:300"><?= $respuesta_cliente['datos']['nombre_cliente'] . ' ' . $respuesta_cliente['datos']['apellidopaterno_cliente'] ?></td>
                                                                                     </tr>
                                                                                     <tr>
                                                                                         <td style="font-weight:bold">Email:</td>
                                                                                     </tr>
                                                                                     <tr>
-                                                                                        <td style="font-weight:300"><a href="mailto:wilfredo199@gmail.com" target="_blank"><?=  $respuesta_cliente['datos']['e_mail_cliente']  ?></a></td>
+                                                                                        <td style="font-weight:300"><a href="mailto:wilfredo199@gmail.com" target="_blank"><?= $respuesta_cliente['datos']['e_mail_cliente']  ?></a></td>
                                                                                     </tr>
 
                                                                                     <tr>
-                                                                                        <td style="font-weight:bold">Dirección de despacho: <?=  $respuesta_cliente['datos']['direccion_cliente']  ?></td>
+                                                                                        <td style="font-weight:bold">Dirección de despacho: <?= $respuesta_cliente['datos']['direccion_cliente']  ?></td>
                                                                                     </tr>
                                                                                     <tr>
                                                                                         <td style="font-weight:300"></td>
@@ -273,40 +269,34 @@
                                                     <tr style="background:#fff">
                                                         <td width="40px"></td>
                                                         <td width="520px" align="center">
-                                                            <div id="m_4232731570192724208m_-6834353642861372254example"><u></u>
-                                                                <table style="width:520px;margin-bottom:10px">
-                                                                    <tbody>
-
-                                                                   
-                                                                        <?php foreach ($Productos as $key => $prod) {
-                                                                    
-                                                                            ?>
+                                                            <table style="width:520px;margin-bottom:10px">
+                                                                <tbody>
+                                                                    <?php foreach ($Productos as $key => $elemento) {  ?>
                                                                         <tr>
                                                                             <td style="text-align:center" width="130px">
-                                                                                <img src=" <?= $elemento->product->images[0]?>" width="100" class="CToWUd">
+                                                                                <img alt="" src="<?= $key ?>" width="100" class="CToWUd">
                                                                             </td>
                                                                             <td width="100px">
                                                                                 <table style="width:174px;margin-left:10px">
                                                                                     <tbody>
                                                                                         <tr>
-                                                                                            <td style="font-weight:300">  <?= $elemento->product->name?></td>
+                                                                                            <td style="font-weight:300"> <?= $elemento->product->name ?></td>
                                                                                         </tr>
                                                                                         <tr>
                                                                                             <td style="font-weight:300;font-size:0.8em">sku:
-                                                                                            <?= $elemento->product->sku?>
+                                                                                                <?= $elemento->product->sku ?>
                                                                                             </td>
                                                                                         </tr>
                                                                                     </tbody>
                                                                                 </table>
                                                                             </td>
-                                                                            <td style="font-size:1em;text-align:center;font-weight:bold" width="100px" height="100px"><?= $elemento->product->stock?></td>
-                                                                            <td style="font-size:1em;text-align:center;font-weight:bold" width="100px" height="100px"><?= date('d/m/Y H:i:s A')?></td>
-                                                                            <td style="font-size:1.4em;text-align:center;font-weight:bold" width="100px"><?= $elemento->product->price?>  </td>
+                                                                            <td style="font-size:1em;text-align:center;font-weight:bold" width="100px" height="100px"><?= $elemento->product->stock ?></td>
+                                                                            <td style="font-size:1em;text-align:center;font-weight:bold" width="100px" height="100px"><?= date('d/m/Y H:i:s A') ?></td>
+                                                                            <td style="font-size:1.4em;text-align:center;font-weight:bold" width="100px"><?= $elemento->product->price ?> </td>
                                                                         </tr>
-                                                                        <?php } ?>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
+                                                                    <?php } ?>
+                                                                </tbody>
+                                                            </table>
                                                         </td>
                                                         <td width="40px"></td>
                                                     </tr>
@@ -324,7 +314,7 @@
                                                                     <tr style="font-weight:bold">
                                                                         <td width="174px"></td>
                                                                         <td width="174px">Sub-total</td>
-                                                                        <td style="text-align:center" width="174px"><?=$totales_productos->subtotal?></td>
+                                                                        <td style="text-align:center" width="174px"><?= $totales_productos->subtotal ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td>&nbsp;</td>
@@ -332,7 +322,7 @@
                                                                     <tr style="font-weight:bold">
                                                                         <td width="174px"></td>
                                                                         <td width="174px">Descuento</td>
-                                                                        <td style="text-align:center" width="174px"><?=0?></td>
+                                                                        <td style="text-align:center" width="174px"><?= 0 ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td>&nbsp;</td>
@@ -340,7 +330,7 @@
                                                                     <tr style="font-weight:bold">
                                                                         <td width="174px"></td>
                                                                         <td width="174px">Costo de despacho</td>
-                                                                        <td style="text-align:center" width="174px"><?=0?></td>
+                                                                        <td style="text-align:center" width="174px"><?= 0 ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td>&nbsp;</td>
@@ -348,7 +338,7 @@
                                                                     <tr style="font-weight:bold">
                                                                         <td width="174px"></td>
                                                                         <td width="174px">Total</td>
-                                                                        <td style="text-align:center" width="174px"><?=$totales_productos->total?></td>
+                                                                        <td style="text-align:center" width="174px"><?= $totales_productos->total ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td colspan="3" style="border-bottom:1px solid #dcdcdc">&nbsp;</td>

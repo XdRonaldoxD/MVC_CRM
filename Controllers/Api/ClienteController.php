@@ -19,6 +19,8 @@ require_once "models/AtributoProducto.php";
 require_once "models/ConsultaGlobal.php";
 require_once "models/ProductoColor.php";
 require_once "models/PedidoDetalleAtributoProducto.php";
+require_once "models/ProductoImagen.php";
+
 
 class ClienteController
 {
@@ -37,16 +39,16 @@ class ClienteController
 
     public function validarDNICliente()
     {
-        $dni_cliente=$_GET['dni_cliente'];
+        $dni_cliente = $_GET['dni_cliente'];
         echo Cliente::where("dni_cliente", $dni_cliente)->exists();
     }
     public function correoUsuarioEnUso()
     {
-        $e_mail_cliente=$_GET['e_mail_cliente'];
+        $e_mail_cliente = $_GET['e_mail_cliente'];
         echo Cliente::where("e_mail_cliente", $e_mail_cliente)->exists();
     }
 
-    
+
 
     public function ActualizarPasswordCliente()
     {
@@ -63,8 +65,8 @@ class ClienteController
             Usuario::where("id_cliente", $_POST['id_cliente'])->update($usuario);
             echo json_encode("actualizado");
         } else {
-            echo "Contraseña no válida";
             http_response_code(400);
+            echo "Contraseña no válida";
         }
     }
     public function GuardarCliente()
@@ -134,7 +136,7 @@ class ClienteController
             ->where("provincia.idProvincia", $formulario->idProvincia)
             ->first();
         $datos += [
-            "idProvincia"=> $formulario->idProvincia,
+            "idProvincia" => $formulario->idProvincia,
             "provincia" => $sitio_cliente->provincia,
             "departamento" => $sitio_cliente->departamento,
         ];
@@ -160,10 +162,9 @@ class ClienteController
             $data_usuario->password_usuario = $contrasenia;
             $data_usuario->save();
             echo json_encode("Contraseña actualizado");
-            http_response_code(200);
         } else {
-            echo json_encode("Contraseña no válida");
             http_response_code(400);
+            echo json_encode("Contraseña no válida");
         }
         return json_encode("exito");
     }
@@ -183,8 +184,8 @@ class ClienteController
         if (isset($cliente)) {
             echo json_encode($cliente);
         } else {
-            echo json_encode("Cliente no existe");
             http_response_code(400);
+            echo json_encode("Cliente no existe");
         }
     }
     public function listarPedidosCliente()
@@ -201,8 +202,9 @@ class ClienteController
             ->join('pedido', "pedido.id_pedido", "pedido_detalle.id_pedido")
             ->join('estado_pedido', 'estado_pedido.id_estado_pedido', 'pedido.id_estado_pedido')
             ->join('cliente', "cliente.id_cliente", "pedido.id_cliente")
-            ->join("provincia", "provincia.idProvincia", "cliente.idProvincia")
-            ->join("departamentos", "provincia.idDepartamento", "departamentos.idDepartamento")
+            ->leftjoin("distrito", "distrito.idDistrito", "cliente.idDistrito")
+            ->leftjoin("provincia", "provincia.idProvincia", "distrito.idProvincia")
+            ->leftjoin("departamentos", "departamentos.idDepartamento", "provincia.idDepartamento")
             ->leftjoin('producto_imagen', "producto_imagen.id_producto", 'producto.id_producto')
             ->where("producto_imagen.portada_producto_imagen", 1)
             ->where('pedido.id_pedido', $_GET['id_pedido'])
@@ -211,22 +213,25 @@ class ClienteController
             ->get()
             ->toArray();
         $item = [];
-        // print_r($PedidoDetalle[0]);
-        // die;
-        foreach ($PedidoDetalle as $key => $value) {
+
+        foreach ($PedidoDetalle as $value) {
+            $producto = ProductoImagen::where('id_producto', $value['id_producto'])
+                ->where('portada_producto_imagen', 1)
+                ->first();
             $element = [
                 'id' => $value['id_producto'],
                 'slug' => $value['urlamigable_producto'],
                 'name' =>  $value['glosa_producto'],
-                'image' => $value['path_producto_imagen'],
-                'price' => $value['precioventa_producto'],
+                'image' => $producto['url_producto_imagen'],
+                'price' => null,
                 'quantity' => $value['cantidad_pedido_detalle'],
-                'total' => $value['valorneto_pedido_detalle']
+                'total' => $value['valortotal_pedido_detalle']
             ];
             array_push($item, $element);
         }
         $pedido = [
             'id' => $_GET['id_pedido'],
+            'num_order' => $PedidoDetalle[0]['numero_pedido'],
             'date' => date('d/m/Y', strtotime($PedidoDetalle[0]['fechacreacion_pedido_detalle'])),
             'status' => $PedidoDetalle[0]['glosa_estado_pedido'],
             'items' => $item,
@@ -234,7 +239,7 @@ class ClienteController
             'quantity' => null,
             'subtotal' => $PedidoDetalle[0]['valorneto_pedido'],
             'total' => $PedidoDetalle[0]['valortotal_pedido'],
-            'igv' => $PedidoDetalle[0]['porcentajeiva_pedido'],
+            'igv' => $PedidoDetalle[0]['iva_pedido'],
             'paymentMethod' => '',
             'shippingAddress' => [
                 'firstName' =>  $PedidoDetalle[0]['nombre_cliente'],
@@ -308,10 +313,14 @@ class ClienteController
         $_POST['crear_pedido'] = true;
         $respuesta_cliente = $this->GuardarCliente();
         $totales_productos = json_decode($_POST['totales_productos']);
-        $Folio = Folio::where("id_folio", 11)->first();
+        $folio = Folio::where("id_folio", 11)->first();
+        $numero_pedido = $folio->numero_folio + 1;
+        $folio->numero_folio = $numero_pedido;
+        $folio->save();
+
         $datos_pedido = [
             'id_usuario' => $respuesta_cliente['datos']['id_usuario'],
-            'id_folio' => $Folio->id_folio,
+            'id_folio' => $folio->id_folio,
             'id_cliente' => $respuesta_cliente['datos']['id_cliente'],
             'id_estado_pedido' => 1,
             'id_estado_pago' => $id_estado_pago,
@@ -319,7 +328,7 @@ class ClienteController
             // Este
             // 'idProvincia' => $respuesta_cliente['datos']['idProvincia'],
             'fechacreacion_pedido' => date('Y-m-d H:i:s'),
-            'numero_pedido' => $Folio->numero_folio,
+            'numero_pedido' => $numero_pedido,
             'valorneto_pedido' => $totales_productos->subtotal,
             // 'valortransporte_pedido' => null,
             // 'descuento_pedido' => null,
@@ -332,11 +341,13 @@ class ClienteController
             'vigente_pedido' => 1
         ];
         $Pedido = Pedido::create($datos_pedido);
-        $Folio->numero_folio += 1;
-        $Folio->save();
+
         $Productos = json_decode($_POST['productos']);
         $datos = [];
-
+        $tempFolder = __DIR__ . "/../../archivo/imagen_temp";
+        if (!file_exists($tempFolder)) { // Si no existe, crear la carpeta temp
+            mkdir($tempFolder, 0777, true); // El tercer parámetro "true" crea carpetas recursivamente si no existen
+        }
         foreach ($Productos as $key => $elemento) {
             $iva_pedido_detalle = $elemento->product->price / 1.18;
             $iva_pedido_detalle = $elemento->product->price - $iva_pedido_detalle;
@@ -391,7 +402,7 @@ class ClienteController
             // -----------------------------------------------------------------
             $elemento->options = $options;
         }
-
+        $img_customer_service= __DIR__ . "/../../archivo/imagen_pedido/cliente_servicio.png";
         ob_start();
         require_once 'generar-pdf/pdf/pedido_detalle.php';
         $html = ob_get_clean();
@@ -401,8 +412,8 @@ class ClienteController
             //Server settings
             // $mail->SMTPDebug = 0;                       // Enable verbose debug output
             $mail->isSMTP();
-            // smtp.mandrillapp.com  
-            // smithxd118@gmail.com     
+            // smtp.mandrillapp.com
+            // smithxd118@gmail.com
             // a74dac0e781527e2e06bd66041783587-us14
             // Send using SMTP
             $mail->Host       = 'smtp-relay.sendinblue.com';                  // Set the SMTP server to send through
@@ -414,31 +425,57 @@ class ClienteController
             // id=dbecf254af
             //Recipients
             //DESDE DONDE
-            $mail->setFrom('smithxd118@gmail.com', 'Ronaldo');
+            $mail->setFrom('lunaabanyovanna@gmail.com', 'BOTICA ROSA');
             //PARA QUIEN
             $mail->addAddress($respuesta_cliente['datos']['e_mail_cliente']);
-            // $mail->addAddress('rdurand@wilsoft.cl');  
-            //copia
-            $mail->addCC('smithxd118@gmail.com');
+            // Copia oculta
+            // $mail->addBCC('smithxd108@gmail.com');
+            $mail->addBCC('lunaabanyovanna@gmail.com');
+            $mail->addBCC('rdurand@wilsoft.cl');
             // $mail->addAttachment($output);    // Add a recipient
             // Content
             $mail->isHTML(true);                                  // Set email format to HTML
-            $mail->Subject = 'Asunto muy Importante';
-            $mail->Body    = $html;
+            $mail->Subject = 'COMPRA EN LINEA BOTICA ROSA';
+
+            //AGREGAMOS LA IMAGEN DE LA SEÑORITA CLIENTE AL SERVICIO
+            
+            $cid = 'cliente_service'; // Identificador único para la imagen
+            $mail->addEmbeddedImage($img_customer_service, $cid);
+            $html = str_replace('<img alt="" src="cliente_service"  class="CToWUd">', '<img style="display: block; max-width: 100%;height: auto;" alt="" src="cid:' . $cid . '"  class="CToWUd">', $html);
+
+            //------------------------------------------------------
+
+            // Iterar sobre los productos y adjuntar imágenes
+            foreach ($Productos as $key => $elemento) {
+                $imagePath = $elemento->product->images[0];// Obtener la imagen del producto
+                $tempImagePath = $tempFolder . '/' . basename($imagePath);
+                file_put_contents($tempImagePath, file_get_contents($imagePath));// Descargar la imagen y guardarla temporalmente en el servidor
+                $cid = 'imagen' . $key; // Identificador único para la imagen
+                $mail->addEmbeddedImage($tempImagePath, $cid);
+                // Reemplazar la etiqueta <img> en el HTML con el CID de la imagen incrustada
+                $html = str_replace('<img alt="" src="' . $key . '" width="100" class="CToWUd">', '<img alt="" src="cid:' . $cid . '" width="100" class="CToWUd">', $html);
+            }
+            // Establecer el cuerpo del correo electrónico
+            $mail->msgHTML($html);
             $mail->CharSet = 'UTF-8';
             $mail->send();
             $respuesta = 'ok';
         } catch (Exception $e) {
             echo "Ubo un error al Enviar {$e->getMessage()})";
-            http_response_code(403);
+            http_response_code(400);
             die;
         }
 
+        // Eliminar las imágenes temporales después de enviar el correo
+        foreach ($Productos as $key => $elemento) {
+            $tempImagePath =  $tempFolder . '/' . basename($elemento->product->images[0]);
+            if (file_exists($tempImagePath)) {
+                unlink($tempImagePath);
+            }
+        }
+
         //ENVIAMOS LA LA NOTIFICACION AL WHASSAP DEL vendedor
-
-
         $curl = curl_init();
-
         curl_setopt_array($curl, array(
             CURLOPT_URL => 'https://graph.facebook.com/v15.0/100307912941870/messages',
             CURLOPT_RETURNTRANSFER => true,
@@ -463,7 +500,7 @@ class ClienteController
                                                     "parameters": [
                                                         {
                                                             "type": "text",
-                                                            "text": "Comprobante:B001-01 por favor revisar en el sistema el comprobante hecho verificar."
+                                                            "text": "Pedido:N° ' . $numero_pedido . ' Se ha realizado una compra en linea. Por favor revisar el pedido en el sistema."
                                                         }
                                                     
                                                     ]
@@ -472,15 +509,12 @@ class ClienteController
                                         }
                                     }',
             CURLOPT_HTTPHEADER => array(
-                'Authorization: Bearer EAATiujUfihcBAL3pJDIsQn9OASOZARCnOXZAJKqaOKCZCYtSZA8JVZAnTZAZA7ZC4Pvy9Labr1RCrFrU1XIArGJBEAgJSCxkgHGAMgEkJO16S7hTLfLLXqWKFE4XKhrDQ8bkcpI0alxLApIUaoOBFZCdLMXA0gZC3ZBdPZAksXAvkw1kQNrD8KpYjDc0',
+                'Authorization: Bearer EAATiujUfihcBO2W3sK1enOw7JHNBhPflapWYBFqsYg0fIK9CC5gzBqyphiQjrLAF1bMi2r9FuqbAeZCYVgTA0ZBkEfyRbx3ZBiqLmkD18hlcmZB5ZALkWiStOo9FuiChk1nqRgHOW3RUNhWlxtZA81z1Wz6tqszOFJi9ZCUyvsE6vZA8MQToT3ZAoiE6eUdQVbx7VklMLzGxQji6ZBzKtF',
                 'Content-Type: application/json'
             ),
         ));
         $response = curl_exec($curl);
         curl_close($curl);
-        // echo $response;
-        //
-
         $respuestaDetalla = [
             "datos_pedido" => $datos_pedido,
             "datos_detalle_pedido" => $Productos,
@@ -488,5 +522,25 @@ class ClienteController
             "respuesta" => "ok"
         ];
         echo json_encode($respuestaDetalla);
+    }
+
+    public function traerlimitePedidoCliente()
+    {
+        $limit = '';
+        if (isset($_GET['limit'])) {
+            $limit = "LIMIT {$_GET['limit']}";
+        }
+        $sql = "SELECT p.id_pedido AS id,
+        p.numero_pedido AS num_order,
+                    DATE_FORMAT(p.fechacreacion_pedido, '%d/%m/%Y %h:%i %p') AS date,
+                       ep.glosa_estado_pedido AS status,
+                       p.valortotal_pedido AS total,
+                       (SELECT COUNT(*) FROM pedido_detalle pd WHERE pd.id_pedido = p.id_pedido) AS quantity
+                FROM pedido p
+                INNER JOIN estado_pedido ep ON p.id_estado_pedido = ep.id_estado_pedido
+                WHERE p.id_cliente = {$_GET['id_cliente']}
+                $limit";
+        $pedido = (new ConsultaGlobal())->ConsultaGlobal($sql);
+        echo json_encode($pedido);
     }
 }

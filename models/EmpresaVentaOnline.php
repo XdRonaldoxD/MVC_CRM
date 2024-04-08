@@ -34,6 +34,10 @@ class EmpresaVentaOnline extends Model
         'public_idlogovertical_empresa_venta_online',
         'serie_boleta_empresa_venta_online',
         'serie_factura_empresa_venta_online',
-
+        'serie_nc_boleta_empresa_venta_online',
+        'serie_nc_factura_empresa_venta_online',
+        'serie_nd_boleta_empresa_venta_online',
+        'serie_nd_factura_empresa_venta_online',
+        'serie_nota_venta_empresa_venta_online'
     ];
 }

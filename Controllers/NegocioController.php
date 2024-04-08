@@ -60,20 +60,23 @@ class NegocioController
         foreach ($datos->ProductoSeleccionados as $elemento) {
             $producto = StockProductoBodega::where('id_producto', $elemento->id_producto)->where('id_bodega', $staff->id_bodega)->first();
             if (!$producto || $producto->total_stock_producto_bodega <= 0) {
+                http_response_code(404);
                 echo json_encode("Verificar stock del producto");
-                exit(http_response_code(404));
+                exit;
             }
         }
         //-----------------------------------------------------
         if (!$informacionForm->id_empresa) {
+            http_response_code(404);
             echo json_encode("No hay empresa agregados");
-            exit(http_response_code(404));
+            exit();
         }
         $EmpresaVentaOnline=CertificadoDigital::join('empresa_venta_online','empresa_venta_online.id_empresa_venta_online','certificado_digital_empresa.id_empresa_venta_online')
         ->where('certificado_digital_empresa.id_empresa_venta_online',$informacionForm->id_empresa)->where('uso_certificado_digital',1)->first();
         if (!isset($EmpresaVentaOnline)) {
+            http_response_code(404);
             echo json_encode("No hay certificado digital");
-            exit(http_response_code(404));
+            exit();
         }
         $cliente = Cliente::leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
             ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
@@ -240,8 +243,9 @@ class NegocioController
             $respuesta = $factura->enviarfactura();
         }
         if (isset($respuesta) && isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && ($tipo_documento === 'BOLETA' || $tipo_documento === 'FACTURA') && $respuesta['estado'] != 8 && empty($respuesta['Nota'])) {
+            http_response_code(400);
             echo json_encode($respuesta);
-            exit(http_response_code(404));
+            exit();
         }
 
 
@@ -503,7 +507,7 @@ class NegocioController
             'correlativo' => $correlativo,
             'vendedor_documento' => $vendedor_documento
         ];
-        //CHAPO TODO EL CONTENIDO EN HTML
+        //TICKET
         ob_start();
         require_once 'generar-pdf/pdf/Negocioventa.php';
         $html = ob_get_clean();

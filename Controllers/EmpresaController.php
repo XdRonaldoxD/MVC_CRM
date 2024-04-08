@@ -39,6 +39,13 @@ class EmpresaController
             'giro_empresa_venta_online' => $informacionForm->giro_empresa_venta_online,
             'id_sucursal' => empty($informacionForm->id_sucursal) ? null : $informacionForm->id_sucursal,
             'id_bodega' => empty($informacionForm->id_bodega) ? null : $informacionForm->id_bodega,
+            'serie_boleta_empresa_venta_online' => empty($informacionForm->serie_boleta) ? null : $informacionForm->serie_boleta,
+            'serie_factura_empresa_venta_online'=> empty($informacionForm->serie_factura) ? null : $informacionForm->serie_factura,
+            'serie_nc_boleta_empresa_venta_online'=> empty($informacionForm->serie_nc_boleta) ? null : $informacionForm->serie_nc_boleta,
+            'serie_nc_factura_empresa_venta_online'=> empty($informacionForm->serie_nc_factura) ? null : $informacionForm->serie_nc_factura,
+            'serie_nd_boleta_empresa_venta_online'=> empty($informacionForm->serie_nd_boleta) ? null : $informacionForm->serie_nd_boleta,
+            'serie_nd_factura_empresa_venta_online'=> empty($informacionForm->serie_nd_factura) ? null : $informacionForm->serie_nd_factura,
+            'serie_nota_venta_empresa_venta_online'=> empty($informacionForm->serie_nota_venta) ? null : $informacionForm->serie_nota_venta
         ];
 
         if (isset($_FILES['icono_empresa'])) {

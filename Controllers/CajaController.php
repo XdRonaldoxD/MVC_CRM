@@ -238,7 +238,7 @@ class CajaController
     public function MostrarDocumentos()
     {
         if ($_GET['tipo_documento'] == "INGRESO") {
-            $query_ingreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."' as ruta_archivo from ingreso
+            $query_ingreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "' as ruta_archivo from ingreso
             INNER JOIN negocio USING (id_negocio)
             INNER JOIN medio_pago USING (id_medio_pago)
             inner join tipo_ingreso USING (id_tipo_ingreso)
@@ -248,7 +248,7 @@ class CajaController
             where id_caja={$_GET['id_caja']} AND medio_pago.id_medio_pago={$_GET['id_pago']}";
             $data = (new ConsultaGlobal())->ConsultaGlobal($query_ingreso);
         } else {
-            $query_egreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."' as ruta_archivo from egreso 
+            $query_egreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "' as ruta_archivo from egreso 
             INNER JOIN negocio USING (id_negocio)
             inner join tipo_egreso USING (id_tipo_egreso)
             LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
@@ -274,7 +274,7 @@ class CajaController
 
     public function EnviarCorreoElectronico()
     {
-        $path_imagen = __DIR__ . '/../archivo/'.DOMINIO_ARCHIVO.'/imagenes/ahorro_farma.jpg';
+        $path_imagen = __DIR__ . '/../archivo/' . DOMINIO_ARCHIVO . '/imagenes/ahorro_farma.jpg';
         $imagen = base64_encode(file_get_contents($path_imagen));
 
         $DatosPost = file_get_contents("php://input");
@@ -344,23 +344,24 @@ class CajaController
             $mail->send();
             $respuesta = 'ok';
         } catch (Exception $e) {
-            echo "Ubo un error al Enviar {$e->getMessage()})";
             http_response_code(403);
+            echo "Ubo un error al Enviar {$e->getMessage()})";
             exit();
         }
 
         echo json_encode($respuesta);
     }
 
-    public function VerificarCajaAbierta(){
-        $caja = Caja::leftjoin('usuario','usuario.id_staff','caja.id_staff')
-        ->where('usuario.id_usuario', $_GET['id_usuario'])
-        ->where('estado_caja',1)
-        ->first();
-       if (isset($caja)) {
-            exit(http_response_code(404));
-       } else{
+    public function VerificarCajaAbierta()
+    {
+        $caja = Caja::leftjoin('usuario', 'usuario.id_staff', 'caja.id_staff')
+            ->where('usuario.id_usuario', $_GET['id_usuario'])
+            ->where('estado_caja', 1)
+            ->first();
+        if (isset($caja)) {
+            http_response_code(404);
+        } else {
             echo json_encode(false);
-       }
+        }
     }
 }

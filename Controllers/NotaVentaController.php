@@ -109,8 +109,9 @@ class NotaVentaController
                 ->where('dni_cliente', $informacion_cliente->dni_cliente)
                 ->first();
             if (isset($dni_existe)) {
+                http_response_code(404);
                 echo json_encode("Existe Dni");
-                die(http_response_code(404));
+                die();
             }
             $datos = [
                 'dni_cliente' => $informacion_cliente->dni_cliente,
