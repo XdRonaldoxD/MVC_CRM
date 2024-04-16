@@ -107,15 +107,17 @@ class ProductoController
             ->get()
             ->toArray();
         //FIN
+
         $cantidad_sobra = $_GET['limit'] - count($productos);
         if ($cantidad_sobra > 0) {
             $id_producto = [];
             foreach ($productos as $key => $value) {
                 array_push($id_producto, $value['id_producto']);
             }
+
             $productos_sobrantes = Producto::join('stock_producto_bodega', 'stock_producto_bodega.id_producto', 'producto.id_producto')
                 ->where('stock_producto_bodega.id_bodega', $this->id_bodega)
-                ->wherenotin("id_producto", $id_producto)
+                ->wherenotin("producto.id_producto", $id_producto)
                 ->where('stock_producto_bodega.total_stock_producto_bodega', '>', 0)
                 ->take($cantidad_sobra)
                 ->get()
@@ -123,7 +125,9 @@ class ProductoController
             $productos = array_merge($productos, $productos_sobrantes);
             // FOTO PRINCIPAL,SKU, GLOSA,PRECIO VENTA
             // dd($productos);
+       
         }
+
         foreach ($productos as $key => $element) {
             $imagen_base_64 = ProductoImagen::where("id_producto", $element['id_producto'])->pluck('url_producto_imagen');
             $producto_color = ProductoColor::where("id_producto", $element['id_producto'])->get()->toArray();
