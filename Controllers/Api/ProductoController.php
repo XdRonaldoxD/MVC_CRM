@@ -51,6 +51,7 @@ class ProductoController
         ) as atributo_producto,
         total_stock_producto_bodega,
         precioventa_stock_producto_bodega,
+        ultimopreciocompra_stock_producto_bodega,
         glosa_marca
         from stock_producto_bodega
         inner join producto using (id_producto)
@@ -185,10 +186,10 @@ class ProductoController
                 "name" => $element['glosa_producto'],
                 "sku" => $element['codigo_producto'],
                 "slug" => $element['urlamigable_producto'],
-                "price" => $element['precioventa_stock_producto_bodega'] ?? 0,
+                "price" => $element['ultimopreciocompra_stock_producto_bodega'] ?? 0,
                 "stock" => $element['total_stock_producto_bodega'],
                 "descripcion" => $element['detallelargo_producto'],
-                "compareAtPrice" => null,
+                "compareAtPrice" => $element['precioventa_stock_producto_bodega'] ?? 0,
                 "images" => $imagen_base_64,
                 "badges" => $new,
                 "rating" => 4,
@@ -374,6 +375,7 @@ class ProductoController
             ) as atributo_producto,
             total_stock_producto_bodega,
             precioventa_stock_producto_bodega,
+            ultimopreciocompra_stock_producto_bodega,
             glosa_marca
             from stock_producto_bodega
             inner join producto using (id_producto)
@@ -609,11 +611,11 @@ class ProductoController
                     "name" => $ConsultRelacionado->glosa_producto,
                     "sku" => $ConsultRelacionado->codigo_producto,
                     "slug" => $ConsultRelacionado->urlamigable_producto,
-                    "price" => $ConsultRelacionado->precioventa_stock_producto_bodega ?? 0,
+                    "price" => $ConsultRelacionado->ultimopreciocompra_stock_producto_bodega ?? 0,
                     "stock" => $ConsultRelacionado->total_stock_producto_bodega,
                     "descripcion" => $ConsultRelacionado->detalle_producto,
                     "detallelargo_producto" => $ConsultRelacionado->detallelargo_producto,
-                    "compareAtPrice" => null,
+                    "compareAtPrice" => $ConsultRelacionado->precioventa_stock_producto_bodega ?? 0,
                     "images" => $imagenes_relacion_relacion,
                     "atributo_producto" => $atributo_producto_relacion,
                     "especificaciones" => $especificacion_producto_relacion,
@@ -838,12 +840,12 @@ class ProductoController
             "name" => $element->glosa_producto,
             "sku" => $element->codigo_producto,
             "slug" => $element->urlamigable_producto,
-            "price" => $element->precioventa_stock_producto_bodega ?? 0,
+            "price" => $element->ultimopreciocompra_stock_producto_bodega ?? 0,
             "stock" => $element->total_stock_producto_bodega,
             "descripcion" => $element->detalle_producto,
             "glosa_marca" => $element->glosa_marca,
             "detallelargo_producto" => $element->detallelargo_producto,
-            "compareAtPrice" => null,
+            "compareAtPrice" => $element->precioventa_stock_producto_bodega ?? 0,
             "images" => $imagenes,
             "atributo_producto" => $atributo_producto,
             'producto_relacionado' => $producto_relacionado_arreglo,
@@ -884,7 +886,7 @@ class ProductoController
                 ->orWhere('producto.codigo_producto', 'LIKE', "%$buscar%")
                 ->orWhere('producto.codigo_barra_producto', 'LIKE', "%$buscar%");
         })->take(50)
-            ->select('producto.*', 'stock_producto_bodega.precioventa_stock_producto_bodega')
+            ->select('producto.*', 'stock_producto_bodega.precioventa_stock_producto_bodega','stock_producto_bodega.ultimopreciocompra_stock_producto_bodega')
             ->get();
         $array = [];
         foreach ($productos as $value) {
@@ -899,8 +901,8 @@ class ProductoController
                 "name" => $value->glosa_producto,
                 "sku" => $value->codigo_producto,
                 "slug" =>  $value->urlamigable_producto,
-                "price" => $value->precioventa_stock_producto_bodega,
-                "compareAtPrice" => null,
+                "price" => $value->ultimopreciocompra_stock_producto_bodega,
+                "compareAtPrice" => $value->precioventa_stock_producto_bodega,
                 "images" => [
                     $imagens
                 ],

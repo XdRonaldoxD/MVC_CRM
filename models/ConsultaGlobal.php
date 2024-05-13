@@ -34,6 +34,7 @@ class ConsultaGlobal
         ) as atributo_producto,
         stock_producto_bodega.total_stock_producto_bodega,
         stock_producto_bodega.precioventa_stock_producto_bodega,
+        stock_producto_bodega.ultimopreciocompra_stock_producto_bodega,
         glosa_marca
         from stock_producto_bodega
         inner join producto using (id_producto)
@@ -65,6 +66,7 @@ class ConsultaGlobal
         ) as atributo_producto,
         stock_producto_bodega.total_stock_producto_bodega,
         stock_producto_bodega.precioventa_stock_producto_bodega,
+        stock_producto_bodega.ultimopreciocompra_stock_producto_bodega,
         glosa_marca
         from stock_producto_bodega
         INNER JOIN producto on producto.id_producto=stock_producto_bodega.id_producto
