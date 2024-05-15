@@ -100,7 +100,12 @@ class ProductoController
         //PRODUCTOS MAS VENDIDOS
         $productos = PedidoDetalle::join("producto", "producto.id_producto", "pedido_detalle.id_producto")
             ->join('stock_producto_bodega', 'stock_producto_bodega.id_producto', 'producto.id_producto')
-            ->select("producto.*", 'stock_producto_bodega.total_stock_producto_bodega')
+            ->select(
+                "producto.*",
+                'stock_producto_bodega.total_stock_producto_bodega',
+                'stock_producto_bodega.ultimopreciocompra_stock_producto_bodega',
+                'stock_producto_bodega.precioventa_stock_producto_bodega'
+            )
             ->where('stock_producto_bodega.id_bodega', $this->id_bodega)
             ->groupBy('pedido_detalle.id_producto')
             ->orderby('pedido_detalle.id_producto', 'desc')
@@ -125,8 +130,7 @@ class ProductoController
                 ->toarray();
             $productos = array_merge($productos, $productos_sobrantes);
             // FOTO PRINCIPAL,SKU, GLOSA,PRECIO VENTA
-            // dd($productos);
-       
+
         }
 
         foreach ($productos as $key => $element) {
@@ -886,7 +890,7 @@ class ProductoController
                 ->orWhere('producto.codigo_producto', 'LIKE', "%$buscar%")
                 ->orWhere('producto.codigo_barra_producto', 'LIKE', "%$buscar%");
         })->take(50)
-            ->select('producto.*', 'stock_producto_bodega.precioventa_stock_producto_bodega','stock_producto_bodega.ultimopreciocompra_stock_producto_bodega')
+            ->select('producto.*', 'stock_producto_bodega.precioventa_stock_producto_bodega', 'stock_producto_bodega.ultimopreciocompra_stock_producto_bodega')
             ->get();
         $array = [];
         foreach ($productos as $value) {
