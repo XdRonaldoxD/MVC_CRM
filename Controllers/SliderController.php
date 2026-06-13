@@ -92,7 +92,7 @@ class SliderController
             $longitud = $datosPost->length;
         }
         $buscar = $datosPost->search->value;
-        $consulta = " and (nombre_slider LIKE '%$buscar%') ";
+        $consulta = " and (nombre_slider LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . ") ";
         $query = "SELECT *,
         concat('".RUTA_ARCHIVO."/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathescritorio_slider) as rutacritorio_slider,
         concat('".RUTA_ARCHIVO."/archivo/".DOMINIO_ARCHIVO."/imagen_slider/',pathmobile_slider) as rutamobile_slider,
@@ -100,11 +100,11 @@ class SliderController
         pathmobile_slider
         FROM slider
         left join categoria using (id_categoria)
-        WHERE  vigente_slider=$datosPost->vigente_slider
+        WHERE  vigente_slider=" . (int) $datosPost->vigente_slider . "
         $consulta
         order by fechacreacion_slider desc";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $datosPost->start . " ";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $datosPost->draw,

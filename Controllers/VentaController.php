@@ -5,6 +5,7 @@ require_once "models/Negocio.php";
 require_once "models/Boleta.php";
 require_once "models/Factura.php";
 require_once "models/NotaVenta.php";
+require_once "Helpers/ScopeUsuario.php";
 
 class VentaController
 {
@@ -24,7 +25,7 @@ class VentaController
         s_factura.nombre_staff as nombre_staff_factura,s_factura.apellidopaterno_staff as apellidopaterno_staff_factura,s_factura.apellidomaterno_staff as apellidomaterno_staff_factura,
         s_nota_venta.nombre_staff as nombre_staff_nota_venta,s_nota_venta.apellidopaterno_staff as apellidopaterno_staff_nota_venta,s_nota_venta.apellidomaterno_staff as apellidomaterno_staff_nota_venta
         FROM negocio
-        inner join cliente on negocio.id_cliente=negocio.id_cliente
+        inner join cliente on cliente.id_cliente=negocio.id_cliente
         LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
         LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
         LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
@@ -45,26 +46,27 @@ class VentaController
         AND (nota_credito_boleta.id_boleta IS NULL AND nota_credito_factura.id_factura IS NULL) ";
         if ($DatosPost->pos_negocio !== '') {
             $consulta .= ' and ';
-            $consulta .= " negocio.pos_negocio=$DatosPost->pos_negocio ";
+            $consulta .= " negocio.pos_negocio=" . ConsultaGlobal::esc($DatosPost->pos_negocio) . " ";
         }
         if ($DatosPost->fechacreacion_negocio_inicio) {
             $consulta .= ' and ';
-            $consulta .= " negocio.fechacreacion_negocio>='$DatosPost->fechacreacion_negocio_inicio 00:00:00' ";
+            $consulta .= " negocio.fechacreacion_negocio>=" . ConsultaGlobal::esc($DatosPost->fechacreacion_negocio_inicio . ' 00:00:00') . " ";
         }
         if ($DatosPost->fechacreacion_negocio_fin) {
             $consulta .= ' and ';
-            $consulta .= " negocio.fechacreacion_negocio<='$DatosPost->fechacreacion_negocio_fin 23:59:59' ";
+            $consulta .= " negocio.fechacreacion_negocio<=" . ConsultaGlobal::esc($DatosPost->fechacreacion_negocio_fin . ' 23:59:59') . " ";
         }
-        $consulta .= " and (concat(s_nota_venta.nombre_staff,' ',s_nota_venta.apellidopaterno_staff,' ',s_nota_venta.apellidomaterno_staff) like '%$buscar%' or nota_venta.numero_nota_venta LIKE  '%$buscar%' or s_nota_venta.nombre_staff LIKE  '%$buscar%' or s_nota_venta.apellidopaterno_staff LIKE '%$buscar%' or s_nota_venta.apellidomaterno_staff LIKE '%$buscar%' or
-        concat(s_boleta.nombre_staff,' ',s_boleta.apellidopaterno_staff,' ',s_boleta.apellidomaterno_staff) like '%$buscar%' or nota_venta.numero_nota_venta LIKE  '%$buscar%' or s_boleta.nombre_staff LIKE  '%$buscar%' or s_boleta.apellidopaterno_staff LIKE '%$buscar%' or s_boleta.apellidomaterno_staff LIKE '%$buscar%' or
-        concat(s_factura.nombre_staff,' ',s_factura.apellidopaterno_staff,' ',s_factura.apellidomaterno_staff) like '%$buscar%' or nota_venta.numero_nota_venta LIKE  '%$buscar%' or s_factura.nombre_staff LIKE  '%$buscar%' or s_factura.apellidopaterno_staff LIKE '%$buscar%' or s_factura.apellidomaterno_staff LIKE '%$buscar%' or
-        concat(nombre_cliente,' ',apellidopaterno_cliente,' ',apellidomaterno_cliente) like '%$buscar%' or nombre_cliente like '%$buscar%' or
-        nota_venta.numero_nota_venta like '%$buscar%' or boleta.numero_boleta like '%$buscar%' or factura.numero_factura like '%$buscar%'
-        )
+        $b = ConsultaGlobal::esc('%' . $buscar . '%');
+        $consulta .= " and (concat(s_nota_venta.nombre_staff,' ',s_nota_venta.apellidopaterno_staff,' ',s_nota_venta.apellidomaterno_staff) like $b or nota_venta.numero_nota_venta LIKE  $b or s_nota_venta.nombre_staff LIKE  $b or s_nota_venta.apellidopaterno_staff LIKE $b or s_nota_venta.apellidomaterno_staff LIKE $b or
+        concat(s_boleta.nombre_staff,' ',s_boleta.apellidopaterno_staff,' ',s_boleta.apellidomaterno_staff) like $b or nota_venta.numero_nota_venta LIKE  $b or s_boleta.nombre_staff LIKE  $b or s_boleta.apellidopaterno_staff LIKE $b or s_boleta.apellidomaterno_staff LIKE $b or
+        concat(s_factura.nombre_staff,' ',s_factura.apellidopaterno_staff,' ',s_factura.apellidomaterno_staff) like $b or nota_venta.numero_nota_venta LIKE  $b or s_factura.nombre_staff LIKE  $b or s_factura.apellidopaterno_staff LIKE $b or s_factura.apellidomaterno_staff LIKE $b or
+        concat(nombre_cliente,' ',apellidopaterno_cliente,' ',apellidomaterno_cliente) like $b or nombre_cliente like $b or
+        nota_venta.numero_nota_venta like $b or boleta.numero_boleta like $b or factura.numero_factura like $b
+        ) " . ScopeUsuario::filtroBodega('negocio.id_bodega') . "
         GROUP BY negocio.id_negocio
         order by negocio.fechacreacion_negocio desc ";
         $ConsultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($consulta);
-        $consulta .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
+        $consulta .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $DatosPost->start . " ";
         $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($consulta);
         $datos = array(
             "draw" => $DatosPost->draw,

@@ -25,7 +25,8 @@ class Boleta extends Model
         'estado_boleta',
         'saldo_boleta',
         'path_ticket_pos',
-        'comentario_boleta'
+        'comentario_boleta',
+        'respuesta_sunat_boleta'
     ];
     public $timestamps = false;
 }

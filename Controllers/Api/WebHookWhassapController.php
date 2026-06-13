@@ -5,7 +5,7 @@ class WebHookWhassapController
     public function VerifyWebHook()
     {
         try {
-            $token_WebHook="PRUEBAWEBHOOK2023WHASSAPBUSNESS!";
+            $token_WebHook = defined('WHATSAPP_WEBHOOK_TOKEN') ? WHATSAPP_WEBHOOK_TOKEN : ''; // [SEGURIDAD C5]
             $json = file_get_contents('php://input');
             // $data = json_decode($json);
             echo ($json);

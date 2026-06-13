@@ -9,6 +9,7 @@ require_once "models/Bodega.php";
 require_once "models/Unidad.php";
 require_once "models/TipoConcentracion.php";
 require_once "models/StockProductoBodega.php";
+require_once "Helpers/ScopeUsuario.php";
 
 
 class ProductoController
@@ -30,36 +31,36 @@ class ProductoController
             (SELECT GROUP_CONCAT(glosa_bodega,'@',total_stock_producto_bodega,'@',FORMAT(IFNULL(precioventa_stock_producto_bodega, 0), 2) SEPARATOR '|')
             FROM stock_producto_bodega
             INNER JOIN bodega using (id_bodega)
-            where id_producto=producto.id_producto
+            where id_producto=producto.id_producto " . ScopeUsuario::filtroBodega('id_bodega') . "
             ) as total_stock_producto_bodega
          FROM producto WHERE vigente_producto = 1";
 
         // Aplicar filtros
         if (isset($DatosPost->categoria_padres)) {
             $query .= " JOIN categoria_producto ON categoria_producto.id_categoria_producto = producto.id_producto";
-            $query .= " WHERE categoria_producto.id_categoria IN (" . implode(",", $DatosPost->categoria_padres) . ")";
+            $query .= " WHERE categoria_producto.id_categoria IN (" . ConsultaGlobal::enteros($DatosPost->categoria_padres) . ")";
         }
 
         if (isset($DatosPost->glosa_producto)) {
-            $query .= " AND producto.glosa_producto LIKE '%" . $DatosPost->glosa_producto . "%'";
+            $query .= " AND producto.glosa_producto LIKE " . ConsultaGlobal::esc('%' . $DatosPost->glosa_producto . '%');
         }
 
         if (isset($DatosPost->sku_producto)) {
-            $query .= " AND producto.codigo_producto LIKE '%" . $DatosPost->sku_producto . "%'";
+            $query .= " AND producto.codigo_producto LIKE " . ConsultaGlobal::esc('%' . $DatosPost->sku_producto . '%');
         }
 
         if (isset($DatosPost->id_tipo_inventario)) {
-            $query .= " AND producto.id_tipo_inventario = " . $DatosPost->id_tipo_inventario;
+            $query .= " AND producto.id_tipo_inventario = " . (int) $DatosPost->id_tipo_inventario;
         }
 
         if (!empty($buscar)) {
-            $query .= " AND (producto.glosa_producto LIKE '%$buscar%' OR ";
-            $query .= "producto.codigo_producto LIKE '%$buscar%' OR ";
-            $query .= "producto.codigo_barra_producto LIKE '%$buscar%' OR ";
-            $query .= "producto.precioventa_producto LIKE '%$buscar%')";
+            $query .= " AND (producto.glosa_producto LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . " OR ";
+            $query .= "producto.codigo_producto LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . " OR ";
+            $query .= "producto.codigo_barra_producto LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . " OR ";
+            $query .= "producto.precioventa_producto LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . ")";
         }
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= " ORDER BY producto.id_producto DESC  LIMIT {$longitud} OFFSET $DatosPost->start ";
+        $query .= " ORDER BY producto.id_producto DESC  LIMIT " . (int) $longitud . " OFFSET " . (int) $DatosPost->start . " ";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $DatosPost->draw,
@@ -88,36 +89,36 @@ class ProductoController
               (SELECT GROUP_CONCAT(glosa_bodega,'@',total_stock_producto_bodega,'@',FORMAT(IFNULL(precioventa_stock_producto_bodega, 0), 2) SEPARATOR '|')
               FROM stock_producto_bodega
               INNER JOIN bodega using (id_bodega)
-              where id_producto=producto.id_producto
+              where id_producto=producto.id_producto " . ScopeUsuario::filtroBodega('id_bodega') . "
               ) as total_stock_producto_bodega
            FROM producto WHERE vigente_producto = 0";
 
         // Aplicar filtros
         if (isset($DatosPost->categoria_padres)) {
             $query .= " JOIN categoria_producto ON categoria_producto.id_categoria_producto = producto.id_producto";
-            $query .= " WHERE categoria_producto.id_categoria IN (" . implode(",", $DatosPost->categoria_padres) . ")";
+            $query .= " WHERE categoria_producto.id_categoria IN (" . ConsultaGlobal::enteros($DatosPost->categoria_padres) . ")";
         }
 
         if (isset($DatosPost->glosa_producto)) {
-            $query .= " AND producto.glosa_producto LIKE '%" . $DatosPost->glosa_producto . "%'";
+            $query .= " AND producto.glosa_producto LIKE " . ConsultaGlobal::esc('%' . $DatosPost->glosa_producto . '%');
         }
 
         if (isset($DatosPost->sku_producto)) {
-            $query .= " AND producto.codigo_producto LIKE '%" . $DatosPost->sku_producto . "%'";
+            $query .= " AND producto.codigo_producto LIKE " . ConsultaGlobal::esc('%' . $DatosPost->sku_producto . '%');
         }
 
         if (isset($DatosPost->id_tipo_inventario)) {
-            $query .= " AND producto.id_tipo_inventario = " . $DatosPost->id_tipo_inventario;
+            $query .= " AND producto.id_tipo_inventario = " . (int) $DatosPost->id_tipo_inventario;
         }
 
         if (!empty($buscar)) {
-            $query .= " AND (producto.glosa_producto LIKE '%$buscar%' OR ";
-            $query .= "producto.codigo_producto LIKE '%$buscar%' OR ";
-            $query .= "producto.codigo_barra_producto LIKE '%$buscar%' OR ";
-            $query .= "producto.precioventa_producto LIKE '%$buscar%')";
+            $query .= " AND (producto.glosa_producto LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . " OR ";
+            $query .= "producto.codigo_producto LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . " OR ";
+            $query .= "producto.codigo_barra_producto LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . " OR ";
+            $query .= "producto.precioventa_producto LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . ")";
         }
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= " ORDER BY producto.id_producto DESC  LIMIT {$longitud} OFFSET $DatosPost->start ";
+        $query .= " ORDER BY producto.id_producto DESC  LIMIT " . (int) $longitud . " OFFSET " . (int) $DatosPost->start . " ";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $DatosPost->draw,
@@ -228,7 +229,7 @@ class ProductoController
 
     public function TraerDatosProductos()
     {
-        $consulta = " WHERE id_producto= {$_GET['id_producto']}";
+        $consulta = " WHERE id_producto= " . (int) $_GET['id_producto'];
         $datos = $this->ObtenerDatosProducto($consulta);
         $unidad = Unidad::where('vigente_unidad', 1)->get();
         $tipo_concentracion = TipoConcentracion::where('vigente_tipo_concentracion', 1)->get();
@@ -247,7 +248,7 @@ class ProductoController
         $tipo_afectacion = TipoAfectacion::where('vigente_afectacion', 1)->get();
         $query_bodega = 'SELECT id_bodega,glosa_bodega, 0 AS total_stock_producto_bodega, 0 AS ultimopreciocompra_stock_producto_bodega,0 as precioventa_stock_producto_bodega
         FROM bodega
-        WHERE vigente_bodega = 1';
+        WHERE vigente_bodega = 1' . ScopeUsuario::filtroBodega('id_bodega');
         $bodegas = (new ConsultaGlobal())->ConsultaGlobal($query_bodega);
         $unidad = Unidad::where('vigente_unidad', 1)->get();
         $tipo_concentracion = TipoConcentracion::where('vigente_tipo_concentracion', 1)->get();
@@ -490,10 +491,20 @@ class ProductoController
 
     public function traerBodegaStock()
     {
-        $stockbodega = StockProductoBodega::join('bodega', 'bodega.id_bodega', 'stock_producto_bodega.id_bodega')
-            ->where('id_producto', $_POST['id_producto'])->get();
+        // [SCOPE] Un no-admin solo gestiona el stock de su bodega; admin todas.
+        $bodegasPermitidas = ScopeUsuario::idsBodegas();
+        $qStock = StockProductoBodega::join('bodega', 'bodega.id_bodega', 'stock_producto_bodega.id_bodega')
+            ->where('id_producto', $_POST['id_producto']);
+        if ($bodegasPermitidas !== null) {
+            $qStock->whereIn('stock_producto_bodega.id_bodega', $bodegasPermitidas);
+        }
+        $stockbodega = $qStock->get();
         $id_bodegas = $stockbodega->pluck('id_bodega')->toArray();
-        $bodega = Bodega::whereNotIn('id_bodega', $id_bodegas)->where('vigente_bodega', 1)->get();
+        $qBodega = Bodega::whereNotIn('id_bodega', $id_bodegas)->where('vigente_bodega', 1);
+        if ($bodegasPermitidas !== null) {
+            $qBodega->whereIn('id_bodega', $bodegasPermitidas);
+        }
+        $bodega = $qBodega->get();
         $resultado = $stockbodega->merge($bodega);
         $imageproducto = ProductoImagen::where('id_producto', $_POST['id_producto'])->where('portada_producto_imagen', 1)
             ->select('url_producto_imagen')
@@ -538,7 +549,7 @@ class ProductoController
             limit 1
          ) as path_producto_imagen
          FROM producto
-         where id_producto={$_GET['id_producto']}";
+         where id_producto=" . (int) $_GET['id_producto'];
         $producto = (new ConsultaGlobal())->ConsultaSingular($consulta);
         echo json_encode($producto);
     }

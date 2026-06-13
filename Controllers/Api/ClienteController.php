@@ -5,6 +5,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 
+require_once "Helpers/helpers.php";
 require_once "models/Cliente.php";
 require_once "models/Usuario.php";
 require_once "models/Departamento.php";
@@ -52,15 +53,14 @@ class ClienteController
 
     public function ActualizarPasswordCliente()
     {
-        $contrasenia = hash('sha256', $_POST['password_anterior']);
-        $contrasenia_actual = hash('sha256', $_POST['password_actual']);
+        // [SEGURIDAD A1] Verifica la contraseña anterior (bcrypt o sha256 legado) en
+        // PHP y guarda la nueva con bcrypt.
         $cliente =  Cliente::join('usuario', "usuario.id_cliente", "cliente.id_cliente")
             ->where('cliente.id_cliente',  $_POST['id_cliente'])
-            ->where('usuario.password_usuario', $contrasenia)
             ->first();
-        if (isset($cliente)) {
+        if ($cliente && helpers::verifyPassword($_POST['password_anterior'], $cliente->password_usuario)) {
             $usuario = [
-                "password_usuario" => $contrasenia_actual
+                "password_usuario" => helpers::hashPassword($_POST['password_actual'])
             ];
             Usuario::where("id_cliente", $_POST['id_cliente'])->update($usuario);
             echo json_encode("actualizado");
@@ -94,7 +94,7 @@ class ClienteController
         if (!isset($existeCliente)) {
             $nuevoCiente = Cliente::create($datos);
             if ($formulario->crearcuenta) {
-                $contrasenia = hash('sha256', $formulario->password);
+                $contrasenia = helpers::hashPassword($formulario->password); // [SEGURIDAD A1] bcrypt
                 $dataPerfilCliente = Perfil::where('perfildefecto_cliente', 1)->first();
                 $datoNuevoUsuario = [
                     'id_tipo_usuario' => 7,
@@ -156,10 +156,11 @@ class ClienteController
     {
         $data_usuario = Usuario::where('usuario.id_usuario', $_POST['id_usuario'])
             ->first();
-        $contrasenia_anterior = hash('sha256', $_POST['contrasenia_anterior']);
-        if (password_verify($data_usuario->password_usuario, $contrasenia_anterior)) {
-            $contrasenia = hash('sha256', $_POST['contrasenia_actual']);
-            $data_usuario->password_usuario = $contrasenia;
+        // [SEGURIDAD A1] Antes el password_verify estaba con los argumentos invertidos
+        // y comparaba contra un sha256 (nunca funcionaba). Ahora verifica correctamente
+        // (bcrypt o sha256 legado) y guarda la nueva contraseña con bcrypt.
+        if ($data_usuario && helpers::verifyPassword($_POST['contrasenia_anterior'], $data_usuario->password_usuario)) {
+            $data_usuario->password_usuario = helpers::hashPassword($_POST['contrasenia_actual']);
             $data_usuario->save();
             echo json_encode("Contraseña actualizado");
         } else {
@@ -172,16 +173,21 @@ class ClienteController
     public function LoginCliente()
     {
 
-        $pws = hash('sha256', $_POST['password_usuario']);
+        // [SEGURIDAD A1] Login de cliente: se busca por email y se verifica en PHP
+        // (bcrypt o sha256 legado), con rehash a bcrypt. El hash nunca se devuelve.
         $cliente = Cliente::join("usuario", "usuario.id_cliente", "cliente.id_cliente")
             ->leftjoin('distrito', 'distrito.idDistrito', 'cliente.idDistrito')
             ->leftjoin('provincia', 'provincia.idProvincia', 'distrito.idProvincia')
             ->leftjoin('departamentos', 'departamentos.idDepartamento', 'provincia.idDepartamento')
             ->where("cliente.e_mail_cliente", $_POST['e_mail_cliente'])
-            ->where("usuario.password_usuario", $pws)
-            ->select("cliente.*", 'distrito.idDistrito', 'departamentos.idDepartamento', 'provincia.idProvincia', "usuario.id_usuario")
+            ->select("cliente.*", 'distrito.idDistrito', 'departamentos.idDepartamento', 'provincia.idProvincia', "usuario.id_usuario", "usuario.password_usuario")
             ->first();
-        if (isset($cliente)) {
+        if ($cliente && helpers::verifyPassword($_POST['password_usuario'], $cliente->password_usuario)) {
+            if (helpers::passwordNeedsRehash($cliente->password_usuario)) {
+                Usuario::where('id_usuario', $cliente->id_usuario)
+                    ->update(['password_usuario' => helpers::hashPassword($_POST['password_usuario'])]);
+            }
+            unset($cliente->password_usuario);
             echo json_encode($cliente);
         } else {
             http_response_code(400);
@@ -274,21 +280,52 @@ class ClienteController
             // var_dump ($_FILES['Imagen']);
             //crear el directorio
             if (!file_exists(__DIR__ . "/../../archivo/imagen_pedido")) {
-                mkdir(__DIR__ . "/../../archivo/imagen_pedido", 0777, true);
+                mkdir(__DIR__ . "/../../archivo/imagen_pedido", 0755, true);
             }
             $fechacreacion = date('Y-m-d');
             $Fecha = explode("-", $fechacreacion);
-            $nombre = mt_srand(10) . "_" . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . '' . $_FILES['Imagen']['name'];
+
+            // [SEGURIDAD C4] Validar la imagen antes de moverla a un directorio web.
+            // Antes se conservaba la extensión enviada por el cliente (p. ej. ".php"),
+            // permitiendo subir y ejecutar código arbitrario (RCE). Además se usaba
+            // mt_srand() (que NO genera valor, devuelve null) para el nombre.
+            $extensionesPermitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $mimesPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+            if (!isset($_FILES['Imagen']) || $_FILES['Imagen']['error'] !== UPLOAD_ERR_OK) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'No se recibió la imagen del comprobante.']);
+                die;
+            }
+            if ($_FILES['Imagen']['size'] > 5 * 1024 * 1024) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'La imagen supera el tamaño máximo (5 MB).']);
+                die;
+            }
+            $extension = strtolower(pathinfo($_FILES['Imagen']['name'], PATHINFO_EXTENSION));
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mimeReal = $finfo->file($_FILES['Imagen']['tmp_name']);
+            if (!in_array($extension, $extensionesPermitidas, true) || !in_array($mimeReal, $mimesPermitidos, true)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Formato de imagen no permitido. Solo se aceptan imágenes (jpg, png, gif, webp).']);
+                die;
+            }
+            // Nombre seguro generado por el servidor (nunca el nombre del cliente).
+            $nombre = bin2hex(random_bytes(16)) . "_" . $Fecha[0] . $Fecha[1] . $Fecha[2] . time() . "." . $extension;
             $guardado = $_FILES['Imagen']['tmp_name'];
-            move_uploaded_file($guardado, __DIR__ . "/../../archivo/imagen_pedido/$nombre");
+            if (!move_uploaded_file($guardado, __DIR__ . "/../../archivo/imagen_pedido/$nombre")) {
+                http_response_code(500);
+                echo json_encode(['status' => 'error', 'message' => 'No se pudo guardar la imagen.']);
+                die;
+            }
             //PAGINA WEN (VERIFICAR IMAGEN)
             // https://sightengine.com/docs/getstarted
             $params = array(
                 'media' => new CurlFile(__DIR__ . "/../../archivo/imagen_pedido/$nombre"),
                 // 'url' =>  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMvVEnlUtT6iEz3iHVfPvCgFerKEzxRmeMug&usqp=CAU',
                 'models' => 'nudity,wad,gore',
-                'api_user' => '1591486713',
-                'api_secret' => 'EQbtn8gLGWb37QUSAkwz',
+                'api_user' => SIGHTENGINE_USER,
+                'api_secret' => SIGHTENGINE_SECRET,
             );
 
             // this example uses cURL

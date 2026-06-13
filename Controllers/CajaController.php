@@ -8,9 +8,44 @@ require_once "models/Caja.php";
 require_once "models/Usuario.php";
 require_once "models/EmpresaVentaOnline.php";
 require_once "config/Parametros.php";
+require_once "Helpers/JwtAuth.php";
+require_once "Helpers/PermisoGate.php";
 
 class CajaController
 {
+    /**
+     * [CAJA] Scope por usuario: el ADMINISTRADOR (o un perfil con la capacidad
+     * 'VER TODAS LAS CAJAS') ve todas las cajas; los demás solo las suyas
+     * (caja.id_staff = su staff). El id_perfil/id_usuario salen del JWT (confiables).
+     * Devuelve un fragmento SQL " AND caja.id_staff = N" o "" si puede ver todas.
+     */
+    private function scopeCaja()
+    {
+        $identity = $this->identidad();
+        $idPerfil = (is_object($identity) && isset($identity->id_perfil)) ? (int) $identity->id_perfil : 0;
+        $idUsuario = (is_object($identity) && isset($identity->sub)) ? (int) $identity->sub : 0;
+
+        if ($idPerfil === 1 || PermisoGate::perfilTiene($idPerfil, 'VER TODAS LAS CAJAS')) {
+            return '';
+        }
+        $rows = (new ConsultaGlobal())->ConsultaGlobal("SELECT id_staff FROM usuario WHERE id_usuario=" . $idUsuario);
+        $idStaff = isset($rows[0]) ? (int) $rows[0]->id_staff : 0;
+        return ' AND caja.id_staff = ' . $idStaff;
+    }
+
+    private function identidad()
+    {
+        $headers = function_exists('apache_request_headers') ? apache_request_headers() : [];
+        $token = null;
+        if (isset($_GET['Authorization'])) {
+            $token = $_GET['Authorization'];
+        } elseif (isset($headers['Authorization'])) {
+            $token = $headers['Authorization'];
+        } elseif (isset($headers['authorization'])) {
+            $token = $headers['authorization'];
+        }
+        return $token ? (new JwtAuth())->checktoken($token, true) : null;
+    }
 
     public function ListaCaja_Habilitado_Deshabilitado()
     {
@@ -25,20 +60,22 @@ class CajaController
         $fechas = '';
         if ($DatosPost->fechacreacion_caja_inicio) {
             $fechas .= ' and ';
-            $fechas .= " caja.fechacreacion_caja>='$DatosPost->fechacreacion_caja_inicio 00:00:00' ";
+            $fechas .= " caja.fechacreacion_caja>=" . ConsultaGlobal::esc($DatosPost->fechacreacion_caja_inicio . ' 00:00:00') . " ";
         }
         if ($DatosPost->fechacreacion_caja_fin) {
             $fechas .= ' and ';
-            $fechas .= " caja.fechacreacion_caja<='$DatosPost->fechacreacion_caja_fin 23:59:59' ";
+            $fechas .= " caja.fechacreacion_caja<=" . ConsultaGlobal::esc($DatosPost->fechacreacion_caja_fin . ' 23:59:59') . " ";
         }
 
-        $consulta = " and (concat(staff.nombre_staff,' ',staff.apellidopaterno_staff,' ',staff.apellidomaterno_staff) like '%$buscar%' or staff.nombre_staff LIKE  '%$buscar%' or staff.apellidopaterno_staff LIKE '%$buscar%' or staff.apellidomaterno_staff LIKE '%$buscar%') ";
-        $query = "SELECT * FROM caja  
+        $buscarLike = ConsultaGlobal::esc('%' . $buscar . '%');
+        $consulta = " and (concat(staff.nombre_staff,' ',staff.apellidopaterno_staff,' ',staff.apellidomaterno_staff) like " . $buscarLike . " or staff.nombre_staff LIKE  " . $buscarLike . " or staff.apellidopaterno_staff LIKE " . $buscarLike . " or staff.apellidomaterno_staff LIKE " . $buscarLike . ") ";
+        $scope = $this->scopeCaja(); // [CAJA] limita a las cajas del usuario si no es admin / sin permiso
+        $query = "SELECT * FROM caja
         inner join staff using (id_staff)
-        WHERE  caja.estado_caja=$DatosPost->estado  $consulta $fechas
+        WHERE  caja.estado_caja=" . (int) $DatosPost->estado . "  $consulta $fechas $scope
         order by caja.fechacreacion_caja desc ";
         $ConsultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $DatosPost->start . " ";
         $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $DatosPost->draw,
@@ -73,15 +110,15 @@ class CajaController
         LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
         LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
         LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
-        where id_caja=$id_caja ";
+        where id_caja=" . (int) $id_caja . " ";
 
-        $query_egreso = "SELECT * from egreso 
+        $query_egreso = "SELECT * from egreso
         INNER JOIN negocio USING (id_negocio)
         inner join tipo_egreso USING (id_tipo_egreso)
         LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
         LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
         LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
-        where id_caja=$id_caja ";
+        where id_caja=" . (int) $id_caja . " ";
 
         $Ingreso = (new ConsultaGlobal())->ConsultaGlobal($query_ingreso);
         $Egreso = (new ConsultaGlobal())->ConsultaGlobal($query_egreso);
@@ -183,7 +220,7 @@ class CajaController
             }
         }
         $caja = Caja::where('id_caja', $id_caja)
-            ->leftjoin('staff', 'staff.id_staff', 'caja.id_caja')
+            ->leftjoin('staff', 'staff.id_staff', 'caja.id_staff')
             ->first();
         $respuesta = [
             "total_efectivo" => $total_efectivo + $caja->montoinicial_caja,
@@ -245,7 +282,7 @@ class CajaController
             LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
             LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
             LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
-            where id_caja={$_GET['id_caja']} AND medio_pago.id_medio_pago={$_GET['id_pago']}";
+            where id_caja=" . (int) $_GET['id_caja'] . " AND medio_pago.id_medio_pago=" . (int) $_GET['id_pago'] . "";
             $data = (new ConsultaGlobal())->ConsultaGlobal($query_ingreso);
         } else {
             $query_egreso = "SELECT *,'" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "' as ruta_archivo from egreso 
@@ -254,7 +291,7 @@ class CajaController
             LEFT JOIN boleta on boleta.id_negocio=negocio.id_negocio
             LEFT JOIN factura on factura.id_negocio=negocio.id_negocio
             LEFT JOIN nota_venta on nota_venta.id_negocio=negocio.id_negocio
-            where id_caja={$_GET['id_caja']} AND egreso.id_tipo_egreso={$_GET['id_pago']} ";
+            where id_caja=" . (int) $_GET['id_caja'] . " AND egreso.id_tipo_egreso=" . (int) $_GET['id_pago'] . " ";
             $data = (new ConsultaGlobal())->ConsultaGlobal($query_egreso);
         }
         $respuesta = [

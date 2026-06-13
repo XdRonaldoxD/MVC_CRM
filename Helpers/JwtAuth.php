@@ -8,16 +8,38 @@ class JwtAuth
     public $key;
     public function __construct()
     {
-        $this->key = "ESTE-ES-MI-LLAVE-BOTICA3354335467547";
+        // [SEGURIDAD C2/C5] La clave de firma JWT se lee de config/Parametros.php
+        // (archivo NO versionado). Fail-closed: si no está definida, se aborta en
+        // vez de usar una clave conocida.
+        if (!defined('JWT_KEY')) {
+            http_response_code(500);
+            die(json_encode(['status' => 'error', 'message' => 'Configuración de seguridad ausente.']));
+        }
+        $this->key = JWT_KEY;
     }
 
-    public function signup($email, $contra, $getToken = null)
+    public function signup($email, $password, $getToken = null)
     {
+        // [SEGURIDAD A1] Antes el password (sha256) se comparaba dentro del WHERE.
+        // Ahora se busca por CORREO o DNI y se verifica en PHP, soportando bcrypt y el
+        // sha256 legado, con rehash transparente a bcrypt en cada login exitoso.
+        // ($email es el identificador: puede ser correo o DNI.)
         $user = Usuario::join('staff', 'staff.id_staff', 'usuario.id_staff')
-            ->where("staff.e_mail_staff", $email)
-            ->where("usuario.password_usuario", $contra)
-            ->where("usuario.vigente_usuario",1)
+            ->where(function ($q) use ($email) {
+                $q->where('staff.e_mail_staff', $email)
+                    ->orWhere('staff.dni_staff', $email);
+            })
+            ->where("usuario.vigente_usuario", 1)
             ->first();
+        if (!$user || !helpers::verifyPassword($password, $user->password_usuario)) {
+            http_response_code(403);
+            header("Login a Fallado");
+            return;
+        }
+        if (helpers::passwordNeedsRehash($user->password_usuario)) {
+            Usuario::where('id_usuario', $user->id_usuario)
+                ->update(['password_usuario' => helpers::hashPassword($password)]);
+        }
         if (!empty($user->session_id)) {
             return array(
                 'status' => 'error',
@@ -25,10 +47,7 @@ class JwtAuth
                 'id_usuario' => $user->id_usuario,
             );
         }
-        $signup = false;
-        if ($user) {
-            $signup = true;
-        }
+        $signup = true;
         if ($signup) {
             $empresaVentaOnline=EmpresaVentaOnline::first();
             //Generar un toke y devolver
@@ -38,6 +57,8 @@ class JwtAuth
                 'telefono_empresa_venta_online'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->telefono_empresa_venta_online : null),
                 'celular_empresa_venta_online'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->celular_empresa_venta_online : null),
                 'nombre_empresa_venta_online'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->nombre_empresa_venta_online : null),
+                // [LOGO] URL del logo horizontal para mostrarlo en la barra superior del panel.
+                'urllogohorizontal_empresa_venta_online'=>(isset($empresaVentaOnline) ? $empresaVentaOnline->urllogohorizontal_empresa_venta_online : null),
                 'sub' => $user->id_usuario,
                 'email' => $user->e_mail_staff,
                 'nombre' => $user->nombre_staff,
@@ -94,7 +115,10 @@ class JwtAuth
     public function checktoken($jwt, $getIdentity = false)
     {
         $auth = false;
-        if ($jwt=="@TEXCOTTOMDESING2021LS~$") {
+        // [SEGURIDAD C2] API-key estática del store público (movida a Parametros.php,
+        // no versionado). Pendiente Lote 2: acotar esta key para que solo alcance
+        // endpoints Api/* y no controllers de administración.
+        if (defined('STORE_API_KEY') && $jwt === STORE_API_KEY) {
             $auth = true;
         }else{
             try {

@@ -54,6 +54,7 @@ class NotaCreditoSunat{
             'correlativo_ref'           =>  $this->datos['correlativo_ref']
         
         );
+        
         //VERIFICAR
         $detalle = $this->datos['details'];
         

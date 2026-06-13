@@ -507,7 +507,8 @@ class ProductoController
     {
         $ConsultaApi = new ConsultaGlobal();
         $ConsultaApi->LiberarGroupConcat();
-        $condicion = " where urlamigable_producto='{$_POST['urlamigable_producto']}' and id_bodega={$this->id_bodega} ";
+        $slug = $_POST['urlamigable_producto'];
+        $condicion = " where urlamigable_producto=" . ConsultaGlobal::esc($slug) . " and id_bodega=" . (int) $this->id_bodega . " ";
         $Producto = $ConsultaApi->ListarProductoApi($condicion);
         $arreglos = $this->ConstruirProducto($Producto);
         echo json_encode($arreglos[0]);
@@ -1161,4 +1162,192 @@ class ProductoController
         }
         echo json_encode($objeto);
     }
+
+    // API DE MI HERMANA DE ROPA----------------------------------------------
+    public function CategoriaPopularesHermana()
+    {
+        //MUESTRA A TODAS LA CETEGORIAS PADRES----------------------------------------
+        $consulta = "SELECT * FROM categoria
+        where id_categoria_padre=0
+        and id_tipo_inventario=1
+        and vigente_categoria=1
+        GROUP BY id_categoria
+        ORDER BY glosa_categoria asc
+        LIMIT 6";
+        //---------------------------------------------------------
+        $objeto = [];
+        $categoriasPadre = (new ConsultaGlobal())->ConsultaGlobal($consulta);
+        foreach ($categoriasPadre as $value) {
+            $recorrer = true;
+            $id_categoria = $value->id_categoria;
+            $hijos = [];
+            while ($recorrer) {
+                $categorias = Categorias::where('id_categoria_padre', $id_categoria)->get();
+                if (count($categorias) > 1) {
+                    foreach ($categorias as $elements) {
+                        $categorias_sub_hijo = Categorias::where('id_categoria_padre', $elements->id_categoria)->get();
+                        if (count($categorias_sub_hijo) > 0) {
+                            foreach ($categorias_sub_hijo as $elementos) {
+                                array_push($hijos, $elementos->id_categoria);
+                            }
+                        } else {
+                            array_push($hijos, $elements->id_categoria);
+                        }
+                    }
+                    $recorrer = false;
+                } elseif (count($categorias) == 1) {
+                    $id_categoria = $categorias[0]->id_categoria;
+                } else {
+                    $categoria = Categorias::where('id_categoria', $value->id_categoria)->first();
+                    array_push($hijos, $categoria->id_categoria);
+                    $recorrer = false;
+                }
+            }
+
+            $hijos = array_unique($hijos);
+            $cantidProducto = CategoriaProducto::join('producto', 'producto.id_producto', 'categoria_producto.id_producto')
+                ->join('stock_producto_bodega', 'stock_producto_bodega.id_producto', 'producto.id_producto')
+                ->whereIn('categoria_producto.id_categoria', $hijos)
+                ->where('producto.visibleonline_producto', 1)
+                ->where('stock_producto_bodega.id_bodega', $this->id_bodega)
+                ->groupby('producto.id_producto')
+                ->get();
+
+            $datos = [
+                "id" => $value->id_categoria,
+                "type" => "shop",
+                "name" =>  $value->glosa_categoria,
+                "slug" => $value->urlamigable_categoria,
+                "path" => "shop/catalog",
+                "image" => $value->pathimagenpopular_categoria ?? "assets/images/categories/category-1.jpg",
+                "items" => count($cantidProducto),
+                "customFields" => [],
+                "parents" => null,
+                "children" => []
+            ];
+            array_push($objeto, $datos);
+        }
+        echo json_encode($objeto);
+    }
+
+    public function traerDatosInicialProductoHermana()
+    {
+        // PRODUCTOS DESCTACADOS-----------------------------------------------------------------------------------
+        $condicion = "SELECT producto.*,
+        (SELECT GROUP_CONCAT(id_producto SEPARATOR '~') from producto_relacionado where idproductopadre_producto_relacionado=producto.id_producto) as producto_relacionado,
+        (SELECT GROUP_CONCAT(categoria.id_categoria,'@',categoria.glosa_categoria SEPARATOR '~')
+        from categoria_producto
+        inner join categoria on categoria.id_categoria = categoria_producto.id_categoria
+        where id_producto=producto.id_producto)
+        as categorias,
+        (SELECT GROUP_CONCAT(producto_imagen.url_producto_imagen SEPARATOR '~')
+        from producto_imagen where id_producto=producto.id_producto
+        ) as producto_imagen,
+        (select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
+        FROM producto_color where id_producto=producto.id_producto
+        ) as color_producto,
+        (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~')
+        from especificaciones_producto where id_producto=producto.id_producto
+        ) as especificacion_producto,
+        (SELECT GROUP_CONCAT(atributo.glosa_atributo,',',atributo_producto.id_atributo_producto SEPARATOR '~')
+        from atributo_producto
+        inner join atributo using (id_atributo)
+        where id_producto=producto.id_producto
+        ) as atributo_producto,
+        total_stock_producto_bodega,
+        precioventa_stock_producto_bodega,
+        ultimopreciocompra_stock_producto_bodega,
+        glosa_marca
+        from stock_producto_bodega
+        inner join producto using (id_producto)
+        left join marca using (id_marca)
+        where vigente_producto=1
+        and visibleonline_producto=1
+        and id_tipo_inventario=1
+        and total_stock_producto_bodega>0
+        and fechacreacion_producto >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+        order by id_producto desc
+        limit 20";
+        $consultaApi = new ConsultaGlobal();
+        $productos = $consultaApi->ConsultaGlobal($condicion);
+        $data = [];
+        foreach ($productos as $value) {
+            $arreglos = $this->ConstruirProducto($value);
+            array_push($data, $arreglos[0]);
+        }
+        //SLIDER----------------------------------------------------------------------------
+        $query = "SELECT
+        UPPER(nombre_slider) as title,
+        concat('" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/imagen_slider/',pathescritorio_slider)  as image_classic,
+        concat('" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/imagen_slider/',pathescritorio_slider)  as image_full,
+        concat('" . RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/imagen_slider/',pathmobile_slider)  as image_mobile,
+        texto_slider,urlamigable_categoria
+        FROM slider
+        inner join categoria using (id_categoria)
+        where vigente_slider=1 and
+        id_tipo_inventario=1
+        ";
+        $consultaGlobalslider = (new ConsultaGlobal())->ConsultaGlobal($query);
+        //-----------------------------------------------------------------------------------
+        //PROMOCIONES-------------------------------------------------------------------------
+        $query_promocion = "SELECT * FROM promocion
+        where fecha_promocion > CURDATE()";
+        $promociones = (new ConsultaGlobal())->ConsultaGlobal($query_promocion);
+        //-------------------------------------------------------------------------------------
+        $arreglo = [
+            "producto" => $data,
+            'slider' => $consultaGlobalslider,
+            "promociones" => $promociones
+        ];
+        echo json_encode($arreglo);
+    }
+
+    public function listarProductosHermana()
+    {
+
+        $condicion = "SELECT producto.*,
+            (SELECT GROUP_CONCAT(id_producto SEPARATOR '~') from producto_relacionado where idproductopadre_producto_relacionado=producto.id_producto) as producto_relacionado,
+            (SELECT GROUP_CONCAT(categoria.id_categoria,'@',categoria.glosa_categoria SEPARATOR '~') 
+            from categoria_producto
+            inner join categoria on categoria.id_categoria = categoria_producto.id_categoria
+            where id_producto=producto.id_producto) 
+            as categorias,
+            (SELECT GROUP_CONCAT(producto_imagen.url_producto_imagen SEPARATOR '~') 
+            from producto_imagen where id_producto=producto.id_producto
+            ) as producto_imagen,
+            (select GROUP_CONCAT(nombre_producto_color,',',hexadecimal_producto_color,',',id_producto_color SEPARATOR '~')
+            FROM producto_color where id_producto=producto.id_producto
+            ) as color_producto,
+            (SELECT GROUP_CONCAT(glosa_especificaciones_producto,',',respuesta_especificaciones_producto SEPARATOR '~') 
+            from especificaciones_producto where id_producto=producto.id_producto
+            ) as especificacion_producto,
+            (SELECT GROUP_CONCAT(atributo.glosa_atributo,',',atributo_producto.id_atributo_producto SEPARATOR '~') 
+            from atributo_producto
+            inner join atributo using (id_atributo)
+            where id_producto=producto.id_producto
+            ) as atributo_producto,
+            total_stock_producto_bodega,
+            precioventa_stock_producto_bodega,
+            ultimopreciocompra_stock_producto_bodega,
+            glosa_marca
+            from stock_producto_bodega
+            inner join producto using (id_producto)
+            left join marca using (id_marca)
+            where vigente_producto=1
+            and visibleonline_producto=1
+            and id_tipo_inventario=1
+            and total_stock_producto_bodega>0
+            and fechacreacion_producto >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+            order by id_producto desc
+            limit 20";
+        $ConsultaApi = new ConsultaGlobal();
+        $Productos = $ConsultaApi->ConsultaGlobal($condicion);
+        $data = [];
+        foreach ($Productos as $value) {
+            $arreglos = $this->ConstruirProducto($value);
+            array_push($data, $arreglos[0]);
+        }
+        echo json_encode($data);
+    }
+    //----------------------------------------------------------------------
 }

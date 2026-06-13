@@ -9,6 +9,30 @@ class ConsultaGlobal
         $this->db = database::conectar();
     }
 
+    // [SEGURIDAD C3] Helpers contra inyección SQL. El sistema concatena input del
+    // usuario directamente en las queries; estos métodos permiten incrustar valores
+    // de forma segura sin reescribir todo a prepared statements.
+    private static $pdoEscape = null;
+
+    // Devuelve el valor como literal SQL YA entrecomillado y escapado (PDO::quote).
+    // Uso: " ... LIKE " . ConsultaGlobal::esc('%'.$buscar.'%')   (sin comillas extra)
+    public static function esc($valor): string
+    {
+        if (self::$pdoEscape === null) {
+            self::$pdoEscape = database::conectar();
+        }
+        return self::$pdoEscape->quote((string) $valor);
+    }
+
+    // Convierte un arreglo en una lista de enteros segura para cláusulas IN (...).
+    public static function enteros($valores): string
+    {
+        if (!is_array($valores) || count($valores) === 0) {
+            return '0';
+        }
+        return implode(',', array_map('intval', $valores));
+    }
+
     public function ListarProductoApi($condicion)
     {
         $sql = "SELECT producto.*,
@@ -197,30 +221,29 @@ class ConsultaGlobal
             $consulta_cliente = " and CONCAT(cliente.nombre_cliente,' ',cliente.apellidopaterno_cliente,' ',cliente.apellidomaterno_cliente) LIKE %% ";
         }
         if (!empty($buscar)) {
-            $consulta_cliente = " and (CONCAT(cliente.nombre_cliente,' ',cliente.apellidopaterno_cliente,' ',cliente.apellidomaterno_cliente) LIKE '%$buscar%' or estado_pago.glosa_estado_pago LIKE '%$buscar%' or estado_pedido.glosa_estado_pedido LIKE '%$buscar%' 
-            or estado_preparacion.glosa_estado_preparacion LIKE '%$buscar%')
-            or pedido.numero_pedido = '$buscar'
+            $b = self::esc('%' . $buscar . '%');   // [SEGURIDAD C3]
+            $bx = self::esc($buscar);
+            $consulta_cliente = " and (CONCAT(cliente.nombre_cliente,' ',cliente.apellidopaterno_cliente,' ',cliente.apellidomaterno_cliente) LIKE $b or estado_pago.glosa_estado_pago LIKE $b or estado_pedido.glosa_estado_pedido LIKE $b
+            or estado_preparacion.glosa_estado_preparacion LIKE $b)
+            or pedido.numero_pedido = $bx
             ";
         }
         if (!empty($DatosPost->id_estado_pago)) {
-            $id_estado_pago = implode(',', $DatosPost->id_estado_pago);
-            $id_estado_pago = "($id_estado_pago)";
+            $id_estado_pago = "(" . self::enteros($DatosPost->id_estado_pago) . ")";   // [SEGURIDAD C3]
             $consulta_cliente .= " and pedido.id_estado_pago in $id_estado_pago ";
         }
         if (!empty($DatosPost->id_estado_pedido)) {
-            $id_estado_pedido = implode(',', $DatosPost->id_estado_pedido);
-            $id_estado_pedido = "($id_estado_pedido)";
+            $id_estado_pedido = "(" . self::enteros($DatosPost->id_estado_pedido) . ")";
             $consulta_cliente .= " and pedido.id_estado_pedido in $id_estado_pedido  ";
         }
         if (!empty($DatosPost->id_estado_preparacion)) {
-            $id_estado_preparacion = implode(',', $DatosPost->id_estado_preparacion);
-            $id_estado_preparacion = "($id_estado_preparacion)";
+            $id_estado_preparacion = "(" . self::enteros($DatosPost->id_estado_preparacion) . ")";
             $consulta_cliente .= " and pedido.id_estado_preparacion in $id_estado_preparacion ";
         }
         $consulta_limite = '';
         if ($limit) {
             $consulta_limite = " ORDER BY pedido.id_pedido desc
-            LIMIT {$longitud} OFFSET $DatosPost->start ";
+            LIMIT " . (int) $longitud . " OFFSET " . (int) $DatosPost->start . " ";
         }
         $sql = "SELECT  
                 estado_preparacion.glosa_estado_preparacion,
@@ -255,8 +278,8 @@ class ConsultaGlobal
         if ($linea === 'true') {
             $condicion_extra = " and estado_linea_log_chat=1 ";
         }
-        $consulta = "SELECT *,0 as chat_seleccionado FROM `log_chat` where fechacreacion_log_chat >= '$fecha_desde'
-        and fechacreacion_log_chat <= '$fecha_hasta'
+        $consulta = "SELECT *,0 as chat_seleccionado FROM `log_chat` where fechacreacion_log_chat >= " . self::esc($fecha_desde) . "
+        and fechacreacion_log_chat <= " . self::esc($fecha_hasta) . "
         and estado_log_chat=1
         $condicion_extra";
         $producto = $this->db->prepare($consulta);

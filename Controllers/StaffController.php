@@ -1,4 +1,5 @@
 <?php
+require_once "Helpers/helpers.php";
 require_once "models/Usuario.php";
 require_once "models/Perfil.php";
 require_once "models/Staff.php";
@@ -30,18 +31,23 @@ class StaffController
     public function GestionarStaff()
     {
         $InformacionStaff = json_decode($_POST['InformacionStaff']);
-        $staff = [
-            'dni_staff' => $InformacionStaff->dni_staff ?? null,
-            'nombre_staff' => $InformacionStaff->nombre_staff,
-            'apellidopaterno_staff' => $InformacionStaff->apellidopaterno_staff,
-            'apellidomaterno_staff' => $InformacionStaff->apellidomaterno_staff,
-            'e_mail_staff' => $InformacionStaff->e_mail_staff,
-            'telefono_staff' => $InformacionStaff->telefono_staff,
-            'celular_staff' => $InformacionStaff->celular_staff,
-            'sexo_staff' => $InformacionStaff->sexo_staff,
-            'id_sucursal'=>$InformacionStaff->id_sucursal,
-            'id_bodega'=>$InformacionStaff->id_bodega
+        // [FIX CRÍTICO] Solo se actualizan los campos que el formulario realmente envía.
+        // El form de "Mi Perfil" (Datos-Personales) NO incluye dni_staff / id_sucursal /
+        // id_bodega; antes se forzaban a null y eso BORRABA el DNI y la asignación del
+        // usuario al guardar el perfil (por eso "ayer ingresaba con mi DNI y hoy ya no").
+        // Construyendo el arreglo solo con lo presente, cada form actualiza lo suyo y
+        // preserva el resto.
+        $camposPermitidos = [
+            'dni_staff', 'nombre_staff', 'apellidopaterno_staff', 'apellidomaterno_staff',
+            'e_mail_staff', 'telefono_staff', 'celular_staff', 'sexo_staff',
+            'id_sucursal', 'id_bodega',
         ];
+        $staff = [];
+        foreach ($camposPermitidos as $campo) {
+            if (property_exists($InformacionStaff, $campo)) {
+                $staff[$campo] = $InformacionStaff->$campo;
+            }
+        }
         if (!empty($InformacionStaff->id_staff)) {
             Staff::where('id_staff', $InformacionStaff->id_staff)->update($staff);
             $idstaff=$InformacionStaff->id_staff;
@@ -58,7 +64,7 @@ class StaffController
             'id_perfil' => $InformacionStaff->id_perfil
         ];
         if (!empty($InformacionStaff->newPassword) && !empty($InformacionStaff->confirmPassword)) {
-            $pwd = hash('sha256', $InformacionStaff->newPassword);
+            $pwd = helpers::hashPassword($InformacionStaff->newPassword); // [SEGURIDAD A1] bcrypt
             $claveactualizado += [
                 'password_usuario' => $pwd
             ];
@@ -79,7 +85,7 @@ class StaffController
     public function updatepass()
     {
         if (!empty($_POST['newPassword']) && !empty($_POST['confirmPassword'])) {
-            $pwd = hash('sha256', $_POST['newPassword']);
+            $pwd = helpers::hashPassword($_POST['newPassword']); // [SEGURIDAD A1] bcrypt
             $claveactualizado = [
                 'password_usuario' => $pwd
             ];
@@ -113,9 +119,10 @@ class StaffController
             $longitud = $datosPost->length;
         }
         $buscar = $datosPost->search->value;
-        $consulta = " and (CONCAT(nombre_staff,' ',apellidopaterno_staff,' ',apellidomaterno_staff) LIKE '%$buscar%' or
-        telefono_staff LIKE '%$buscar%' or celular_staff LIKE '%$buscar%' or e_mail_staff  LIKE '%$buscar%' or
-        glosa_perfil  LIKE '%$buscar%' )";
+        $buscarLike = ConsultaGlobal::esc('%' . $buscar . '%');
+        $consulta = " and (CONCAT(nombre_staff,' ',apellidopaterno_staff,' ',apellidomaterno_staff) LIKE " . $buscarLike . " or
+        telefono_staff LIKE " . $buscarLike . " or celular_staff LIKE " . $buscarLike . " or e_mail_staff  LIKE " . $buscarLike . " or
+        glosa_perfil  LIKE " . $buscarLike . " )";
         $query = "SELECT
         id_usuario,
         id_perfil,
@@ -134,10 +141,10 @@ class StaffController
         FROM usuario
         inner join staff using (id_staff)
         left join perfil using (id_perfil)
-        WHERE  vigente_usuario=$datosPost->vigente_usuario $consulta
+        WHERE  vigente_usuario=" . (int) $datosPost->vigente_usuario . " $consulta
         order by usuario.id_usuario desc";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $datosPost->start . " ";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $datosPost->draw,

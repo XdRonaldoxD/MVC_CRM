@@ -40,8 +40,6 @@ class NegocioController
     public function __construct()
     {
         $this->fechaactual = date('Y-m-d H:i:s');
-
-        
     }
     public function GenerarNegocio()
     {
@@ -56,12 +54,22 @@ class NegocioController
         $staff = Usuario::select("staff.*")->where('id_usuario', $informacionForm->vendedor)
             ->join('staff', 'staff.id_staff', 'usuario.id_staff')
             ->first();
+        // [QA-FIX] El vendedor debe tener staff y bodega asignada; si no, abortar con
+        // mensaje claro en vez de reventar con "property on null" más abajo.
+        if (!$staff || empty($staff->id_bodega)) {
+            http_response_code(404);
+            echo json_encode("El vendedor no tiene una bodega asignada. Asígnela en Usuario.");
+            exit;
+        }
         //VERIFICANDO STOCK-----------------------------------
         foreach ($datos->ProductoSeleccionados as $elemento) {
             $producto = StockProductoBodega::where('id_producto', $elemento->id_producto)->where('id_bodega', $staff->id_bodega)->first();
-            if (!$producto || $producto->total_stock_producto_bodega <= 0) {
+            // [QA-FIX] Antes solo validaba stock<=0; ahora compara contra la cantidad
+            // pedida para impedir vender más de lo disponible (stock negativo).
+            $cantidadPedida = isset($elemento->cantidad_seleccionado) ? (float) $elemento->cantidad_seleccionado : 0;
+            if (!$producto || $producto->total_stock_producto_bodega < $cantidadPedida || $producto->total_stock_producto_bodega <= 0) {
                 http_response_code(404);
-                echo json_encode("Verificar stock del producto");
+                echo json_encode("Stock insuficiente para el producto seleccionado.");
                 exit;
             }
         }
@@ -71,8 +79,8 @@ class NegocioController
             echo json_encode("No hay empresa agregados");
             exit();
         }
-        $EmpresaVentaOnline=CertificadoDigital::join('empresa_venta_online','empresa_venta_online.id_empresa_venta_online','certificado_digital_empresa.id_empresa_venta_online')
-        ->where('certificado_digital_empresa.id_empresa_venta_online',$informacionForm->id_empresa)->where('uso_certificado_digital',1)->first();
+        $EmpresaVentaOnline = CertificadoDigital::join('empresa_venta_online', 'empresa_venta_online.id_empresa_venta_online', 'certificado_digital_empresa.id_empresa_venta_online')
+            ->where('certificado_digital_empresa.id_empresa_venta_online', $informacionForm->id_empresa)->where('uso_certificado_digital', 1)->first();
         if (!isset($EmpresaVentaOnline)) {
             http_response_code(404);
             echo json_encode("No hay certificado digital");
@@ -144,11 +152,13 @@ class NegocioController
         $details = [];
         $igv_porcentaje = 0.18;
         foreach ($datos->ProductoSeleccionados as $i => $element) {
-            $tipoAfectacion = Producto::join('tipo_afectacion', 'tipo_afectacion.id_tipo_afectacion', 'producto.id_tipo_afectacion')
-                ->where('id_producto', $element->id_producto)
+            $tipoAfectacion = StockProductoBodega::join('producto', 'producto.id_producto', 'stock_producto_bodega.id_producto')
+                ->join('tipo_afectacion', 'tipo_afectacion.id_tipo_afectacion', 'producto.id_tipo_afectacion')
+                ->where('stock_producto_bodega.id_producto', $element->id_producto)
+                ->where('stock_producto_bodega.id_bodega', $staff->id_bodega)
                 ->first();
             $cantidad = $element->cantidad_seleccionado;
-            $precio = round($tipoAfectacion->precioventa_producto, 2);
+            $precio = round($tipoAfectacion->precioventa_stock_producto_bodega, 2);
             $igv_detalle = 0;
             $factor_porcentaje = 1;
 
@@ -234,19 +244,28 @@ class NegocioController
             "details" => $details,
             'listaMetodosPago' => $listaMetodosPago
         );
-        $respuesta = [];
-        if ($tipo_documento === 'BOLETA') {
-            $boleta = new BoletaSunat($data);
-            $respuesta = $boleta->enviarboleta();
-        } elseif ($tipo_documento === 'FACTURA') {
-            $factura = new FacturaSunat($data);
-            $respuesta = $factura->enviarfactura();
-        }
-        if (isset($respuesta) && isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && ($tipo_documento === 'BOLETA' || $tipo_documento === 'FACTURA') && $respuesta['estado'] != 8 && empty($respuesta['Nota'])) {
-            http_response_code(400);
-            echo json_encode($respuesta);
-            exit();
-        }
+        // [SUNAT DESACTIVADO TEMPORALMENTE] Por ahora el comprobante NO se envía a SUNAT;
+        // el cliente realiza el envío manualmente. La BOLETA/FACTURA se genera y guarda
+        // normalmente (correlativo, serie, totales, PDF/ticket y descuento de stock).
+        // Para reactivar el envío automático, descomenta el bloque de abajo y quita el
+        // $respuesta por defecto.
+        $respuesta = [
+            'ruta_xml'    => null,
+            'ruta_zip'    => null,
+            'Descripcion' => 'Pendiente de envío manual a SUNAT',
+        ];
+        // if ($tipo_documento === 'BOLETA') {
+        //     $boleta = new BoletaSunat($data);
+        //     $respuesta = $boleta->enviarboleta();
+        // } elseif ($tipo_documento === 'FACTURA') {
+        //     $factura = new FacturaSunat($data);
+        //     $respuesta = $factura->enviarfactura();
+        // }
+        // if (isset($respuesta) && isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && ($tipo_documento === 'BOLETA' || $tipo_documento === 'FACTURA') && $respuesta['estado'] != 8 && empty($respuesta['Nota'])) {
+        //     http_response_code(400);
+        //     echo json_encode($respuesta);
+        //     exit();
+        // }
 
 
         $data += [
@@ -271,7 +290,7 @@ class NegocioController
             'efectivo_negocio' =>  $totalespagados->total_pagado,
             'vuelto_negocio' => $totalespagados->vuelto,
             'id_bodega' => $staff->id_bodega,
-            'id_sucursal'=> $staff->id_sucursal
+            'id_sucursal' => $staff->id_sucursal
         ];
         $folio->numero_folio += 1;
         $folio->save();
@@ -353,7 +372,8 @@ class NegocioController
                     'id_cliente' => $informacionForm->cliente,
                     'comentario_boleta' => $respuesta['Descripcion'],
                     'path_boleta' => $pathNotaVenta['path'],
-                    'path_ticket_boleta' => $pathNotaVenta['path_ticket']
+                    'path_ticket_boleta' => $pathNotaVenta['path_ticket'],
+                    'respuesta_sunat_boleta' => json_encode($respuesta)
                 ];
                 $folio_documento->numero_folio += 1;
                 $folio_documento->save();
@@ -378,7 +398,8 @@ class NegocioController
                     'id_cliente' => $informacionForm->cliente,
                     'comentario_factura' => $respuesta['Descripcion'],
                     'path_documento' => $pathNotaVenta['path'],
-                    'path_ticket_factura' =>  $pathNotaVenta['path_ticket']
+                    'path_ticket_factura' =>  $pathNotaVenta['path_ticket'],
+                    'respuesta_sunat_factura' => json_encode($respuesta)
                 ];
                 $folio_documento->numero_folio += 1;
                 $folio_documento->save();
@@ -452,9 +473,12 @@ class NegocioController
             Egreso::create($data);
         }
 
+        // [FIX PDF] El tipo de documento ("NOTA VENTA") y el nombre del archivo
+        // contienen espacios; sin codificar, el iframe no puede cargar el PDF
+        // (HTTP 000/404). rawurlencode convierte el espacio en %20 → carga OK.
         $rutaspdf = [
-            "ticket" => RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."/$tipo_documento/{$pathNotaVenta['path_ticket']}",
-            "pdf" => RUTA_ARCHIVO . "/archivo/".DOMINIO_ARCHIVO."/$tipo_documento/{$pathNotaVenta['path']}"
+            "ticket" => RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/" . rawurlencode($tipo_documento) . "/" . rawurlencode($pathNotaVenta['path_ticket']),
+            "pdf" => RUTA_ARCHIVO . "/archivo/" . DOMINIO_ARCHIVO . "/" . rawurlencode($tipo_documento) . "/" . rawurlencode($pathNotaVenta['path'])
         ];
         echo json_encode($rutaspdf);
     }
@@ -563,8 +587,8 @@ class NegocioController
             $pathticket = $factura->path_ticket_factura;
         }
 
-        $pathtoFile_pdf = RUTA_ARCHIVO . "/archivos/".DOMINIO_ARCHIVO."/{$_POST['documento']}Venta/$pathpdf";
-        $pathtoFile_ticket = RUTA_ARCHIVO . "/archivos/".DOMINIO_ARCHIVO."/{$_POST['documento']}Venta/$pathticket";
+        $pathtoFile_pdf = RUTA_ARCHIVO . "/archivos/" . DOMINIO_ARCHIVO . "/{$_POST['documento']}Venta/$pathpdf";
+        $pathtoFile_ticket = RUTA_ARCHIVO . "/archivos/" . DOMINIO_ARCHIVO . "/{$_POST['documento']}Venta/$pathticket";
         $respuesta = [
             'pdf' => $pathtoFile_pdf,
             'ticket' => $pathtoFile_ticket

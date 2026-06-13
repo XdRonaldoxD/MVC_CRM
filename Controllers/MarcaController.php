@@ -15,12 +15,12 @@ class MarcaController
             $longitud = $DatosPost->length;
         }
         $buscar = $DatosPost->search->value;
-        $consulta = " and (glosa_marca LIKE '%$buscar%') ";
+        $consulta = " and (glosa_marca LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . ") ";
         $query = "SELECT * FROM marca
         WHERE  vigente_marca=1 $consulta
         order by marca.id_marca desc";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $DatosPost->start . " ";
         $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $DatosPost->draw,
@@ -40,12 +40,12 @@ class MarcaController
             $longitud = $DatosPost->length;
         }
         $buscar = $DatosPost->search->value;
-        $consulta = " and (glosa_marca LIKE '%$buscar%') ";
+        $consulta = " and (glosa_marca LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . ") ";
         $query = "SELECT * FROM marca
         WHERE  vigente_marca=0 $consulta 
         order by marca.id_marca desc";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $DatosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $DatosPost->start . " ";
         $ConsultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $DatosPost->draw,

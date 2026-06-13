@@ -36,11 +36,10 @@ class api_cpe
         $filename_zip = $nombreXML . '.ZIP';
 
         //1. URL DE CONSUMO
-        $ws_url = URL_SUNAT_PRUEBA;
+        $ws_url = URL_SUNAT;
 
         //2. SOAP PARA CONSUMIR EL SERVICIO
-        $xml_envelope = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-        xmlns:ser="http://service.sunat.gob.pe" xmlns:wsse="http://docs.oasisopen.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+        $xml_envelope = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.sunat.gob.pe" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
             <soapenv:Header>
                 <wsse:Security>
                     <wsse:UsernameToken>
@@ -55,7 +54,8 @@ class api_cpe
                     <contentFile>' . $zip_codificado . '</contentFile>
                 </ser:sendBill>
             </soapenv:Body>
-        </soapenv:Envelope>';
+        </soapenv:Envelope>
+        ';
 
         //3. CURL
         //3.1. INICIAR EL CURL
@@ -188,7 +188,7 @@ class api_cpe
         $filename_zip = $nombreXML . '.ZIP';
 
         //1. URL DE CONSUMO
-        $ws_url = URL_SUNAT_PRUEBA;
+        $ws_url = URL_SUNAT;
 
         //2. SOAP PARA CONSUMIR EL SERVICIO
         $xml_envelope = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -278,7 +278,7 @@ class api_cpe
 
     function consultar_ticket($emisor, $cabecera, $ticket, $ruta_archivo_cdr = 'cdr/') {
         //1. URL DE CONSUMO
-        $ws_url = URL_SUNAT_PRUEBA;
+        $ws_url = URL_SUNAT;
 
         //2. SOAP PARA CONSUMIR EL SERVICIO
         $xml_envelope = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -399,7 +399,7 @@ class api_cpe
     function consultarComprobante($emisor, $comprobante)
     {
 		try{
-            $ws = URL_SUNAT_PRUEBA;
+            $ws = URL_SUNAT;
             $xml_post_string = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
             xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.sunat.gob.pe" 
             xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">

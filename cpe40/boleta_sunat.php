@@ -54,7 +54,6 @@ class BoletaSunat
             'tota_texto'                    =>  ''
         );
         $detalle = $this->datos['details'];
-
         //inicializar variables para los totales
         $total_opgravadas = 0.00;
         $total_opexoneradas = 0.00;
@@ -73,7 +72,7 @@ class BoletaSunat
                 $total_opexoneradas += $value['valor_total'];
             }
 
-            if ($value['tipo_afectacion_igv'] == 20) { //opinafectas
+            if ($value['tipo_afectacion_igv'] == 30) { //opinafectas
                 $total_opinafectas += $value['valor_total'];
             }
             $igv += $value['igv'];

@@ -93,14 +93,14 @@ class PromocionesController
             $longitud = $datosPost->length;
         }
         $buscar = $datosPost->search->value;
-        $consulta = " where (titulo_promocion LIKE '%$buscar%'
-        or descripcion_promocion LIKE '%$buscar%'
+        $consulta = " where (titulo_promocion LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . "
+        or descripcion_promocion LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . "
         ) ";
         $query = "SELECT * FROM promocion
         $consulta
         order by id_promocion desc";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $datosPost->start . " ";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         foreach ($consultaGlobal as  &$element) {
             $fechactual = strtotime(date('Y-m-d'));

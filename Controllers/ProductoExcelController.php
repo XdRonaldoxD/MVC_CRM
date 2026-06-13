@@ -499,21 +499,22 @@ class ProductoExcelController
 
         $encabezado = [
             "Codigo Producto", "Nombre del Producto  (Obligatorio)", "Codigo Barra", "Tipo Producto (Obligatorio)", "Tipo Inventario (Obligatorio)", "Unidad", "Tipo Concentración",
-            "Marca", "Nombre del Laboratorio", 'Visible Online', "Precio Venta (Obligatorio)", "Categoria (separado con '|' si esta relacionado con varias categorias)",
+            "Marca", "Nombre del Laboratorio", 'Visible Online', "Categoria (separado con '|' si esta relacionado con varias categorias)",
             "Ruta Imagenes(separado con '|' si esta relacionado con varias imagenes)"
         ];
         $encabezado = array_map('strtoupper', $encabezado);
         $bodegas = "SELECT null as BODEGA,null as STOCK,null as 'PRECIO COMPRA' FROM bodega";
         $bodega = (new ConsultaGlobal())->ConsultaGlobal($bodegas);
-        $columnas = range('N', 'Z');
+        $columnas = range('M', 'Y');
         $contadorBodega = 1;
-        $cantida_bodega = count($bodega) * 3;
+        $cantida_bodega = count($bodega) * 4;
         $cantida_bodega -= 1;
         foreach ($bodega as &$bodegaData) {
             $tempArray = [
-                'BODEGA ' . $contadorBodega . '(OBLIGATORIO)',
-                'STOCK ' . $contadorBodega,
-                'PRECIO COMPRA ' . $contadorBodega
+                'BODEGA ' . $contadorBodega . ' (OBLIGATORIO)',
+                'STOCK BODEGA ' . $contadorBodega,
+                'PRECIO COMPRA BODEGA ' . $contadorBodega,
+                'PRECIO VENTA BODEGA ' . $contadorBodega . ' (OBLIGATORIO)'
             ];
             $encabezado = array_merge($encabezado, $tempArray);
             $contadorBodega++;
@@ -526,7 +527,7 @@ class ProductoExcelController
             from producto_imagen where id_producto=producto.id_producto
         ) as producto_imagen,
         (
-            SELECT  GROUP_CONCAT(glosa_bodega,'@',total_stock_producto_bodega,'@',ultimopreciocompra_stock_producto_bodega SEPARATOR '|') from stock_producto_bodega
+            SELECT  GROUP_CONCAT(glosa_bodega,'@',total_stock_producto_bodega,'@',ultimopreciocompra_stock_producto_bodega,'@',precioventa_stock_producto_bodega SEPARATOR '|') from stock_producto_bodega
             inner join bodega using (id_bodega)
             where id_producto=producto.id_producto
         ) as stock_producto_bodega
@@ -699,7 +700,7 @@ class ProductoExcelController
             $sheet->setCellValue("I$indice", $elemento->glosa_proveedor);
 
             $sheet->setCellValue("J$indice", ($elemento->visibleonline_producto == 1)  ? 'SI' : 'NO');
-            $sheet->setCellValue("K$indice", $elemento->precioventa_producto);
+            // $sheet->setCellValue("K$indice", $elemento->precioventa_producto);
             // CATEGORIA---------------------------------------------
             $texto = $elemento->categoria_producto;
             $categoria_partes = explode(",", $texto);
@@ -732,8 +733,8 @@ class ProductoExcelController
                 $mostar_categorias .= $result . '|';
             }
             $mostar_categorias = rtrim($mostar_categorias, '|');
-            $sheet->setCellValue("L$indice", $mostar_categorias);
-            $sheet->setCellValue("M$indice", $elemento->producto_imagen);
+            $sheet->setCellValue("K$indice", $mostar_categorias);
+            $sheet->setCellValue("L$indice", $elemento->producto_imagen);
 
             if ($elemento->stock_producto_bodega) {
                 $stock_producto_bodega = explode("|", $elemento->stock_producto_bodega);
@@ -867,12 +868,12 @@ class ProductoExcelController
     {
         $encabezado = [
             "Codigo Producto", "Nombre del Producto  (Obligatorio)", "Codigo Barra", "Tipo Producto (Obligatorio)", "Tipo Inventario (Obligatorio)", "Unidad", "Tipo Concentración",
-            "Marca", "Nombre del Laboratorio", 'Visible Online', "Precio Venta (Obligatorio)", "Categoria (separado con '|' si esta relacionado con varias categorias)",
+            "Marca", "Nombre del Laboratorio", 'Visible Online', "Categoria (separado con '|' si esta relacionado con varias categorias)",
             "Ruta Imagenes(separado con '|' si esta relacionado con varias imagenes)"
         ];
         $bodega = Bodega::all();
-        $columnas = range('N', 'Z');
-        $cantida_bodega = count($bodega) * 3;
+        $columnas = range('M', 'Y');
+        $cantida_bodega = count($bodega) * 4;
         $cantida_bodega -= 1;
         $celda_bodega = $columnas[$cantida_bodega];
         $celda = "A1:{$celda_bodega}1";
@@ -880,9 +881,10 @@ class ProductoExcelController
         $contadorBodega = 1;
         foreach ($bodega as &$bodegaData) {
             $tempArray = [
-                'BODEGA ' . $contadorBodega . '(OBLIGATORIO)',
-                'STOCK ' . $contadorBodega,
-                'PRECIO COMPRA ' . $contadorBodega
+                'BODEGA ' . $contadorBodega . ' (OBLIGATORIO)',
+                'STOCK BODEGA ' . $contadorBodega,
+                'PRECIO COMPRA BODEGA ' . $contadorBodega,
+                'PRECIO VENTA BODEGA ' . $contadorBodega . ' (OBLIGATORIO)'
             ];
             $encabezado = array_merge($encabezado, $tempArray);
             $contadorBodega++;

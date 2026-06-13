@@ -12,6 +12,34 @@ require_once "config/Parametros.php";
 class EmpresaController
 {
 
+    // [SEGURIDAD C6] Proxy server-side de la consulta de RUC. El token de apisperu
+    // ya no viaja en el bundle del frontend; se lee de Parametros.php (no versionado).
+    // El RUC se sanea a solo dígitos para evitar inyección en la URL / SSRF.
+    public function BuscarRuc()
+    {
+        header('Content-Type: application/json');
+        $ruc = isset($_GET['ruc']) ? preg_replace('/[^0-9]/', '', $_GET['ruc']) : '';
+        if (strlen($ruc) !== 11) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'RUC inválido (debe tener 11 dígitos).']);
+            return;
+        }
+        $url = 'https://dniruc.apisperu.com/api/v1/ruc/' . $ruc . '?token=' . APISPERU_TOKEN;
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        $respuesta = curl_exec($ch);
+        $codigo = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($respuesta === false) {
+            http_response_code(502);
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo consultar el RUC.']);
+            return;
+        }
+        http_response_code($codigo ?: 200);
+        echo $respuesta;
+    }
+
     public function GuardarInformacion()
     {
         $directorio = __DIR__ . "/../archivo/" . DOMINIO_ARCHIVO . "/imagenes_empresa/";

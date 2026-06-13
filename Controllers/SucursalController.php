@@ -6,6 +6,7 @@ require_once "models/Departamento.php";
 require_once "models/Cliente.php";
 require_once "models/BodegaSucursal.php";
 require_once "models/ConsultaGlobal.php";
+require_once "Helpers/ScopeUsuario.php";
 class SucursalController
 {
     public function traerSucursal()
@@ -79,9 +80,10 @@ class SucursalController
             $longitud = $datosPost->length;
         }
         $buscar = $datosPost->search->value;
-        $consulta = " and (glosa_sucursal LIKE '%$buscar%' or
-        direccion_sucursal LIKE '%$buscar%' or e_mail_sucursal LIKE '%$buscar%' or codigo_sucursal  LIKE '%$buscar%' or
-        encargado_sucursal  LIKE '%$buscar%' )";
+        $b = ConsultaGlobal::esc('%' . $buscar . '%');
+        $consulta = " and (glosa_sucursal LIKE $b or
+        direccion_sucursal LIKE $b or e_mail_sucursal LIKE $b or codigo_sucursal  LIKE $b or
+        encargado_sucursal  LIKE $b )";
         $query = "SELECT *,
         (
             SELECT GROUP_CONCAT(glosa_bodega) from bodega_sucursal
@@ -92,11 +94,12 @@ class SucursalController
         inner join distrito using (idDistrito)
         inner join provincia using (idProvincia)
         inner join departamentos using (idDepartamento)
-        WHERE vigente_sucursal=$datosPost->vigente_sucursal $consulta
+        WHERE vigente_sucursal=" . ConsultaGlobal::esc($datosPost->vigente_sucursal) . " $consulta
+        " . ScopeUsuario::filtroSucursal('sucursal.id_sucursal') . "
         order by sucursal.id_sucursal desc";
 
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $datosPost->start . " ";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $datosPost->draw,
@@ -118,7 +121,12 @@ class SucursalController
 
     public function traerDatosSucursal()
     {
-        $bodegas = Bodega::where('vigente_bodega', 1)->get()->toArray();
+        $qbod = Bodega::where('vigente_bodega', 1);
+        $bodPermitidas = ScopeUsuario::idsBodegas();
+        if ($bodPermitidas !== null) {
+            $qbod->whereIn('id_bodega', $bodPermitidas);
+        }
+        $bodegas = $qbod->get()->toArray();
         $departamento = Departamento::join('provincia', 'provincia.idDepartamento', 'departamentos.idDepartamento')
             ->join('distrito', 'distrito.idProvincia', 'provincia.idProvincia')
             ->get()->toArray();
@@ -183,13 +191,14 @@ class SucursalController
     public function buscaUsuarioDefecto()
     {
         $buscar = $_GET['search']; // Asegúrate de validar y limpiar esta entrada de usuario.
+        $b = ConsultaGlobal::esc('%' . $buscar . '%');
         $sql = "SELECT CONCAT(nombre_staff,' ',apellidopaterno_staff,' ',apellidomaterno_staff) as  nombre_staff,usuario.id_usuario
             FROM usuario
             JOIN staff ON staff.id_staff = usuario.id_staff
             WHERE (
-                nombre_staff LIKE '%$buscar%'
-                OR apellidopaterno_staff LIKE '%$buscar%'
-                OR apellidomaterno_staff LIKE '%$buscar%'
+                nombre_staff LIKE $b
+                OR apellidopaterno_staff LIKE $b
+                OR apellidomaterno_staff LIKE $b
             )
             AND vigente_usuario = 1
             ORDER BY SUBSTRING(nombre_staff, 1, 1), SUBSTRING(nombre_staff, -1);";

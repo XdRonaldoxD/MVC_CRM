@@ -16,6 +16,7 @@ require_once "models/CertificadoDigital.php";
 require_once "cpe40/nota_credito_sunat.php";
 require_once "cpe40/resumen_anulaciones.php";
 require_once "Controllers/NegocioController.php";
+require_once "Helpers/ScopeUsuario.php";
 
 class AnularDocumentoController
 {
@@ -37,11 +38,13 @@ class AnularDocumentoController
         }
         if (isset($datosPost->filtro_buscar)) {
             $buscar = $datosPost->filtro_buscar;
-            $consulta = " and (CONCAT(boleta.serie_boleta,'-',boleta.numero_boleta) LIKE '%$buscar%' or
-            CONCAT(factura.serie_factura,'-',factura.numero_factura) LIKE '%$buscar%') ";
+            $consulta = " and (CONCAT(boleta.serie_boleta,'-',boleta.numero_boleta) LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . " or
+            CONCAT(factura.serie_factura,'-',factura.numero_factura) LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . ") ";
         } else {
             $consulta = '';
         }
+        // [SCOPE] No-admin: solo documentos de su bodega; admin todos.
+        $consulta .= ScopeUsuario::filtroBodega('negocio.id_bodega');
         $query = "SELECT negocio.id_negocio,boleta.id_boleta,factura.id_factura,factura.serie_factura,factura.numero_factura,factura.fechacreacion_factura,
         boleta.serie_boleta,boleta.numero_boleta,boleta.fechacreacion_boleta,
         cliente_boleta.nombre_cliente as nombre_cliente_boleta,
@@ -57,7 +60,7 @@ class AnularDocumentoController
         $consulta
         order by fechacreacion_negocio desc ";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $datosPost->start . " ";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $datosPost->draw,
@@ -212,7 +215,7 @@ class AnularDocumentoController
             $seriefolio = $folioAnular->serie_folio;
             $numero_folio = $folioAnular->numero_folio;
         }
-
+  
         $data = array(
             //EMPRESA------------------------------------------------
             "clavecertificado" => $clavecertificado,
@@ -335,10 +338,10 @@ class AnularDocumentoController
         } else {
             $notaCreditoSunat = new NotaCreditoSunat($data);
             $respuesta = $notaCreditoSunat->enviarnotacredito();
-            if (isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && $respuesta['estado'] != 8 && empty($respuesta['Nota'])) {
-                echo json_encode($respuesta);
-                exit(http_response_code(404));
-            }
+            // if (isset($respuesta['HTTP_CODE']) && $respuesta['HTTP_CODE'] !== 200 && $respuesta['estado'] != 8 && empty($respuesta['Nota'])) {
+            //     echo json_encode($respuesta);
+            //     exit(http_response_code(404));
+            // }
             $staff = Usuario::select("staff.*")->where('id_usuario', $datosanulacion->id_usuario)
                 ->join('staff', 'staff.id_staff', 'usuario.id_staff')
                 ->first();

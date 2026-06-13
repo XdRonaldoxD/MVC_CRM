@@ -16,18 +16,20 @@ class UsuarioController
     public function login()
     {
         $jwtAuth = new JwtAuth();
-        $email = helpers::validar_input($_POST['email']);
+        // [LOGIN] El identificador (campo 'email' del formulario) acepta CORREO o DNI.
+        $identificador = helpers::validar_input($_POST['email']);
         $password = helpers::validar_input($_POST['password']);
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (trim($identificador) === '') {
             http_response_code(404);
-            header("correo erroneo");
+            echo json_encode("Ingrese su correo o DNI");
+            return;
+        }
+        // [SEGURIDAD A1] Se pasa la contraseña (ya pasada por validar_input, para
+        // mantener compatibilidad con los hashes existentes); signup la verifica.
+        if (isset($_POST['getToken'])) {
+            $signup = $jwtAuth->signup($identificador, $password, $_POST['getToken']);
         } else {
-            $pwd = hash('sha256', $password);
-            if (isset($_POST['getToken'])) {
-                $signup = $jwtAuth->signup($email, $pwd, $_POST['getToken']);
-            } else {
-                $signup = $jwtAuth->signup($email, $pwd);
-            }
+            $signup = $jwtAuth->signup($identificador, $password);
         }
         echo json_encode($signup);
     }
@@ -35,7 +37,7 @@ class UsuarioController
     public function RegistrarUsuario()
     {
         //Cifrar las contraseña - Cifrando 4 veces
-        $pwd = hash('sha256', $_POST['password_usuario']);
+        $pwd = helpers::hashPassword($_POST['password_usuario']); // [SEGURIDAD A1] bcrypt
         $staff = [
             'nombre_staff' => $_POST['nombre_usuario'],
             "apellidopaterno_staff" => $_POST['apellido_p_usuario'],

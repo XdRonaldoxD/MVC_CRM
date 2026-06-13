@@ -1,6 +1,7 @@
 <?php
 require_once "models/ConsultaGlobal.php";
 require_once "models/Bodega.php";
+require_once "Helpers/ScopeUsuario.php";
 class BodegaController
 {
     public function traerBodega()
@@ -58,12 +59,13 @@ class BodegaController
             $longitud = $datosPost->length;
         }
         $buscar = $datosPost->search->value;
-        $consulta = " and (glosa_bodega LIKE '%$buscar%') ";
+        $consulta = " and (glosa_bodega LIKE " . ConsultaGlobal::esc('%' . $buscar . '%') . ") ";
         $query = "SELECT * FROM bodega
-        WHERE  vigente_bodega=$datosPost->vigente_bodega $consulta
+        WHERE  vigente_bodega=" . (int) $datosPost->vigente_bodega . " $consulta
+        " . ScopeUsuario::filtroBodega('bodega.id_bodega') . "
         order by bodega.id_bodega desc";
         $consultaGlobalLimit = (new ConsultaGlobal())->ConsultaGlobal($query);
-        $query .= "  LIMIT {$longitud} OFFSET $datosPost->start ";
+        $query .= "  LIMIT " . (int) $longitud . " OFFSET " . (int) $datosPost->start . " ";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaGlobal($query);
         $datos = array(
             "draw" => $datosPost->draw,
