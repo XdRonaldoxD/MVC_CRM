@@ -10,6 +10,7 @@ require_once "models/EmpresaVentaOnline.php";
 require_once "config/Parametros.php";
 require_once "Helpers/JwtAuth.php";
 require_once "Helpers/PermisoGate.php";
+require_once "Helpers/EmailTemplate.php";
 
 class CajaController
 {
@@ -339,12 +340,21 @@ class CajaController
         $output = $dompdf->output();
         // --------------------------
         //CUERPO EMAIL----------------------------
-        $cuerpo = "Estimado <strong>Encargado</strong><br>
-        $caja->nombre_staff $caja->apellidopaterno_staff  le adjunta el detalle de la caja del dia.<br><br>
-        <strong>!Gracias por su preferencia!</strong>";
-        ob_start();
-        require_once 'generar-pdf/Email/FomatoCaja.php';
-        $body = ob_get_clean();
+        // [CORREO] Cuerpo con la plantilla branded reutilizable (antes texto plano).
+        $encargado = trim((string) ($caja->nombre_staff ?? '') . ' ' . (string) ($caja->apellidopaterno_staff ?? ''));
+        $detallesCaja = [
+            'Encargado' => $encargado !== '' ? $encargado : '—',
+            'Fecha' => date('d/m/Y H:i'),
+            'Monto inicial' => 'S/ ' . number_format((float) ($respuesta['montoinicial_caja'] ?? 0), 2),
+            'Total en efectivo' => 'S/ ' . number_format((float) ($respuesta['total_efectivo'] ?? 0), 2),
+            'Total en caja' => 'S/ ' . number_format((float) ($respuesta['total_caja'] ?? 0), 2),
+        ];
+        $body = EmailTemplate::render(
+            'Resumen de caja',
+            'Adjuntamos el <strong>detalle de tu caja</strong> (' . htmlspecialchars((string) $DatosPost->formato) . ') en formato PDF con el movimiento del día.',
+            $detallesCaja,
+            'Revisa el archivo adjunto para ver el desglose completo de ingresos y egresos.'
+        );
         ////-------------------------------
         $mail = new PHPMailer(true);
         try {

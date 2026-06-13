@@ -18,6 +18,7 @@ require_once "models/Cliente.php";
 require_once "models/Usuario.php";
 require_once "models/Caja.php";
 require_once "models/ConsultaGlobal.php";
+require_once "Helpers/EmailTemplate.php";
 require_once "config/Parametros.php";
 
 
@@ -197,16 +198,13 @@ class NotaVentaController
 
         switch ($DatosPost->tipo_documento) {
             case 'BOLETA':
-                $html = '<h1>Boleta enviada con éxito</h1>';
                 $setFrom = 'BOLETA';
                 break;
             case 'FACTURA':
-                $html = '<h1>Factura enviada con éxito</h1>';
                 $setFrom = 'FACTURA';
                 break;
             default:
                 $setFrom = 'NOTA VENTA';
-                $html = '<h1>Nota Venta enviada con éxito</h1>';
                 break;
         }
 
@@ -218,6 +216,8 @@ class NotaVentaController
             $correo = $DatosPost->Correo_pdf;
             $url = $DatosPost->url_pdf;
         }
+        // [CORREO] Cuerpo con plantilla branded reutilizable (antes era un simple <h1>).
+        $html = EmailTemplate::comprobante($setFrom);
         $url = str_replace(' ', '%20', $url);
         $mail = new PHPMailer(true);
         try {
@@ -252,14 +252,16 @@ class NotaVentaController
             //
             // Content
             $mail->isHTML(true);                                  // Set email format to HTML
-            $mail->Subject = $setFrom;
+            $mail->Subject = 'Tu comprobante electrónico (' . $setFrom . ')';
             $mail->Body    = $html;
             $mail->CharSet = 'UTF-8';
             $mail->send();
             $respuesta = 'ok';
         } catch (Exception $e) {
+            // El envío de correo depende de credenciales SMTP (SendGrid) válidas en
+            // config/Parametros.php. "Could not authenticate" => API key inválida/expirada.
             $respuesta = $e->getMessage();
-            echo "Ubo un error al Enviar {$e->getMessage()})";
+            echo "Hubo un error al enviar el correo: {$e->getMessage()}";
             http_response_code(403);
             die;
         }
