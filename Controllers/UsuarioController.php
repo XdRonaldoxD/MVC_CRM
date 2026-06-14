@@ -16,8 +16,9 @@ class UsuarioController
     public function login()
     {
         $jwtAuth = new JwtAuth();
-        // [LOGIN] El identificador (campo 'email' del formulario) acepta CORREO o DNI.
-        $identificador = helpers::validar_input($_POST['email']);
+        // [LOGIN] El identificador llega como 'dni' (el login es por DNI). Se mantiene
+        // respaldo a 'email' por compatibilidad. El backend acepta DNI o correo.
+        $identificador = helpers::validar_input($_POST['dni'] ?? $_POST['email'] ?? '');
         $password = helpers::validar_input($_POST['password']);
         if (trim($identificador) === '') {
             http_response_code(404);
