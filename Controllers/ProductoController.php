@@ -202,9 +202,18 @@ class ProductoController
             'id_bodega' => $GestionarStock->id_bodega,
             'id_producto' => $GestionarStock->id_producto,
             'total_stock_producto_bodega' => $total_stock_producto_bodega,
-            'precioventa_stock_producto_bodega' => $GestionarStock->precio_venta ?? null,
-            'ultimopreciocompra_stock_producto_bodega' => $GestionarStock->precio_compra ?? null,
         ];
+        // [STOCK] Los precios SOLO se actualizan al AÑADIR (accion=1) y cada uno de forma
+        // independiente según su propio check. En "Quitar" (salida) se conservan, porque
+        // una salida de stock no modifica el precio de compra/venta.
+        if ($GestionarStock->accion == '1') {
+            if (!empty($GestionarStock->actualizar_compra)) {
+                $datos['ultimopreciocompra_stock_producto_bodega'] = $GestionarStock->precio_compra ?? null;
+            }
+            if (!empty($GestionarStock->actualizar_venta)) {
+                $datos['precioventa_stock_producto_bodega'] = $GestionarStock->precio_venta ?? null;
+            }
+        }
         if ($productobodega) {
             $productobodega->update($datos);
         } else {

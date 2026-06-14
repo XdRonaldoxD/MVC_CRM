@@ -132,7 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" || $_SERVER['REQUEST_METHOD'] === "GET
                 require_once "Helpers/PermisoGate.php";
                 $identity_perm = $jwtAth->checktoken($Authorization, true);
                 $id_perfil_perm = (is_object($identity_perm) && isset($identity_perm->id_perfil)) ? (int) $identity_perm->id_perfil : 0;
-                if (!PermisoGate::permitido($id_perfil_perm, $_GET['controller'])) {
+                $accion_perm = isset($_GET['action']) ? $_GET['action'] : '';
+                if (!PermisoGate::permitido($id_perfil_perm, $_GET['controller'], $accion_perm)) {
                     http_response_code(403);
                     echo json_encode(array(
                         'status' => 'error',

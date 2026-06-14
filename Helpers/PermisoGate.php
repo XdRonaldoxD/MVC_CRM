@@ -40,10 +40,27 @@ class PermisoGate
 
     private static $soloAdmin = ['Empresa', 'Permiso'];
 
-    public static function permitido($id_perfil, $controller)
+    // Acciones "lookup" que cualquier usuario autenticado puede usar aunque el
+    // controller sea de otro módulo (devuelven catálogos/datos propios, no sensibles).
+    // Ej.: misModulos arma el menú del propio usuario; FiltrarEstadosPedidos es un
+    // catálogo de estados que también usa la pantalla de Caja.
+    private static $accionesCompartidas = [
+        'Permiso' => ['misModulos'],
+        'Pedido'  => ['FiltrarEstadosPedidos'],
+    ];
+
+    public static function permitido($id_perfil, $controller, $action = '')
     {
         $id_perfil = (int) $id_perfil;
         if ($id_perfil === 1) {
+            return true;
+        }
+        // [FIX] Acciones "lookup" compartidas: se permiten a cualquier usuario
+        // autenticado aunque el controller sea de otro módulo (o soloAdmin), porque
+        // devuelven datos propios/catálogos no sensibles que otras pantallas necesitan
+        // (p. ej. misModulos arma el menú; FiltrarEstadosPedidos lo usa Caja).
+        if (isset(self::$accionesCompartidas[$controller])
+            && in_array($action, self::$accionesCompartidas[$controller], true)) {
             return true;
         }
         if (in_array($controller, self::$soloAdmin, true)) {

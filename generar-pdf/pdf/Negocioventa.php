@@ -260,7 +260,7 @@
                         <p><?= $ventas['cantidad'] ?></p>
                     </td>
                     <td style="padding: 0px;">
-                        <p>S/.<?= round($ventas['valor_total'], 2) ?></p>
+                        <p>S/.<?= number_format($ventas['valor_total'], 2) ?></p>
                     </td>
                 </tr>
             <?php
@@ -269,7 +269,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" style="font-size: 9px;padding:0px"> <strong>TOTAL</strong> S/<?= round($total_afecto, 2) ?> </td>
+                <td colspan="4" style="font-size: 9px;padding:0px"> <strong>TOTAL</strong> S/<?= number_format($total_afecto, 2) ?> </td>
             </tr>
         </tfoot>
 
@@ -283,7 +283,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= round($valorventa, 2) ?></p>
+                <p> S/<?= number_format($valorventa, 2) ?></p>
             </td>
         </tr>
         <tr>
@@ -292,7 +292,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= round($pagocliente_venta, 2) ?></p>
+                <p> S/<?= number_format($pagocliente_venta, 2) ?></p>
             </td>
         </tr>
         <tr>
@@ -301,7 +301,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= round($vuelto_negocio, 2) ?></p>
+                <p> S/<?= number_format($vuelto_negocio, 2) ?></p>
             </td>
         </tr>
     </table>
@@ -334,7 +334,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= round($total_afecto, 2) ?></p>
+                <p> S/<?= number_format($total_afecto, 2) ?></p>
             </td>
         </tr>
         <tr>
@@ -343,7 +343,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= round($igv_total, 2) ?></p>
+                <p> S/<?= number_format($igv_total, 2) ?></p>
             </td>
         </tr>
         <tr>
@@ -352,7 +352,7 @@
 
             </td>
             <td class="w-50">
-                <p> S/<?= round($importe_total, 2) ?></p>
+                <p> S/<?= number_format($importe_total, 2) ?></p>
             </td>
         </tr>
     </table>

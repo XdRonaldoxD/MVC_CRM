@@ -314,7 +314,7 @@
                                                                     <tr style="font-weight:bold">
                                                                         <td width="174px"></td>
                                                                         <td width="174px">Sub-total</td>
-                                                                        <td style="text-align:center" width="174px"><?= $totales_productos->subtotal ?></td>
+                                                                        <td style="text-align:center" width="174px">S/<?= number_format($totales_productos->subtotal, 2) ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td>&nbsp;</td>
@@ -338,7 +338,7 @@
                                                                     <tr style="font-weight:bold">
                                                                         <td width="174px"></td>
                                                                         <td width="174px">Total</td>
-                                                                        <td style="text-align:center" width="174px"><?= $totales_productos->total ?></td>
+                                                                        <td style="text-align:center" width="174px">S/<?= number_format($totales_productos->total, 2) ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <td colspan="3" style="border-bottom:1px solid #dcdcdc">&nbsp;</td>
