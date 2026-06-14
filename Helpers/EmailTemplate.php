@@ -89,7 +89,7 @@ class EmailTemplate
         <p style="margin:22px 0 30px;font-size:15px;color:' . $color . ';font-weight:600;">¡Gracias por su preferencia! 🌿</p>
     </td></tr>
     <tr><td style="background:#f9fafb;padding:18px 34px;border-top:1px solid #eef0f2;text-align:center;">
-        <p style="margin:0 0 4px;font-size:13px;font-weight:bold;color:#111827;">' . $nombre . '</p>
+        <p style="margin:0 0 4px;font-size:13px;font-weight:bold;color:' . $color . ';">' . $nombre . '</p>
         ' . ($contactoHtml ? '<p style="margin:0;font-size:12px;color:#6b7280;line-height:1.5;">' . $contactoHtml . '</p>' : '') . '
     </td></tr>
   </table>
