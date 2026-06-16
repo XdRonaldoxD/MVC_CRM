@@ -309,6 +309,26 @@ class EmpresaController
         left join provincia using (idProvincia)
         left join departamentos using (idDepartamento)";
         $consultaGlobal = (new ConsultaGlobal())->ConsultaSingular($query);
+        // Las series que realmente usan los comprobantes viven en la tabla `folio` (fuente de
+        // verdad). Reflejamos esos valores en la respuesta para que el formulario muestre lo
+        // que de verdad se usa (antes leía empresa_venta_online, que podía estar desincronizado).
+        if ($consultaGlobal) {
+            $mapaSeries = [
+                'serie_boleta_empresa_venta_online'     => 6,
+                'serie_factura_empresa_venta_online'    => 9,
+                'serie_nc_boleta_empresa_venta_online'  => 8,
+                'serie_nc_factura_empresa_venta_online' => 12,
+                'serie_nd_boleta_empresa_venta_online'  => 14,
+                'serie_nd_factura_empresa_venta_online' => 19,
+                'serie_nota_venta_empresa_venta_online' => 17,
+            ];
+            $foliosSeries = Folio::whereIn('id_folio', array_values($mapaSeries))->pluck('serie_folio', 'id_folio');
+            foreach ($mapaSeries as $campo => $idFolio) {
+                if (isset($foliosSeries[$idFolio])) {
+                    $consultaGlobal->$campo = $foliosSeries[$idFolio];
+                }
+            }
+        }
         $sucursal = Sucursal::where('vigente_sucursal', 1)->get();
         $bodegas = BodegaSucursal::join('bodega', 'bodega.id_bodega', 'bodega_sucursal.id_bodega')
             ->where('vigente_bodega', 1)

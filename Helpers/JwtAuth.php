@@ -64,6 +64,9 @@ class JwtAuth
                 'nombre' => $user->nombre_staff,
                 'apellido_paterno' => $user->apellidopaterno_staff,
                 'apellido_materno' => $user->apellidomaterno_staff,
+                // [AVATAR] Sexo del staff ('M'/'F') para mostrar el avatar por género
+                // en el header/sidebar del panel.
+                'sexo' => $user->sexo_staff,
                 'tipo_usuario' => $user->rol_usuario,
                 'imagen' => $user->pathfoto_usuario,
                 'id_perfil' => $user->id_perfil,
