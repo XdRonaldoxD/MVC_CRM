@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.sql
+backup_*.sql
+node_modules
+.env
+.htaccess2
