@@ -17,8 +17,7 @@ services:
       # Uploads persistentes fuera del contenedor
       - archivos_uploads:/var/www/html/archivo
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
       - crm_net
 
