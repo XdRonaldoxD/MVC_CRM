@@ -25,6 +25,8 @@ services:
     image: mysql:8.0
     container_name: mvc_crm_db
     restart: unless-stopped
+    ports:
+      - "3306:3306"
     environment:
       MYSQL_DATABASE: ${DB_NAME:-mvc_crm}
       MYSQL_USER: ${DB_USER:-crm_user}
