@@ -46,6 +46,7 @@ COPY . .
 RUN chown -R www-data:www-data /var/www/html \
  && chmod -R 755 /var/www/html \
  && chmod -R 775 /var/www/html/archivo \
+ && mkdir -p /var/www/html/frontend/api/archivo \
  && chmod -R 775 /var/www/html/frontend/api/archivo
 
 EXPOSE 80
