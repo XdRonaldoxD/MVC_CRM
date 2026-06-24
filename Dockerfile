@@ -42,6 +42,11 @@ RUN a2dissite 000-default && a2ensite crm
 WORKDIR /var/www/html
 COPY . .
 
+# Clonar el frontend compilado
+RUN rm -rf frontend && git clone https://github.com/XdRonaldoxD/Administrador_mvc.git frontend_repo \
+ && cp -r frontend_repo/dist/AdminCarritoCompras/. frontend/ \
+ && rm -rf frontend_repo
+
 # Permisos de escritura para carpetas que necesita la app
 RUN chown -R www-data:www-data /var/www/html \
  && chmod -R 755 /var/www/html \
