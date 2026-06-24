@@ -45,8 +45,6 @@ COPY . .
 # Permisos de escritura para carpetas que necesita la app
 RUN chown -R www-data:www-data /var/www/html \
  && chmod -R 755 /var/www/html \
- && chmod -R 775 /var/www/html/archivo \
- && mkdir -p /var/www/html/frontend/api/archivo \
- && chmod -R 775 /var/www/html/frontend/api/archivo
+ && chmod -R 775 /var/www/html/archivo
 
 EXPOSE 80
