@@ -34,6 +34,10 @@ RUN echo "upload_max_filesize = 128M" >> /usr/local/etc/php/conf.d/uploads.ini \
 # Permitir .htaccess en el directorio raiz
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
+# Configuracion de Apache para servir frontend + backend
+COPY apache-crm.conf /etc/apache2/sites-available/crm.conf
+RUN a2dissite 000-default && a2ensite crm
+
 # Copiar el proyecto
 WORKDIR /var/www/html
 COPY . .
@@ -41,6 +45,7 @@ COPY . .
 # Permisos de escritura para carpetas que necesita la app
 RUN chown -R www-data:www-data /var/www/html \
  && chmod -R 755 /var/www/html \
- && chmod -R 775 /var/www/html/archivo
+ && chmod -R 775 /var/www/html/archivo \
+ && chmod -R 775 /var/www/html/frontend/api/archivo
 
 EXPOSE 80
