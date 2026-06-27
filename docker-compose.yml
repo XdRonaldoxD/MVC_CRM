@@ -3,14 +3,17 @@ version: '3.3'
 services:
 
   # Frontend Angular servido por Nginx — unico punto de entrada (puerto 80)
+  # El compilado se monta desde /var/www/frontendMedico (repo git en el VPS).
+  # Para actualizar el front: "cd /var/www/frontendMedico && git pull" (sin rebuild).
   frontend:
-    build:
-      context: .
-      dockerfile: frontend.Dockerfile
+    image: nginx:alpine
     container_name: mvc_crm_frontend
     restart: unless-stopped
     ports:
       - "80:80"
+    volumes:
+      - /var/www/frontendMedico/dist/AdminCarritoCompras:/usr/share/nginx/html:ro
+      - ./nginx-frontend.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - backend
     networks:
