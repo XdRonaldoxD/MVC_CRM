@@ -34,18 +34,13 @@ RUN echo "upload_max_filesize = 128M" >> /usr/local/etc/php/conf.d/uploads.ini \
 # Permitir .htaccess en el directorio raiz
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
-# Configuracion de Apache para servir frontend + backend
+# Configuracion de Apache para servir solo el backend PHP
 COPY apache-crm.conf /etc/apache2/sites-available/crm.conf
 RUN a2dissite 000-default && a2ensite crm
 
 # Copiar el proyecto
 WORKDIR /var/www/html
 COPY . .
-
-# Clonar el frontend compilado
-RUN rm -rf frontend && git clone https://github.com/XdRonaldoxD/Administrador_mvc.git frontend_repo \
- && cp -r frontend_repo/dist/AdminCarritoCompras/. frontend/ \
- && rm -rf frontend_repo
 
 # Permisos de escritura para carpetas que necesita la app
 RUN chown -R www-data:www-data /var/www/html \

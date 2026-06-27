@@ -2,12 +2,25 @@ version: '3.3'
 
 services:
 
-  app:
-    build: .
-    container_name: mvc_crm_app
+  # Frontend Angular servido por Nginx — unico punto de entrada (puerto 80)
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    container_name: mvc_crm_frontend
     restart: unless-stopped
     ports:
       - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - crm_net
+
+  # Backend PHP — solo accesible internamente por la red de Docker
+  backend:
+    build: .
+    container_name: mvc_crm_app
+    restart: unless-stopped
     environment:
       DB_HOST: db
       DB_NAME: ${DB_NAME:-mvc_crm}
